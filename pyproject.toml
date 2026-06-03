@@ -32,3 +32,9 @@ section-order = ['future', 'standard-library', 'third-party', 'first-party', 'lo
 
 [tool.ruff.lint.pylint]
 max-args = 6
+
+[tool.mypy]
+ignore_missing_imports = false
+strict = true
+show_error_codes = true
+pretty = true

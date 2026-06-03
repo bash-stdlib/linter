@@ -5,12 +5,12 @@ from stdlib_html.fetcher import HTMLFetcher
 
 
 class TestHTMLFetcher(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fetcher = HTMLFetcher()
 
     def test_build_namespaces__multiple_functions__creates_correct_hierarchy(
         self,
-    ):
+    ) -> None:
         functions = {"stdlib.array.assert.is_array", "stdlib.string.args.join"}
 
         result = self.fetcher._build_namespaces(functions)
@@ -26,8 +26,8 @@ class TestHTMLFetcher(unittest.TestCase):
 
     @patch("urllib.request.urlopen")
     def test_extract_functions__valid_html__fetches_and_parses_content(
-        self, mock_urlopen
-    ):
+        self, mock_urlopen: MagicMock
+    ) -> None:
         mock_response = MagicMock()
         mock_response.read.return_value = b"<html>stdlib.func1</html>"
         mock_response.__enter__.return_value = mock_response
@@ -39,16 +39,22 @@ class TestHTMLFetcher(unittest.TestCase):
         self.assertEqual(mock_urlopen.call_count, 2)
 
     @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
-    def test_fetch__functions_found__returns_formatted_metadata(self, mock_extract):
+    def test_fetch__functions_found__returns_formatted_metadata(
+        self, mock_extract: MagicMock
+    ) -> None:
         mock_extract.return_value = {"stdlib.a.b"}
 
         result = self.fetcher.fetch()
 
-        self.assertEqual(result["functions"], ["stdlib.a.b"])
-        self.assertEqual(result["namespaces"], ["stdlib", "stdlib.a"])
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["functions"], ["stdlib.a.b"])
+            self.assertEqual(result["namespaces"], ["stdlib", "stdlib.a"])
 
     @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
-    def test_fetch__no_functions_found__returns_none(self, mock_extract):
+    def test_fetch__no_functions_found__returns_none(
+        self, mock_extract: MagicMock
+    ) -> None:
         mock_extract.return_value = set()
 
         result = self.fetcher.fetch()

@@ -3,7 +3,7 @@
 from cli import run_cli
 
 
-def main():
+def main() -> None:
     run_cli()
 
 

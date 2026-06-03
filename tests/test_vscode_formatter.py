@@ -6,10 +6,10 @@ from formatters.vscode_formatter import VSCodeFormatter
 
 
 class TestVSCodeFormatter(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.formatter = VSCodeFormatter()
 
-    def test_format__single_issue__returns_vscode_json(self):
+    def test_format__single_issue__returns_vscode_json(self) -> None:
         issue = STD003("test.sh", 5, 10, "stdlib.ns")
 
         result = self.formatter.format([issue])

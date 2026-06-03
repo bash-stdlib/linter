@@ -1,14 +1,20 @@
 """CLI package for the bash-stdlib linter."""
 
+from __future__ import annotations
+
 import argparse
 import sys
+from typing import TYPE_CHECKING
 
 from exceptions.base import BaseLinterException
 from exceptions.empty_cache import EmptyCacheError
 from .commands import get_command_map
 
+if TYPE_CHECKING:
+    from .commands import Command as Command
 
-def run_cli():
+
+def run_cli() -> None:
     parser = argparse.ArgumentParser(description="BASH stdlib linter")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -24,9 +30,7 @@ def run_cli():
     )
 
     # Check command
-    check_parser = subparsers.add_parser(
-        "check", help="Lint specified shell script files"
-    )
+    check_parser = subparsers.add_parser("check", help="Lint specified shell scripts")
     check_parser.add_argument("files", nargs="+", help="Shell script files to check")
     check_parser.add_argument(
         "--format",
@@ -43,7 +47,7 @@ def run_cli():
     command_map = get_command_map()
 
     try:
-        command_class = command_map.get(args.command)
+        command_class = command_map.get(str(args.command))
         if command_class:
             command_class().execute(args)
         else:

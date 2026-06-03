@@ -1,14 +1,22 @@
+from __future__ import annotations
+
 import json
 import unittest
+from typing import TYPE_CHECKING
 from unittest.mock import mock_open, patch
 
 from cache import load_cache, save_cache
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 
 
 class TestCache(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open)
     @patch("os.path.exists")
-    def test_load_cache__file_exists__returns_parsed_data(self, mock_exists, mock_file):
+    def test_load_cache__file_exists__returns_parsed_data(
+        self, mock_exists: MagicMock, mock_file: MagicMock
+    ) -> None:
         mock_exists.return_value = True
         mock_data = {"functions": ["stdlib.a"]}
         mock_file.return_value.read.return_value = json.dumps(mock_data)
@@ -18,7 +26,9 @@ class TestCache(unittest.TestCase):
         self.assertEqual(result, mock_data)
 
     @patch("os.path.exists")
-    def test_load_cache__file_missing__returns_none(self, mock_exists):
+    def test_load_cache__file_missing__returns_none(
+        self, mock_exists: MagicMock
+    ) -> None:
         mock_exists.return_value = False
 
         result = load_cache()
@@ -26,7 +36,9 @@ class TestCache(unittest.TestCase):
         self.assertIsNone(result)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_save_cache__valid_metadata__writes_json_to_file(self, mock_file):
+    def test_save_cache__valid_metadata__writes_json_to_file(
+        self, mock_file: MagicMock
+    ) -> None:
         mock_data = {"functions": ["stdlib.a"]}
 
         save_cache(mock_data)

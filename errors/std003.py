@@ -8,5 +8,5 @@ class STD003(LinterIssue):
     TITLE = "namespace called as function"
     DESCRIPTION = "A namespace was called directly instead of a specific function."
 
-    def format_message(self):
+    def format_message(self) -> str:
         return f"'{self.match}' is a namespace, not a function."

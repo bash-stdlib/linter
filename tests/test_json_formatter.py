@@ -6,10 +6,10 @@ from formatters.json_formatter import JSONFormatter
 
 
 class TestJSONFormatter(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.formatter = JSONFormatter()
 
-    def test_format__single_issue__returns_json_array(self):
+    def test_format__single_issue__returns_json_array(self) -> None:
         issue = STD003("test.sh", 1, 1, "stdlib.ns")
 
         result = self.formatter.format([issue])

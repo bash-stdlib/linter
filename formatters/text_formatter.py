@@ -1,10 +1,17 @@
 """Formatter for human-readable text output."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .base import Formatter
+
+if TYPE_CHECKING:
+    from errors.base import LinterIssue
 
 
 class TextFormatter(Formatter):
-    def format(self, issues):
+    def format(self, issues: list[LinterIssue]) -> str:
         if not issues:
             return "No issues found."
 

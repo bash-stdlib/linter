@@ -4,7 +4,7 @@ from errors.std002 import STD002
 
 
 class TestSTD002(unittest.TestCase):
-    def test_format_message__no_suggestion__returns_basic_message(self):
+    def test_format_message__no_suggestion__returns_basic_message(self) -> None:
         error = STD002("test.sh", 1, 1, "stdlib.a.b", "stdlib.a", suggestion=None)
 
         message = error.format_message()
@@ -13,7 +13,7 @@ class TestSTD002(unittest.TestCase):
             message, "Invalid function 'stdlib.a.b' in valid namespace 'stdlib.a'."
         )
 
-    def test_format_message__with_suggestion__includes_suggestion(self):
+    def test_format_message__with_suggestion__includes_suggestion(self) -> None:
         error = STD002(
             "test.sh", 1, 1, "stdlib.a.b", "stdlib.a", suggestion="stdlib.a.c"
         )
@@ -22,7 +22,7 @@ class TestSTD002(unittest.TestCase):
 
         self.assertIn("Did you mean 'stdlib.a.c'?", message)
 
-    def test_to_dict__always__contains_expected_metadata(self):
+    def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD002("test.sh", 1, 1, "match", "ns")
 
         result = error.to_dict()

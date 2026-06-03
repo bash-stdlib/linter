@@ -2,13 +2,14 @@
 
 import sys
 import urllib.request
+from typing import Any, Optional
 
 from constants import URL_STANDARD_DOC, URL_TESTING_DOC
 from .parser import HTMLParser
 
 
 class HTMLFetcher:
-    def __init__(self):
+    def __init__(self) -> None:
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -17,7 +18,7 @@ class HTMLFetcher:
             )
         }
 
-    def fetch(self):
+    def fetch(self) -> Optional[dict[str, Any]]:
         print("Fetching documentation to build cache...", file=sys.stderr)
         all_functions = self._extract_functions()
 
@@ -32,8 +33,8 @@ class HTMLFetcher:
             "namespaces": sorted(list(namespaces)),
         }
 
-    def _extract_functions(self):
-        functions = set()
+    def _extract_functions(self) -> set[str]:
+        functions: set[str] = set()
         for url in [URL_STANDARD_DOC, URL_TESTING_DOC]:
             try:
                 req = urllib.request.Request(url, headers=self.headers)
@@ -45,8 +46,8 @@ class HTMLFetcher:
                 print(f"Warning: Failed to fetch {url}: {e}", file=sys.stderr)
         return functions
 
-    def _build_namespaces(self, functions):
-        namespaces = set()
+    def _build_namespaces(self, functions: set[str]) -> set[str]:
+        namespaces: set[str] = set()
         for func in functions:
             parts = func.split(".")
             for i in range(1, len(parts)):
