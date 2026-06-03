@@ -1,0 +1,46 @@
+"""Unit tests for the IsTestingFunctionCallValidator."""
+
+import unittest
+
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
+from tests.assets.validator.is_testing_function_call.metadata import METADATA_FULL
+from validators.is_testing_function_call import IsTestingFunctionCallValidator
+
+
+class TestIsTestingFunctionCallValidator(unittest.TestCase):
+    def setUp(self) -> None:
+        self.global_state = GlobalLinterState(METADATA_FULL)
+        self.file_state = FileLinterState()
+        self.validator = IsTestingFunctionCallValidator(
+            self.global_state, self.file_state
+        )
+
+    def test_check__testing_func_in_test_file__returns_none(self) -> None:
+        call = "stdlib.test.func"
+        filepath = "/path/to/test_script.sh"
+
+        result = self.validator.check(call, filepath, 1, 1)
+
+        self.assertIsNone(result)
+
+    def test_check__testing_func_in_prod_file__returns_std007(self) -> None:
+        call = "stdlib.test.func"
+        filepath = "/path/to/prod_script.sh"
+
+        result = self.validator.check(call, filepath, 1, 1)
+
+        assert result is not None
+        self.assertEqual(result.CODE, "STD007")
+
+    def test_check__prod_func_in_prod_file__returns_none(self) -> None:
+        call = "stdlib.prod.func"
+        filepath = "/path/to/prod_script.sh"
+
+        result = self.validator.check(call, filepath, 1, 1)
+
+        self.assertIsNone(result)
+
+
+if __name__ == "__main__":
+    unittest.main()

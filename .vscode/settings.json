@@ -1,0 +1,8 @@
+{
+  "python.analysis.extraPaths": ["src"],
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.rulers": [88]
+  }
+}

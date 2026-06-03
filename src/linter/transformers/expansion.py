@@ -1,0 +1,153 @@
+"""Transformer for simplifying Bash expansions for easier parsing."""
+
+from typing import Dict, List, NamedTuple, Optional, Tuple
+
+from constants import (
+    ARRAY_MULTI_PLACEHOLDER,
+    ARRAY_SINGLE_PLACEHOLDER,
+    ARRAY_SIZE_PREFIX,
+    ARRAY_SIZE_SUFFIX,
+)
+from .base import TransformerBase
+
+
+class ExpansionConfig(NamedTuple):
+    """Configuration for a specific type of shell expansion."""
+
+    start_token: str
+    end_token: str
+    placeholder: str
+
+
+class ExpansionTransformer(TransformerBase):
+    """Simplifies arithmetic, parameter and subshell expansions."""
+
+    # Note: Order is important. "arithmetic" must be defined before "subshell"
+    # because "$(( " starts with "$(".
+    EXPANSION_CONFIG: "Dict[str, ExpansionConfig]" = {
+        "parameter": ExpansionConfig("${", "}", "${X}"),
+        "arithmetic": ExpansionConfig("$((", "))", "$((X))"),
+        "subshell": ExpansionConfig("$(", ")", "$(X)"),
+    }
+
+    def transform(self, content: "str") -> "str":
+        result: List[str] = []
+        i = 0
+        while i < len(content):
+            found_config = None
+            for config in self.EXPANSION_CONFIG.values():
+                if content.startswith(config.start_token, i):
+                    found_config = config
+                    break
+
+            if found_config:
+                simplified, next_i = self._simplify_expansion(content, i, found_config)
+                result.append(simplified)
+                i = next_i
+            else:
+                result.append(content[i])
+                i += 1
+
+        return "".join(result)
+
+    def _simplify_expansion(
+        self,
+        content: "str",
+        start_index: "int",
+        config: "ExpansionConfig",
+    ) -> "Tuple[str, int]":
+        """Find a matching expansion and returns the placeholder and next index."""
+        count = 1
+        j = start_index + len(config.start_token)
+        while j <= len(content) - len(config.end_token) and count > 0:
+            nested_config = None
+            for c in self.EXPANSION_CONFIG.values():
+                if content.startswith(c.start_token, j):
+                    nested_config = c
+                    break
+
+            if nested_config:
+                if nested_config.start_token == config.start_token:
+                    count += 1
+                    j += len(nested_config.start_token)
+                else:
+                    # Different expansion type: skip its entire content recursively
+                    # to avoid matching false end tokens.
+                    _, next_j = self._simplify_expansion(content, j, nested_config)
+                    j = next_j
+            elif content.startswith(config.end_token, j):
+                count -= 1
+                j += len(config.end_token)
+            else:
+                j += 1
+
+        if count == 0:
+            full_expansion = content[start_index:j]
+            if config.start_token == "${":
+                placeholder = self._get_bash_expansion_placeholder(full_expansion)
+                return placeholder or config.placeholder, j
+
+            return config.placeholder, j
+
+        return content[start_index], start_index + 1
+
+    def _get_bash_expansion_placeholder(self, expansion: str) -> Optional[str]:
+        """Determine the appropriate placeholder for a Bash expansion."""
+        if expansion.startswith("${#"):
+            return None
+
+        if self._is_string_slice(expansion):
+            return None
+
+        return self._get_positional_param_placeholder(
+            expansion
+        ) or self._get_array_content_placeholder(expansion)
+
+    def _is_string_slice(self, expansion: str) -> bool:
+        """Check if expansion is a string slice: ${parameter:offset[:length]}."""
+        return ":" in expansion and "[@]" not in expansion and "[*]" not in expansion
+
+    def _get_positional_param_placeholder(self, expansion: str) -> Optional[str]:
+        """Get placeholder for exact positional parameter expansions."""
+        positional_placeholders = {
+            "${@}": ARRAY_MULTI_PLACEHOLDER,
+            "${*}": ARRAY_SINGLE_PLACEHOLDER,
+        }
+        return positional_placeholders.get(expansion)
+
+    def _get_array_content_placeholder(self, expansion: str) -> Optional[str]:
+        """Get placeholder for array expansions or slices."""
+        if "[@]" in expansion:
+            return self._get_array_expansion_placeholder(
+                expansion, ARRAY_MULTI_PLACEHOLDER
+            )
+        if "[*]" in expansion:
+            return self._get_array_expansion_placeholder(
+                expansion, ARRAY_SINGLE_PLACEHOLDER
+            )
+        return None
+
+    def _get_array_expansion_placeholder(self, expansion: str, default: str) -> str:
+        """Handle array expansions, including slices with static lengths."""
+        if ":" not in expansion:
+            return default
+
+        parts = expansion[2:-1].split(":")
+
+        if len(parts) == 3:
+            return self._get_static_slice_length_placeholder(parts[2], default)
+
+        if len(parts) == 2:
+            return default
+
+        return default
+
+    def _get_static_slice_length_placeholder(
+        self, length_expression: str, fallback: str
+    ) -> str:
+        """Attempt to parse a static slice length and return its placeholder."""
+        try:
+            length = int(length_expression)
+            return "{}{}{}".format(ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX)
+        except ValueError:
+            return fallback
