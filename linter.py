@@ -1,118 +1,111 @@
 import re
-import sys
-import json
 import difflib
-from stdlib_html.fetcher import HTMLFetcher
-from cache import save_cache, load_cache
 from models import LinterError
-from cli import parse_args
+from constants import STDLIB_PATTERN
 
-def validate_call(call, functions, namespaces):
-    if call in functions:
-        return True, None
+class Linter:
+    def __init__(self, metadata):
+        self.functions = set(metadata['functions'])
+        self.namespaces = set(metadata['namespaces'])
+        self.stdlib_call_pattern = re.compile(STDLIB_PATTERN)
 
-    if call in namespaces:
-        return False, f"'{call}' is a namespace, not a function."
+    def lint(self, filepath):
+        errors = []
+        file_content = self._read_file(filepath, errors)
+        if file_content is None:
+            return errors
 
-    parts = call.split('.')
-    # Try to find the longest valid namespace prefix
-    longest_prefix = None
-    for i in range(len(parts) - 1, 0, -1):
-        prefix = '.'.join(parts[:i])
-        if prefix in namespaces:
-            longest_prefix = prefix
-            break
+        for match in self.stdlib_call_pattern.finditer(file_content):
+            errors.extend(self._process_match(match, file_content, filepath))
 
-    if longest_prefix:
-        # If the prefix is everything except the last part, it's an invalid function in a valid namespace
-        if longest_prefix == '.'.join(parts[:-1]):
-            msg = f"Invalid function '{call}' in valid namespace '{longest_prefix}'."
-            # Try to find a suggestion
-            possible_funcs = [f for f in functions if f.startswith(longest_prefix + ".")]
-            suggestions = difflib.get_close_matches(call, possible_funcs, n=1)
-            if suggestions:
-                msg += f" Did you mean '{suggestions[0]}'?"
-            return False, msg
-        else:
-            # Otherwise, the part after the longest_prefix is an invalid namespace
-            invalid_ns = '.'.join(parts[:len(longest_prefix.split('.')) + 1])
-            return False, f"Invalid namespace '{invalid_ns}'."
+        return errors
 
-    return False, f"Invalid namespace or function '{call}'."
+    def _read_file(self, filepath, errors):
+        try:
+            with open(filepath, 'r') as f:
+                return f.read()
+        except Exception as e:
+            errors.append(LinterError(
+                file=filepath,
+                line=0,
+                column=0,
+                message=f"Failed to read file: {e}",
+                match=""
+            ))
+            return None
 
-def lint_file(filepath, metadata):
-    functions = set(metadata['functions'])
-    namespaces = set(metadata['namespaces'])
-    errors = []
+    def _process_match(self, match, content, filepath):
+        call_name = self._get_call_name(match)
+        line_number = self._get_line_number(content, match.start())
+        column_number = self._get_column_number(content, match.start())
 
-    stdlib_re = re.compile(r'\b(stdlib\.[a-z0-9._]+)\b')
+        is_valid, error_message = self._validate_call(call_name)
+        if not is_valid:
+            return [LinterError(
+                file=filepath,
+                line=line_number,
+                column=column_number,
+                message=error_message,
+                match=call_name
+            )]
+        return []
 
-    try:
-        with open(filepath, 'r') as f:
-            content = f.read()
+    def _get_call_name(self, match):
+        call = match.group(1)
+        if call.endswith('.'):
+            return call[:-1]
+        return call
 
-        for match in stdlib_re.finditer(content):
-            call = match.group(1)
-            if call.endswith('.'):
-                call = call[:-1]
+    def _get_line_number(self, content, offset):
+        return content.count('\n', 0, offset) + 1
 
-            start_pos = match.start()
+    def _get_column_number(self, content, offset):
+        last_newline = content.rfind('\n', 0, offset)
+        return offset - last_newline if last_newline != -1 else offset + 1
 
-            line_no = content.count('\n', 0, start_pos) + 1
-            last_newline = content.rfind('\n', 0, start_pos)
-            column_no = start_pos - last_newline if last_newline != -1 else start_pos + 1
+    def _validate_call(self, call):
+        if call in self.functions:
+            return True, None
 
-            is_valid, message = validate_call(call, functions, namespaces)
-            if not is_valid:
-                errors.append(LinterError(
-                    file=filepath,
-                    line=line_no,
-                    column=column_no,
-                    message=message,
-                    match=call
-                ))
-    except Exception as e:
-        errors.append(LinterError(
-            file=filepath,
-            line=0,
-            column=0,
-            message=f"Failed to read file: {e}",
-            match=""
-        ))
+        if call in self.namespaces:
+            return False, f"'{call}' is a namespace, not a function."
 
-    return errors
+        return False, self._generate_error_message(call)
 
-def main():
-    parser, args = parse_args()
+    def _generate_error_message(self, call):
+        longest_namespace = self._find_longest_namespace_prefix(call)
 
-    if args.rebuild:
-        fetcher = HTMLFetcher()
-        metadata = fetcher.fetch_stdlib_metadata()
-        if metadata:
-            save_cache(metadata)
-        return
+        if longest_namespace:
+            if self._is_immediate_child_of_namespace(call, longest_namespace):
+                message = f"Invalid function '{call}' in valid namespace '{longest_namespace}'."
+                suggestion = self._get_suggestion(call, longest_namespace)
+                if suggestion:
+                    message += f" Did you mean '{suggestion}'?"
+                return message
 
-    if not args.check:
-        parser.print_help()
-        return
+            invalid_namespace = self._extract_invalid_namespace(call, longest_namespace)
+            return f"Invalid namespace '{invalid_namespace}'."
 
-    metadata = load_cache()
-    if not metadata:
-        fetcher = HTMLFetcher()
-        metadata = fetcher.fetch_stdlib_metadata()
-        if metadata:
-            save_cache(metadata)
-        else:
-            print("Error: Cache is empty and failed to fetch documentation.", file=sys.stderr)
-            sys.exit(1)
+        return f"Invalid namespace or function '{call}'."
 
-    all_errors = []
-    for filepath in args.check:
-        all_errors.extend(lint_file(filepath, metadata))
+    def _find_longest_namespace_prefix(self, call):
+        parts = call.split('.')
+        for i in range(len(parts) - 1, 0, -1):
+            prefix = '.'.join(parts[:i])
+            if prefix in self.namespaces:
+                return prefix
+        return None
 
-    print(json.dumps([e.to_dict() for e in all_errors], indent=2))
-    if all_errors:
-        sys.exit(1)
+    def _is_immediate_child_of_namespace(self, call, namespace):
+        parts = call.split('.')
+        return namespace == '.'.join(parts[:-1])
 
-if __name__ == "__main__":
-    main()
+    def _get_suggestion(self, call, namespace):
+        possible_functions = [f for f in self.functions if f.startswith(namespace + ".")]
+        suggestions = difflib.get_close_matches(call, possible_functions, n=1)
+        return suggestions[0] if suggestions else None
+
+    def _extract_invalid_namespace(self, call, longest_valid_prefix):
+        parts = call.split('.')
+        valid_parts_count = len(longest_valid_prefix.split('.'))
+        return '.'.join(parts[:valid_parts_count + 1])
