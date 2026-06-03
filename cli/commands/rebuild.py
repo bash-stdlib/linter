@@ -1,9 +1,10 @@
 """CLI command to rebuild the local metadata cache."""
 
-from stdlib_html.fetcher import HTMLFetcher
 from cache import save_cache
-from errors import EmptyCacheError
+from exceptions.empty_cache import EmptyCacheError
+from stdlib_html.fetcher import HTMLFetcher
 from .base import Command
+
 
 class RebuildCacheCommand(Command):
     def execute(self, args):

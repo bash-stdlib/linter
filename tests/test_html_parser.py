@@ -1,5 +1,7 @@
 import unittest
+
 from stdlib_html.parser import HTMLParser
+
 
 class TestHTMLParser(unittest.TestCase):
     def setUp(self):
@@ -56,6 +58,7 @@ class TestHTMLParser(unittest.TestCase):
         result = self.parser.parse(html)
 
         self.assertEqual(len(result), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

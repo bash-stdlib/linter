@@ -2,7 +2,9 @@
 
 import html.parser
 import re
+
 from constants import STDLIB_PATTERN
+
 
 class HTMLParser(html.parser.HTMLParser):
     def __init__(self):
@@ -30,7 +32,8 @@ class HTMLParser(html.parser.HTMLParser):
         return cleaned_name
 
     def _is_valid_function_name(self, name):
-        return '.' in name
+        return "." in name
+
 
 def clean_function_ends_with_invalid_char(name):
-    return name and (name.endswith('.') or name.endswith('_'))
+    return name and (name.endswith(".") or name.endswith("_"))

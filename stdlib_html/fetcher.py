@@ -1,13 +1,21 @@
 """HTTP client for fetching bash-stdlib documentation from remote URLs."""
 
-import urllib.request
 import sys
-from .parser import HTMLParser
+import urllib.request
+
 from constants import URL_STANDARD_DOC, URL_TESTING_DOC
+from .parser import HTMLParser
+
 
 class HTMLFetcher:
     def __init__(self):
-        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        self.headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/91.0.4472.124 Safari/537.36"
+            )
+        }
 
     def fetch(self):
         print("Fetching documentation to build cache...", file=sys.stderr)
@@ -21,7 +29,7 @@ class HTMLFetcher:
 
         return {
             "functions": sorted(list(all_functions)),
-            "namespaces": sorted(list(namespaces))
+            "namespaces": sorted(list(namespaces)),
         }
 
     def _extract_functions(self):
@@ -30,7 +38,7 @@ class HTMLFetcher:
             try:
                 req = urllib.request.Request(url, headers=self.headers)
                 with urllib.request.urlopen(req) as response:
-                    content = response.read().decode('utf-8')
+                    content = response.read().decode("utf-8")
                     parser = HTMLParser()
                     functions.update(parser.parse(content))
             except Exception as e:
@@ -40,7 +48,7 @@ class HTMLFetcher:
     def _build_namespaces(self, functions):
         namespaces = set()
         for func in functions:
-            parts = func.split('.')
+            parts = func.split(".")
             for i in range(1, len(parts)):
-                namespaces.add('.'.join(parts[:i]))
+                namespaces.add(".".join(parts[:i]))
         return namespaces

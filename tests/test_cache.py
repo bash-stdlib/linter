@@ -1,11 +1,13 @@
-import unittest
 import json
-from unittest.mock import patch, mock_open
-from cache import save_cache, load_cache
+import unittest
+from unittest.mock import mock_open, patch
+
+from cache import load_cache, save_cache
+
 
 class TestCache(unittest.TestCase):
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('os.path.exists')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("os.path.exists")
     def test_load_cache__file_exists__returns_parsed_data(self, mock_exists, mock_file):
         mock_exists.return_value = True
         mock_data = {"functions": ["stdlib.a"]}
@@ -15,7 +17,7 @@ class TestCache(unittest.TestCase):
 
         self.assertEqual(result, mock_data)
 
-    @patch('os.path.exists')
+    @patch("os.path.exists")
     def test_load_cache__file_missing__returns_none(self, mock_exists):
         mock_exists.return_value = False
 
@@ -23,7 +25,7 @@ class TestCache(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch('builtins.open', new_callable=mock_open)
+    @patch("builtins.open", new_callable=mock_open)
     def test_save_cache__valid_metadata__writes_json_to_file(self, mock_file):
         mock_data = {"functions": ["stdlib.a"]}
 
@@ -33,6 +35,7 @@ class TestCache(unittest.TestCase):
         handle = mock_file()
         written_content = "".join(call.args[0] for call in handle.write.call_args_list)
         self.assertEqual(json.loads(written_content), mock_data)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,13 +1,14 @@
 """CLI command to list all available error codes and their descriptions."""
 
-from models import ErrorCode
+from errors import ALL_ISSUES
 from .base import Command
+
 
 class ListErrorCodesCommand(Command):
     def execute(self, args):
         print("BASH STDLIB Linter - Error Codes:")
         print("-" * 40)
-        for member in ErrorCode:
-            print(f"{member.name}: {member.title}")
-            print(f"      {member.description}")
+        for issue_class in ALL_ISSUES:
+            print(f"{issue_class.CODE}: {issue_class.TITLE}")
+            print(f"      {issue_class.DESCRIPTION}")
             print()
