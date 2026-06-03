@@ -1,0 +1,140 @@
+"""Core linter logic for validating bash-stdlib function calls."""
+
+import os
+import re
+from typing import TYPE_CHECKING, Any, List, Optional
+
+from issues import STD000
+from linter.pipelines import (
+    ArgumentPipeline,
+    DiscoveryPipeline,
+    ValidationPipeline,
+)
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
+from linter.transformers import LineContinuationTransformer
+
+if TYPE_CHECKING:
+    from typing import Pattern
+
+    from issues.base import LinterIssueBase
+
+
+class Linter:
+    def __init__(
+        self,
+        metadata: "Any",
+        ignored_codes: "Optional[List[str]]" = None,
+        extra_namespaces: "Optional[List[str]]" = None,
+        extra_functions: "Optional[List[str]]" = None,
+    ) -> "None":
+        self.global_state = GlobalLinterState(
+            metadata, ignored_codes, extra_namespaces, extra_functions,
+        )
+        self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
+        self.argument_pipeline = ArgumentPipeline()
+        self.line_continuation_transformer = LineContinuationTransformer()
+
+    def lint(self, filepath: "str") -> "List[LinterIssueBase]":
+        self.file_state = FileLinterState()
+        filepath = os.path.abspath(filepath)
+
+        try:
+            with open(filepath, "r") as f:
+                raw_content = f.read()
+                file_content = self.line_continuation_transformer.transform(
+                    raw_content, preserve_lines=True
+                )
+        except Exception as e:
+            if not self._is_ignored("STD000", 1):
+                return [STD000(filepath, str(e))]
+            return []
+
+        # Discovery Pass
+        discovery = DiscoveryPipeline(self.global_state, self.file_state)
+        discovery.process(file_content)
+
+        # Validation Pass
+        validation = ValidationPipeline(
+            self.global_state,
+            self.file_state,
+            self.stdlib_call_pattern,
+            self.argument_pipeline,
+        )
+        return validation.run(file_content, filepath)
+
+    def _build_call_pattern(self) -> "Pattern[str]":
+        dot_roots = set()
+        underscore_roots = set()
+
+        for name in (
+            self.global_state.functions
+            | self.global_state.namespaces
+            | self.global_state.extra_namespaces
+            | self.global_state.extra_functions
+        ):
+            if name.startswith("_"):
+                # Handle cases like _testing.func or _testing.example
+                dot_roots.add(name.split(".")[0])
+            elif "." in name:
+                dot_roots.add(name.split(".")[0])
+            elif "_" in name:
+                underscore_roots.add(name.split("_")[0] + "_")
+            elif name.startswith("@"):
+                # Always treat names starting with @ as dot-based roots
+                dot_roots.add(name.split(".")[0])
+            else:
+                dot_roots.add(name)
+
+        sorted_dot_roots = sorted(list(dot_roots), key=len, reverse=True)
+        sorted_underscore_roots = sorted(list(underscore_roots), key=len, reverse=True)
+
+        # Combine all roots into a single pattern.
+        # dot_roots are names that should only match if they are either exactly the name
+        # or followed by a dot (to avoid matching things like @parametrize_with_issues).
+        # underscore_roots (like assert_) can be followed by anything.
+
+        dot_pattern = (
+            r"(?:{})(?:\.[a-z0-9._]*)?".format(
+                "|".join(re.escape(r) for r in sorted_dot_roots)
+            )
+            if sorted_dot_roots
+            else r"(?!)"
+        )
+        underscore_pattern = (
+            r"(?:{})[a-z0-9._]*".format(
+                "|".join(re.escape(r) for r in sorted_underscore_roots)
+            )
+            if sorted_underscore_roots
+            else r"(?!)"
+        )
+
+        pattern = r"(?<!\w)({}|{})(?![a-z0-9._])".format(
+            dot_pattern, underscore_pattern
+        )
+
+        return re.compile(pattern)
+
+    def _is_ignored(
+        self,
+        code: str,
+        line: int,
+    ) -> bool:
+        code = code.upper()
+        if code in self.global_state.ignored_codes:
+            return True
+        if self.file_state.is_ignored(code, line):
+            return True
+        return False
+
+    def _get_line_number(self, content: "str", offset: "int") -> "int":
+        return content.count("\n", 0, offset) + content.count("\x0b", 0, offset) + 1
+
+    def _get_column_number(self, content: "str", offset: "int") -> "int":
+        last_newline = max(
+            content.rfind("\n", 0, offset), content.rfind("\x0b", 0, offset)
+        )
+        return offset - last_newline if last_newline != -1 else offset + 1
+
+
+__all__ = ["Linter"]
