@@ -1,3 +1,5 @@
+"""CLI command to perform linting on shell scripts."""
+
 import sys
 import json
 from stdlib_html.fetcher import HTMLFetcher

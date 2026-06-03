@@ -1,3 +1,5 @@
+"""Data structures used for reporting and internal metadata representation."""
+
 from typing import NamedTuple
 
 class LinterError(NamedTuple):

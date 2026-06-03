@@ -1,3 +1,5 @@
+"""Metadata persistence logic for the bash-stdlib linter."""
+
 import os
 import json
 import sys
@@ -7,7 +9,7 @@ def save_cache(metadata):
     try:
         with open(CACHE_FILE, 'w') as f:
             json.dump(metadata, f, indent=2)
-        print(f"Cache saved to {CACHE_FILE}")
+        print(f"Cache saved to {CACHE_FILE}", file=sys.stderr)
     except Exception as e:
         print(f"Error: Failed to save cache: {e}", file=sys.stderr)
 

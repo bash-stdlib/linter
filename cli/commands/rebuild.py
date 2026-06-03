@@ -1,3 +1,5 @@
+"""CLI command to rebuild the local metadata cache."""
+
 from stdlib_html.fetcher import HTMLFetcher
 from cache import save_cache
 from errors import EmptyCacheError

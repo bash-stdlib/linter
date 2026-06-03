@@ -1,3 +1,5 @@
+"""HTML parser to extract stdlib function names from documentation."""
+
 import html.parser
 import re
 from constants import STDLIB_PATTERN

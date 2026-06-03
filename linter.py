@@ -1,3 +1,5 @@
+"""Core linter logic for validating bash-stdlib function calls."""
+
 import re
 import difflib
 from models import LinterError

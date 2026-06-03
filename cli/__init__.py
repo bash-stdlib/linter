@@ -1,3 +1,5 @@
+"""CLI package for the bash-stdlib linter."""
+
 import argparse
 import sys
 from errors import BaseLinterError, EmptyCacheError

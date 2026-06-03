@@ -1,3 +1,5 @@
+"""Custom exception classes for the bash-stdlib linter."""
+
 class BaseLinterError(Exception):
     """Base class for linter errors."""
     pass

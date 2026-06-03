@@ -1,3 +1,5 @@
+"""HTTP client for fetching bash-stdlib documentation from remote URLs."""
+
 import urllib.request
 import sys
 from .parser import HTMLParser
@@ -8,7 +10,7 @@ class HTMLFetcher:
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
     def fetch(self):
-        print("Fetching documentation to build cache...")
+        print("Fetching documentation to build cache...", file=sys.stderr)
         all_functions = self._extract_functions()
 
         if not all_functions:

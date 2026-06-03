@@ -1,3 +1,5 @@
+"""Entry point for the bash-stdlib linter application."""
+
 from cli import run_cli
 
 def main():
