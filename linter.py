@@ -2,7 +2,7 @@
 
 import re
 import difflib
-from models import LinterError
+from models import LinterError, ErrorCode
 from constants import STDLIB_PATTERN
 
 class Linter:
@@ -28,6 +28,7 @@ class Linter:
                 return f.read()
         except Exception as e:
             errors.append(LinterError(
+                code=ErrorCode.STD000.name,
                 file=filepath,
                 line=0,
                 column=0,
@@ -41,13 +42,14 @@ class Linter:
         line_number = self._get_line_number(content, match.start())
         column_number = self._get_column_number(content, match.start())
 
-        is_valid, error_message = self._validate_call(call_name)
+        is_valid, error_info = self._validate_call(call_name)
         if not is_valid:
             return [LinterError(
+                code=error_info['code'].name,
                 file=filepath,
                 line=line_number,
                 column=column_number,
-                message=error_message,
+                message=error_info['message'],
                 match=call_name
             )]
         return []
@@ -70,11 +72,14 @@ class Linter:
             return True, None
 
         if call in self.namespaces:
-            return False, f"'{call}' is a namespace, not a function."
+            return False, {
+                'code': ErrorCode.STD003,
+                'message': f"'{call}' is a namespace, not a function."
+            }
 
-        return False, self._generate_error_message(call)
+        return False, self._generate_error_info(call)
 
-    def _generate_error_message(self, call):
+    def _generate_error_info(self, call):
         longest_namespace = self._find_longest_namespace_prefix(call)
 
         if longest_namespace:
@@ -83,12 +88,21 @@ class Linter:
                 suggestion = self._get_suggestion(call, longest_namespace)
                 if suggestion:
                     message += f" Did you mean '{suggestion}'?"
-                return message
+                return {
+                    'code': ErrorCode.STD002,
+                    'message': message
+                }
 
             invalid_namespace = self._extract_invalid_namespace(call, longest_namespace)
-            return f"Invalid namespace '{invalid_namespace}'."
+            return {
+                'code': ErrorCode.STD001,
+                'message': f"Invalid namespace '{invalid_namespace}'."
+            }
 
-        return f"Invalid namespace or function '{call}'."
+        return {
+            'code': ErrorCode.STD004,
+            'message': f"Invalid namespace or function '{call}'."
+        }
 
     def _find_longest_namespace_prefix(self, call):
         parts = call.split('.')

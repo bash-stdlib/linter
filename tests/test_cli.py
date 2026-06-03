@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 from cli.commands.rebuild import RebuildCacheCommand
 from cli.commands.lint import LintCommand
+from cli.commands.list_codes import ListErrorCodesCommand
 from errors import EmptyCacheError
 
 class TestCommands(unittest.TestCase):
@@ -40,6 +41,18 @@ class TestCommands(unittest.TestCase):
             command.execute(args)
 
         mock_linter.lint.assert_called_once_with("file1.sh")
+
+    def test_list_error_codes_command__always__prints_all_codes(self):
+        command = ListErrorCodesCommand()
+
+        with patch('builtins.print') as mock_print:
+            command.execute(None)
+
+            # Check if a known code and its description were printed
+            calls = [call.args[0] for call in mock_print.call_args_list if call.args]
+            output = "\n".join(calls)
+            self.assertIn("STD001", output)
+            self.assertIn("invalid namespace", output)
 
 if __name__ == "__main__":
     unittest.main()
