@@ -1,0 +1,42 @@
+[project]
+name = "bash-stdlib-linter"
+version = "0.1.0"
+requires-python = ">=3.6"
+
+[project.scripts]
+bash-stdlib-lint = "main:main"
+
+[tool.ruff]
+exclude = ['.git', '__pycache__', '.mypy_cache']
+indent-width = 4
+line-length = 88
+src = ["src"]
+
+[tool.ruff.format]
+quote-style = 'double'
+
+[tool.ruff.lint]
+fixable = ['ALL']
+future-annotations = true
+ignore = ['D100', 'D101', 'D102', 'D103', 'D104', 'D105', 'D106', 'D107', 'D203', 'D213']
+select = ['ARG001', 'D', 'DJ', 'E', 'F', 'I', 'Q', 'TCH', 'UP006', 'UP007', 'UP037']
+unfixable = []
+
+[tool.ruff.lint.flake8-type-checking]
+quote-annotations = false
+
+[tool.ruff.lint.isort]
+default-section = 'first-party'
+length-sort = false
+no-lines-before = ['local-folder']
+section-order = ['future', 'standard-library', 'third-party', 'first-party', 'local-folder']
+
+[tool.ruff.lint.pylint]
+max-args = 6
+
+[tool.mypy]
+ignore_missing_imports = false
+mypy_path = "src"
+strict = true
+show_error_codes = true
+pretty = true
