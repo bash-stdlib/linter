@@ -1,7 +1,8 @@
 import unittest
 import os
 import json
-from lint import StdlibHTMLParser, validate_call, lint_file
+from stdlib_html.parser import HTMLParser
+from linter import validate_call, lint_file
 
 class TestLinter(unittest.TestCase):
     def test_html_parser(self):
@@ -15,16 +16,9 @@ class TestLinter(unittest.TestCase):
             </body>
         </html>
         """
-        parser = StdlibHTMLParser()
+        parser = HTMLParser()
         parser.feed(html_content)
 
-        expected = {
-            "stdlib.array.assert.is_array",
-            "stdlib.string.args.join",
-            "stdlib.io.path.query.is_file"
-        }
-        # stdlib.invalid will be picked up if it matches our regex
-        # Our current regex matches stdlib.[a-z0-9._]+
         self.assertTrue("stdlib.array.assert.is_array" in parser.functions)
         self.assertTrue("stdlib.string.args.join" in parser.functions)
         self.assertTrue("stdlib.io.path.query.is_file" in parser.functions)
@@ -42,6 +36,7 @@ class TestLinter(unittest.TestCase):
         self.assertFalse(valid)
         self.assertIn("Invalid function", msg)
         self.assertIn("stdlib.array.assert", msg)
+        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", msg)
 
         # Invalid namespace
         valid, msg = validate_call("stdlib.unknown.func", functions, namespaces)
@@ -70,8 +65,8 @@ stdlib.array.assert.is_ary wrong_func
         try:
             errors = lint_file(test_file, metadata)
             self.assertEqual(len(errors), 1)
-            self.assertEqual(errors[0]["line"], 4)
-            self.assertEqual(errors[0]["match"], "stdlib.array.assert.is_ary")
+            self.assertEqual(errors[0].line, 4)
+            self.assertEqual(errors[0].match, "stdlib.array.assert.is_ary")
         finally:
             if os.path.exists(test_file):
                 os.remove(test_file)
