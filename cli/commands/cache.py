@@ -7,10 +7,12 @@ from .base import Command
 
 
 class RebuildCacheCommand(Command):
+    COMMAND_NAME = "cache"
+
     def execute(self, args):
         fetcher = HTMLFetcher()
         metadata = fetcher.fetch()
         if metadata:
             save_cache(metadata)
         else:
-            raise EmptyCacheError("Failed to fetch documentation and build cache.")
+            raise EmptyCacheError()

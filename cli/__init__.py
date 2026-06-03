@@ -4,9 +4,8 @@ import argparse
 import sys
 
 from exceptions.base import BaseLinterException
-from .commands.lint import LintCommand
-from .commands.list_codes import ListErrorCodesCommand
-from .commands.rebuild import RebuildCacheCommand
+from exceptions.empty_cache import EmptyCacheError
+from .commands import get_command_map
 
 
 def run_cli():
@@ -29,22 +28,27 @@ def run_cli():
         "check", help="Lint specified shell script files"
     )
     check_parser.add_argument("files", nargs="+", help="Shell script files to check")
+    check_parser.add_argument(
+        "--format",
+        "-f",
+        choices=["json", "text", "vscode"],
+        default="json",
+        help="Output format (default: json)",
+    )
 
     # List command
     subparsers.add_parser("list", help="List all linter error codes and explanations")
 
     args = parser.parse_args()
+    command_map = get_command_map()
 
     try:
-        if args.command == "cache":
-            RebuildCacheCommand().execute(args)
-        elif args.command == "check":
-            LintCommand().execute(args)
-        elif args.command == "list":
-            ListErrorCodesCommand().execute(args)
+        command_class = command_map.get(args.command)
+        if command_class:
+            command_class().execute(args)
         else:
             parser.print_help()
-    except BaseLinterException as e:
+    except (BaseLinterException, EmptyCacheError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from cli.commands.list_codes import ListErrorCodesCommand
+from cli.commands.list import ListErrorCodesCommand
 
 
 class TestListErrorCodesCommand(unittest.TestCase):

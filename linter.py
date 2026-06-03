@@ -4,11 +4,7 @@ import difflib
 import re
 
 from constants import STDLIB_PATTERN
-from errors.std000 import STD000
-from errors.std001 import STD001
-from errors.std002 import STD002
-from errors.std003 import STD003
-from errors.std004 import STD004
+from errors import STD000, STD001, STD002, STD003, STD004
 
 
 class Linter:

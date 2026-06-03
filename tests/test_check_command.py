@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from cli.commands.lint import LintCommand
+from cli.commands.check import LintCommand
 
 
 class TestLintCommand(unittest.TestCase):
-    @patch("cli.commands.lint.load_cache")
+    @patch("cli.commands.check.load_cache")
     @patch("linter.Linter")
     def test_execute__valid_files__calls_linter_correctly(
         self, mock_linter_class, mock_load
