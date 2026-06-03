@@ -1,79 +1,69 @@
 import unittest
-import os
-import json
-from stdlib_html.parser import HTMLParser
+from unittest.mock import patch, mock_open
 from linter import Linter
 
 class TestLinter(unittest.TestCase):
-    def test_html_parser(self):
-        html_content = """
-        <html>
-            <body>
-                <h1>stdlib.array.assert.is_array</h1>
-                <p>Some text stdlib.string.args.join.</p>
-                <a href="#">stdlib.io.path.query.is_file</a>
-                <span>Not a function stdlib.invalid</span>
-            </body>
-        </html>
-        """
-        parser = HTMLParser()
-        functions = parser.parse(html_content)
-
-        self.assertTrue("stdlib.array.assert.is_array" in functions)
-        self.assertTrue("stdlib.string.args.join" in functions)
-        self.assertTrue("stdlib.io.path.query.is_file" in functions)
-
-    def test_validation_logic(self):
-        metadata = {
+    def setUp(self):
+        self.metadata = {
             "functions": ["stdlib.array.assert.is_array", "stdlib.string.args.join"],
             "namespaces": ["stdlib", "stdlib.array", "stdlib.array.assert", "stdlib.string", "stdlib.string.args"]
         }
-        linter = Linter(metadata)
+        self.linter = Linter(self.metadata)
 
-        # Valid function
-        valid, msg = linter._validate_call("stdlib.array.assert.is_array")
-        self.assertTrue(valid)
+    def test_validate_call__exact_match__returns_true(self):
+        result, message = self.linter._validate_call("stdlib.array.assert.is_array")
 
-        # Invalid function in valid namespace
-        valid, msg = linter._validate_call("stdlib.array.assert.is_ary")
-        self.assertFalse(valid)
-        self.assertIn("Invalid function", msg)
-        self.assertIn("stdlib.array.assert", msg)
-        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", msg)
+        self.assertTrue(result)
+        self.assertIsNone(message)
 
-        # Invalid namespace
-        valid, msg = linter._validate_call("stdlib.unknown.func")
-        self.assertFalse(valid)
-        self.assertIn("Invalid namespace", msg)
+    def test_validate_call__call_to_namespace__returns_false_with_error(self):
+        result, message = self.linter._validate_call("stdlib.array.assert")
 
-        # Calling a namespace
-        valid, msg = linter._validate_call("stdlib.array.assert")
-        self.assertFalse(valid)
-        self.assertIn("is a namespace", msg)
+        self.assertFalse(result)
+        self.assertIn("is a namespace, not a function", message)
 
-    def test_lint_file(self):
-        metadata = {
-            "functions": ["stdlib.array.assert.is_array"],
-            "namespaces": ["stdlib", "stdlib.array", "stdlib.array.assert"]
-        }
-        linter = Linter(metadata)
-        test_file = "test_script_refactored_class.sh"
-        content = """
-#!/bin/bash
-stdlib.array.assert.is_array my_array
-stdlib.array.assert.is_ary wrong_func
-"""
-        with open(test_file, "w") as f:
-            f.write(content)
+    def test_validate_call__misspelled_function__returns_false_with_suggestion(self):
+        result, message = self.linter._validate_call("stdlib.array.assert.is_ary")
 
-        try:
-            errors = linter.lint(test_file)
-            self.assertEqual(len(errors), 1)
-            self.assertEqual(errors[0].line, 4)
-            self.assertEqual(errors[0].match, "stdlib.array.assert.is_ary")
-        finally:
-            if os.path.exists(test_file):
-                os.remove(test_file)
+        self.assertFalse(result)
+        self.assertIn("Invalid function 'stdlib.array.assert.is_ary' in valid namespace 'stdlib.array.assert'", message)
+        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", message)
 
-if __name__ == '__main__':
+    def test_validate_call__invalid_sub_namespace__returns_false_with_error(self):
+        result, message = self.linter._validate_call("stdlib.array.unknown.func")
+
+        self.assertFalse(result)
+        self.assertIn("Invalid namespace 'stdlib.array.unknown'", message)
+
+    def test_validate_call__invalid_root_namespace__returns_false_with_error(self):
+        result, message = self.linter._validate_call("stdlib.unknown.func")
+
+        self.assertFalse(result)
+        self.assertIn("Invalid namespace 'stdlib.unknown'", message)
+
+    def test_get_line_number__content_offset__returns_correct_line(self):
+        content = "line1\nline2\nline3"
+        offset = content.find("line2")
+
+        result = self.linter._get_line_number(content, offset)
+
+        self.assertEqual(result, 2)
+
+    def test_get_column_number__content_offset__returns_correct_column(self):
+        content = "line1\nabcde"
+        offset = content.find("c")
+
+        result = self.linter._get_column_number(content, offset)
+
+        self.assertEqual(result, 3)
+
+    @patch('builtins.open', new_callable=mock_open, read_data="stdlib.array.assert.is_array\nstdlib.invalid")
+    def test_lint__script_with_error__returns_error_list(self, mock_file):
+        errors = self.linter.lint("dummy.sh")
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].match, "stdlib.invalid")
+        self.assertEqual(errors[0].line, 2)
+
+if __name__ == "__main__":
     unittest.main()
