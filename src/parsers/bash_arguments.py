@@ -36,34 +36,27 @@ class BashArgumentsParser(ParserBase):
 
     def _extract_arguments_from_lexer(self, lexer: "shlex.shlex") -> "List[str]":
         args = []
+        tokens = list(lexer)
         i = 0
 
-        # We need to preserve some whitespace information for subshells.
-        # shlex.shlex doesn't provide it, so we'll do our best.
-        # Actually, if we use posix=False it might help, but we need posix=True for quotes.
-        # Let's try to peek at the lexer's internal position if possible, but that's not stable.
-
-        tokens = list(lexer)
         while i < len(tokens):
             token = tokens[i]
 
-            if self._is_command_separator(token) or token == "\n":
+            if self._is_command_end(token):
                 break
 
-            # Handle subshells $(...) and backticks `...`
-            if token == "$" and i + 1 < len(tokens) and tokens[i + 1] == "(":
+            if self._is_start_of_subshell(token, tokens, i):
                 full_subshell, next_i = self._consume_subshell(tokens, i)
                 args.append(full_subshell)
                 i = next_i
                 continue
 
-            if token == "`":
+            if self._is_start_of_backticks(token):
                 full_backtick, next_i = self._consume_backticks(tokens, i)
                 args.append(full_backtick)
                 i = next_i
                 continue
 
-            # Handle redirections
             skip_count = self._get_redirect_skip_count(tokens, i)
             if skip_count > 0:
                 i += skip_count
@@ -73,6 +66,15 @@ class BashArgumentsParser(ParserBase):
             i += 1
 
         return args
+
+    def _is_command_end(self, token: "str") -> "bool":
+        return token in self.SHELL_SEPARATORS or token == "\n"
+
+    def _is_start_of_subshell(self, token: "str", tokens: "List[str]", i: "int") -> "bool":
+        return token == "$" and i + 1 < len(tokens) and tokens[i + 1] == "("
+
+    def _is_start_of_backticks(self, token: "str") -> "bool":
+        return token == "`"
 
     def _consume_subshell(self, tokens: "List[str]", start_index: "int") -> "tuple":
         """Consumes tokens belonging to a $(...) subshell."""
@@ -92,14 +94,30 @@ class BashArgumentsParser(ParserBase):
                     i += 1
                     break
 
-            # Since we lost whitespace, we insert a space between tokens that look like words
-            if consumed and consumed[-1] not in ["(", "$"] and t not in [")"]:
+            # Handle '))' as split into ')' and ')'
+            if t == "))":
+                 level -= 2
+                 if level <= 0:
+                     consumed.append("))")
+                     i += 1
+                     break
+
+            if self._should_insert_space(consumed, t):
                  consumed.append(" ")
 
             consumed.append(t)
             i += 1
 
         return "".join(consumed), i
+
+    def _should_insert_space(self, consumed: "List[str]", next_token: "str") -> "bool":
+        if not consumed:
+            return False
+        if consumed[-1] in ["(", "$"]:
+            return False
+        if next_token in [")", "(", " "]:
+            return False
+        return True
 
     def _consume_backticks(self, tokens: "List[str]", start_index: "int") -> "tuple":
         """Consumes tokens belonging to a `...` backtick command."""
@@ -122,13 +140,7 @@ class BashArgumentsParser(ParserBase):
         """Determines how many tokens to skip if a redirection is encountered."""
         token = tokens[current_index]
 
-        # File descriptor redirects split by shlex: ['2', '>', 'file'] or ['2', '>&', '1']
-        if (
-            current_index + 1 < len(tokens)
-            and token.isdigit()
-            and self._is_redirect_operator(tokens[current_index + 1])
-        ):
-            # Skip fd, operator, and potentially target
+        if self._is_prefixed_redirect(tokens, current_index):
             return 3 if self._requires_target(tokens[current_index + 1]) else 2
 
         if self._is_redirect_operator(token):
@@ -142,8 +154,12 @@ class BashArgumentsParser(ParserBase):
 
         return 0
 
-    def _is_command_separator(self, token: "str") -> "bool":
-        return token in self.SHELL_SEPARATORS
+    def _is_prefixed_redirect(self, tokens: "List[str]", i: "int") -> "bool":
+        return (
+            i + 1 < len(tokens)
+            and tokens[i].isdigit()
+            and self._is_redirect_operator(tokens[i + 1])
+        )
 
     def _is_redirect_operator(self, token: "str") -> "bool":
         return token in self.REDIRECT_OPERATORS

@@ -43,6 +43,13 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         self.assertEqual(result, ["arg1", "arg2"])
 
+    def test_parse__here_doc_marker__filters_out_redirect_and_marker(self) -> None:
+        content = "arg1 << EOF arg2"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(result, ["arg1", "arg2"])
+
     def test_parse__fd_redirect_no_space__filters_out_redirect(self) -> None:
         content = "arg1 2>file arg2"
 
@@ -77,6 +84,13 @@ class TestBashArgumentsParser(unittest.TestCase):
         result = self.parser.parse(content)
 
         self.assertEqual(result, ["arg1", "$(echo foo bar)", "arg2"])
+
+    def test_parse__nested_subshell__counts_as_one_argument(self) -> None:
+        content = "arg1 $(echo $(nested)) arg2"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(result, ["arg1", "$(echo $(nested))", "arg2"])
 
     def test_parse__quoted_subshell__counts_as_one_argument(self) -> None:
         content = 'arg1 "$(echo foo bar)" arg2'
@@ -126,3 +140,10 @@ class TestBashArgumentsParser(unittest.TestCase):
         result = self.parser.parse(content)
 
         self.assertIsNone(result)
+
+    def test_parse__complex_mixed__correctly_identifies_arguments(self) -> None:
+        content = "arg1 'quoted arg' 2>/dev/null arg2 $(subshell) arg3\nnext_line"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(result, ["arg1", "quoted arg", "arg2", "$(subshell)", "arg3"])

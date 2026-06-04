@@ -72,44 +72,66 @@ class HTMLParser(html.parser.HTMLParser):
             return
 
         if self.current_section == "Arguments":
-            match = re.search(r"(\$\d+|\.\.\.|…)", text)
-            if match:
-                arg = match.group(1)
-                if arg == "…":
-                    arg = "..."
-
-                if arg not in self.current_function.arguments:
-                    self.current_function.arguments.append(arg)
-
-                    if arg == "...":
-                        self.current_function.max_args = -1
-                    else:
-                        if self.current_function.max_args != -1:
-                            self.current_function.max_args += 1
-
-                        if "(optional" not in text.lower():
-                            if (
-                                self.current_function.min_args
-                                == self.current_function.max_args - 1
-                            ):
-                                self.current_function.min_args += 1
-
+            self._process_argument(text)
         elif self.current_section == "Variables set":
+            self._process_variable_set(text)
+        else:
+            self._process_other_li(text)
+
+    def _process_argument(self, text: "str") -> "None":
+        # Handle both ASCII ellipsis and unicode ellipsis
+        match = re.search(r"(\$\d+|\.\.\.|…)", text)
+        if not match:
+            return
+
+        arg = match.group(1)
+        if arg == "…":
+            arg = "..."
+
+        if arg in self.current_function.arguments:
+            return
+
+        self.current_function.arguments.append(arg)
+
+        if self._is_variadic(arg):
+            self.current_function.max_args = -1
+        else:
+            self._increment_max_args()
+            if self._is_required(text):
+                self._maybe_increment_min_args()
+
+    def _is_variadic(self, arg: "str") -> "bool":
+        return arg == "..."
+
+    def _is_required(self, text: "str") -> "bool":
+        return "(optional" not in text.lower()
+
+    def _increment_max_args(self) -> "None":
+        if self.current_function.max_args != -1:
+            self.current_function.max_args += 1
+
+    def _maybe_increment_min_args(self) -> "None":
+        # If we haven't encountered an optional arg yet, min_args follows max_args
+        if self.current_function.min_args == self.current_function.max_args - 1:
+            self.current_function.min_args += 1
+
+    def _process_variable_set(self, text: "str") -> "None":
+        match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
+        if match:
+            var = match.group(1)
+            if var not in self.current_function.globals:
+                self.current_function.globals.append(var)
+
+    def _process_other_li(self, text: "str") -> "None":
+        if "keyword" in text.lower():
+            match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
+            if match:
+                kw = match.group(1)
+                if kw not in self.current_function.keywords:
+                    self.current_function.keywords.append(kw)
+        elif "global" in text.lower():
             match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
             if match:
                 var = match.group(1)
                 if var not in self.current_function.globals:
                     self.current_function.globals.append(var)
-        else:
-            if "keyword" in text.lower():
-                match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
-                if match:
-                    kw = match.group(1)
-                    if kw not in self.current_function.keywords:
-                        self.current_function.keywords.append(kw)
-            elif "global" in text.lower():
-                match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
-                if match:
-                    var = match.group(1)
-                    if var not in self.current_function.globals:
-                        self.current_function.globals.append(var)
