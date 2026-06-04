@@ -1,4 +1,4 @@
-"""Base class for all linting rules."""
+"""Base class for all linting validators."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import difflib
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
+    from errors.base import LinterError
 
 
-class Rule(abc.ABC):
-    """Abstract base class for all linter rules."""
+class Validator(abc.ABC):
+    """Abstract base class for all linter validators."""
 
     def __init__(self, functions: set[str], namespaces: set[str]) -> None:
         self.functions = functions
@@ -20,8 +20,8 @@ class Rule(abc.ABC):
     @abc.abstractmethod
     def check(
         self, call: str, file: str, line: int, column: int
-    ) -> Optional[LinterIssue]:
-        """Check if the given call violates this rule."""
+    ) -> Optional[LinterError]:
+        """Check if the given call violates this validator."""
         pass
 
     def _find_longest_namespace_prefix(self, call: str) -> Optional[str]:

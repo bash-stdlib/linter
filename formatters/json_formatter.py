@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 from .base import Formatter
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
+    from errors.base import LinterError
 
 
 class JSONFormatter(Formatter):
-    def format(self, issues: list[LinterIssue]) -> str:
-        return json.dumps([issue.to_dict() for issue in issues], indent=4)
+    def format(self, errors: list[LinterError]) -> str:
+        return json.dumps([error.to_dict() for error in errors], indent=4)

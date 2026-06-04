@@ -8,18 +8,18 @@ from typing import TYPE_CHECKING
 from .base import Formatter
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
+    from errors.base import LinterError
 
 
 class VSCodeFormatter(Formatter):
-    def format(self, issues: list[LinterIssue]) -> str:
+    def format(self, errors: list[LinterError]) -> str:
         diagnostics = []
-        for issue in issues:
+        for error in errors:
             # VS Code positions are 0-indexed
             # We also provide a range covering the match
-            start_line = max(0, issue.line - 1)
-            start_char = max(0, issue.column - 1)
-            end_char = start_char + len(issue.match)
+            start_line = max(0, error.line - 1)
+            start_char = max(0, error.column - 1)
+            end_char = start_char + len(error.match)
 
             diagnostics.append(
                 {
@@ -28,9 +28,9 @@ class VSCodeFormatter(Formatter):
                         "end": {"line": start_line, "character": end_char},
                     },
                     "severity": 1,  # Error
-                    "code": issue.CODE,
+                    "code": error.CODE,
                     "source": "bash-stdlib-lint",
-                    "message": issue.message,
+                    "message": error.message,
                 }
             )
         return json.dumps(diagnostics, indent=4)

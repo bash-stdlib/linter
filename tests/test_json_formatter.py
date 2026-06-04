@@ -9,10 +9,10 @@ class TestJSONFormatter(unittest.TestCase):
     def setUp(self) -> None:
         self.formatter = JSONFormatter()
 
-    def test_format__single_issue__returns_json_array(self) -> None:
-        issue = STD003("test.sh", 1, 1, "stdlib.ns")
+    def test_format__single_error__returns_json_array(self) -> None:
+        error = STD003("test.sh", 1, 1, "stdlib.ns")
 
-        result = self.formatter.format([issue])
+        result = self.formatter.format([error])
 
         data = json.loads(result)
         self.assertIsInstance(data, list)

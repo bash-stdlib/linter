@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from errors import get_all_issues
+from errors import get_all_errors
 from .base import Command
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ class ListErrorCodesCommand(Command):
     def execute(self, args: argparse.Namespace) -> None:
         print("BASH STDLIB Linter - Error Codes:")
         print("-" * 40)
-        for issue_class in get_all_issues():
-            print(f"{issue_class.CODE}: {issue_class.TITLE}")
-            print(f"      {issue_class.DESCRIPTION}")
+        for error_class in get_all_errors():
+            print(f"{error_class.CODE}: {error_class.TITLE}")
+            print(f"      {error_class.DESCRIPTION}")
             print()

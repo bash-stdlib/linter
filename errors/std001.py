@@ -1,9 +1,9 @@
-"""Linter issue STD001: Invalid namespace."""
+"""Linter error STD001: Invalid namespace."""
 
-from .base import LinterIssue
+from .base import LinterError
 
 
-class STD001(LinterIssue):
+class STD001(LinterError):
     CODE = "STD001"
     TITLE = "invalid namespace"
     DESCRIPTION = "The specified namespace does not exist in the BASH standard library."

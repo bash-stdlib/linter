@@ -1,4 +1,4 @@
-"""Output formatters for linter issues."""
+"""Output formatters for linter errors."""
 
 from __future__ import annotations
 

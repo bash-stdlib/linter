@@ -1,11 +1,11 @@
-"""Linter issue STD002: Invalid function name within a valid namespace."""
+"""Linter error STD002: Invalid function name within a valid namespace."""
 
 from typing import Optional
 
-from .base import LinterIssue
+from .base import LinterError
 
 
-class STD002(LinterIssue):
+class STD002(LinterError):
     CODE = "STD002"
     TITLE = "invalid function"
     DESCRIPTION = "The function name is incorrect, but the namespace is valid."

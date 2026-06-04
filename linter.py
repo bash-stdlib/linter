@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from constants import STDLIB_PATTERN
 from errors import STD000
-from rules import NamespaceCallRule, ValidFunctionRule
+from validators import IsFunctionCallValidator, NotNamespaceCallValidator
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
-    from rules.base import Rule
+    from errors.base import LinterError
+    from validators.base import Validator
 
 
 class Linter:
@@ -19,25 +19,25 @@ class Linter:
         self.functions = set(metadata["functions"])
         self.namespaces = set(metadata["namespaces"])
         self.stdlib_call_pattern = re.compile(STDLIB_PATTERN)
-        self.rules: list[Rule] = [
-            NamespaceCallRule(self.functions, self.namespaces),
-            ValidFunctionRule(self.functions, self.namespaces),
+        self.validators: list[Validator] = [
+            NotNamespaceCallValidator(self.functions, self.namespaces),
+            IsFunctionCallValidator(self.functions, self.namespaces),
         ]
 
-    def lint(self, filepath: str) -> list[LinterIssue]:
-        errors: list[LinterIssue] = []
+    def lint(self, filepath: str) -> list[LinterError]:
+        errors: list[LinterError] = []
         file_content = self._read_file(filepath, errors)
         if file_content is None:
             return errors
 
         for match in self.stdlib_call_pattern.finditer(file_content):
-            issue = self._process_match(match, file_content, filepath)
-            if issue:
-                errors.append(issue)
+            error = self._process_match(match, file_content, filepath)
+            if error:
+                errors.append(error)
 
         return errors
 
-    def _read_file(self, filepath: str, errors: list[LinterIssue]) -> Optional[str]:
+    def _read_file(self, filepath: str, errors: list[LinterError]) -> Optional[str]:
         try:
             with open(filepath, "r") as f:
                 return f.read()
@@ -47,15 +47,15 @@ class Linter:
 
     def _process_match(
         self, match: re.Match[str], content: str, filepath: str
-    ) -> Optional[LinterIssue]:
+    ) -> Optional[LinterError]:
         call_name = self._get_call_name(match)
         line = self._get_line_number(content, match.start())
         column = self._get_column_number(content, match.start())
 
-        for rule in self.rules:
-            issue = rule.check(call_name, filepath, line, column)
-            if issue:
-                return issue
+        for validator in self.validators:
+            error = validator.check(call_name, filepath, line, column)
+            if error:
+                return error
 
         return None
 

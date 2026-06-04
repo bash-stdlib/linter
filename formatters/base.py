@@ -1,4 +1,4 @@
-"""Base class for issue formatters."""
+"""Base class for error formatters."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
+    from errors.base import LinterError
 
 
 class Formatter(ABC):
-    """Abstract base class for formatting linter issues."""
+    """Abstract base class for formatting linter errors."""
 
     @abstractmethod
-    def format(self, issues: list[LinterIssue]) -> str:
-        """Transform a list of LinterIssue objects into a formatted string."""
+    def format(self, errors: list[LinterError]) -> str:
+        """Transform a list of LinterError objects into a formatted string."""
         pass

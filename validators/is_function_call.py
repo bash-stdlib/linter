@@ -1,18 +1,18 @@
-"""Rule for valid standard library function calls."""
+"""Validator for valid standard library function calls."""
 
 from typing import Optional
 
 from errors import STD001, STD002, STD004
-from errors.base import LinterIssue
-from rules.base import Rule
+from errors.base import LinterError
+from validators.base import Validator
 
 
-class ValidFunctionRule(Rule):
+class IsFunctionCallValidator(Validator):
     """Checks if the call is a valid function or a misnamed one."""
 
     def check(
         self, call: str, file: str, line: int, column: int
-    ) -> Optional[LinterIssue]:
+    ) -> Optional[LinterError]:
         if call in self.functions:
             return None
 

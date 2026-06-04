@@ -1,4 +1,4 @@
-"""Base classes for linter exceptions and reported issues."""
+"""Base classes for linter exceptions and reported errors."""
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -10,7 +10,7 @@ class BaseLinterException(Exception):
     pass
 
 
-class LinterIssue(ABC):
+class LinterError(ABC):
     """Base class for all specific linting errors and warnings."""
 
     CODE: str = ""
@@ -33,11 +33,11 @@ class LinterIssue(ABC):
 
     @abstractmethod
     def format_message(self) -> str:
-        """Format the specific error message for this issue."""
+        """Format the specific error message for this error."""
         pass
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the issue to a dictionary for JSON output."""
+        """Convert the error to a dictionary for JSON output."""
         return {
             "code": self.CODE,
             "title": self.TITLE,
