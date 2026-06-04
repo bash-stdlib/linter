@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import unittest
 from typing import TYPE_CHECKING
-from unittest.mock import mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from cache import load_cache, save_cache
 
@@ -39,10 +39,12 @@ class TestCache(unittest.TestCase):
 
         self.assertIsNone(result)
 
+    @patch("sys.stderr", new_callable=MagicMock)
     @patch("builtins.open", new_callable=mock_open)
     def test_save_cache__valid_metadata__writes_json_to_file(
         self,
         mock_file: MagicMock,
+        mock_stderr: MagicMock,
     ) -> None:
         mock_data = {"functions": ["stdlib.a"]}
 
@@ -53,6 +55,17 @@ class TestCache(unittest.TestCase):
         written_content = "".join(call.args[0]
                                   for call in handle.write.call_args_list)
         self.assertEqual(json.loads(written_content), mock_data)
+
+    @patch("sys.stderr", new_callable=MagicMock)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_cache__always__prints_status_to_stderr(
+        self,
+        mock_file: MagicMock,
+        mock_stderr: MagicMock,
+    ) -> None:
+        save_cache({"any": "data"})
+
+        mock_stderr.write.assert_any_call("Cache saved to .bash_stdlib_cache.json")
 
 
 if __name__ == "__main__":

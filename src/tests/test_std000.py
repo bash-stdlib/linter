@@ -9,9 +9,8 @@ class TestSTD000(unittest.TestCase):
             self) -> None:
         error = STD000("test.sh", "Permission denied")
 
-        message = error.format_message()
-
-        self.assertEqual(message, "Failed to read file: Permission denied")
+        self.assertEqual(error.message, "Failed to read file: Permission denied")
+        self.assertEqual(error.CODE, "STD000")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD000("test.sh", "Error")

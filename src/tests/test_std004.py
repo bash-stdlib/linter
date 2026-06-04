@@ -8,12 +8,11 @@ class TestSTD004(unittest.TestCase):
     def test_format_message__always__returns_correct_message(self) -> None:
         error = STD004("test.sh", 1, 1, "stdlib.unknown")
 
-        message = error.format_message()
-
         self.assertEqual(
-            message,
+            error.message,
             "Invalid namespace or function 'stdlib.unknown'.",
         )
+        self.assertEqual(error.CODE, "STD004")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD004("test.sh", 1, 1, "match")

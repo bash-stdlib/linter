@@ -9,9 +9,8 @@ class TestSTD001(unittest.TestCase):
             self) -> None:
         error = STD001("test.sh", 1, 1, "stdlib.wrong.func", "stdlib.wrong")
 
-        message = error.format_message()
-
-        self.assertEqual(message, "Invalid namespace 'stdlib.wrong'.")
+        self.assertEqual(error.message, "Invalid namespace 'stdlib.wrong'.")
+        self.assertEqual(error.CODE, "STD001")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD001("test.sh", 1, 1, "match", "ns")

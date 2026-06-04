@@ -39,10 +39,12 @@ class TestHTMLFetcher(unittest.TestCase):
         self.assertIn("stdlib.func1", result)
         self.assertEqual(mock_urlopen.call_count, 2)
 
+    @patch("sys.stderr", new_callable=MagicMock)
     @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
     def test_fetch__functions_found__returns_formatted_metadata(
         self,
         mock_extract: MagicMock,
+        mock_stderr: MagicMock,
     ) -> None:
         mock_extract.return_value = {"stdlib.a.b"}
 
@@ -53,16 +55,44 @@ class TestHTMLFetcher(unittest.TestCase):
             self.assertEqual(result["functions"], ["stdlib.a.b"])
             self.assertEqual(result["namespaces"], ["stdlib", "stdlib.a"])
 
+    @patch("sys.stderr", new_callable=MagicMock)
     @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
     def test_fetch__no_functions_found__returns_none(
         self,
         mock_extract: MagicMock,
+        mock_stderr: MagicMock,
     ) -> None:
         mock_extract.return_value = set()
 
         result = self.fetcher.fetch()
 
         self.assertIsNone(result)
+
+    @patch("sys.stderr", new_callable=MagicMock)
+    @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
+    def test_fetch__always__prints_fetching_message(
+        self,
+        mock_extract: MagicMock,
+        mock_stderr: MagicMock,
+    ) -> None:
+        mock_extract.return_value = {"stdlib.a"}
+
+        self.fetcher.fetch()
+
+        mock_stderr.write.assert_any_call("Fetching documentation to build cache...")
+
+    @patch("sys.stderr", new_callable=MagicMock)
+    @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")
+    def test_fetch__no_functions__prints_error_message(
+        self,
+        mock_extract: MagicMock,
+        mock_stderr: MagicMock,
+    ) -> None:
+        mock_extract.return_value = set()
+
+        self.fetcher.fetch()
+
+        mock_stderr.write.assert_any_call("Error: No functions found. Cache not updated.")
 
 
 if __name__ == "__main__":

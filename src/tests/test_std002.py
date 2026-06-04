@@ -16,12 +16,11 @@ class TestSTD002(unittest.TestCase):
             suggestion=None,
         )
 
-        message = error.format_message()
-
         self.assertEqual(
-            message,
+            error.message,
             "Invalid function 'stdlib.a.b' in valid namespace 'stdlib.a'.",
         )
+        self.assertEqual(error.CODE, "STD002")
 
     def test_format_message__with_suggestion__includes_suggestion(
             self) -> None:
@@ -34,9 +33,7 @@ class TestSTD002(unittest.TestCase):
             suggestion="stdlib.a.c",
         )
 
-        message = error.format_message()
-
-        self.assertIn("Did you mean 'stdlib.a.c'?", message)
+        self.assertIn("Did you mean 'stdlib.a.c'?", error.message)
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD002("test.sh", 1, 1, "match", "ns")
