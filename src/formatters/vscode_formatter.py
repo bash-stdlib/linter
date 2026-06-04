@@ -1,6 +1,6 @@
 """FormatterBase for VS Code diagnostic data."""
 
-from __future__ import annotations
+
 
 import json
 from typing import TYPE_CHECKING
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class VSCodeFormatterBase(FormatterBase):
-    def format(self, errors: list[LinterErrorBase]) -> str:
+    def format(self, errors: "List[LinterErrorBase]") -> "str":
         diagnostics = []
         for error in errors:
             # VS Code positions are 0-indexed

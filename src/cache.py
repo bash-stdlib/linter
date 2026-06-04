@@ -8,16 +8,16 @@ from typing import Any, Optional
 from constants import CACHE_FILE
 
 
-def save_cache(metadata: dict[str, Any]) -> None:
+def save_cache(metadata: "Dict[str, Any]") -> None:
     try:
         with open(CACHE_FILE, "w") as f:
             json.dump(metadata, f, indent=4)
-        print(f"Cache saved to {CACHE_FILE}", file=sys.stderr)
+        print("Cache saved to {}".format(CACHE_FILE), file=sys.stderr)
     except Exception as e:
-        print(f"Error: Failed to save cache: {e}", file=sys.stderr)
+        print("Error: Failed to save cache: {}".format(e), file=sys.stderr)
 
 
-def load_cache() -> Optional[dict[str, Any]]:
+def load_cache() -> "Optional[Dict[str, Any]]":
     if not os.path.exists(CACHE_FILE):
         return None
     try:
@@ -25,5 +25,5 @@ def load_cache() -> Optional[dict[str, Any]]:
             data = json.load(f)
             return data if isinstance(data, dict) else None
     except Exception as e:
-        print(f"Warning: Failed to load cache: {e}", file=sys.stderr)
+        print("Warning: Failed to load cache: {}".format(e), file=sys.stderr)
         return None

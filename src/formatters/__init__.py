@@ -1,8 +1,6 @@
 """Output formatters for linter errors."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Type, Union
 
 from .json_formatter import JSONFormatterBase
 from .text_formatter import TextFormatterBase
@@ -12,9 +10,9 @@ if TYPE_CHECKING:
     from .base import FormatterBase
 
 
-def get_formatter(format_name: str) -> FormatterBase:
+def get_formatter(format_name: "str") -> "FormatterBase":
     """Retrieve a formatter class by its name."""
-    mapping: dict[str, type[JSONFormatterBase | TextFormatterBase | VSCodeFormatterBase]] = {
+    mapping: "Dict[str, Type[Union[JSONFormatterBase, TextFormatterBase, VSCodeFormatterBase]]]" = {
         "json": JSONFormatterBase,
         "text": TextFormatterBase,
         "vscode": VSCodeFormatterBase,

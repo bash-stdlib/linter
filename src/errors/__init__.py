@@ -8,7 +8,7 @@ from .std003 import STD003
 from .std004 import STD004
 
 
-def get_all_errors() -> list[type[LinterErrorBase]]:
+def get_all_errors() -> "List[Type[LinterErrorBase]]":
     """Retrieve all defined LinterErrorBase subclasses."""
     return LinterErrorBase.__subclasses__()
 

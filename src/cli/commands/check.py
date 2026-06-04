@@ -1,8 +1,9 @@
 """CLI command to perform linting on shell scripts."""
 
-from __future__ import annotations
+
 
 import sys
+import argparse
 from typing import TYPE_CHECKING
 
 from cache import load_cache, save_cache
@@ -33,7 +34,7 @@ class LintCommand(CommandBase):
                 raise EmptyCacheError()
 
         linter = Linter(metadata)
-        all_errors: list[LinterErrorBase] = []
+        all_errors: "List[LinterErrorBase]" = []
         for filepath in args.files:
             all_errors.extend(linter.lint(filepath))
 

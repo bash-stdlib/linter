@@ -13,4 +13,4 @@ class STD000(LinterErrorBase):
         super().__init__(file, 0, 0, "")
 
     def format_message(self) -> str:
-        return f"Failed to read file: {self.exception_msg}"
+        return "Failed to read file: {}".format(self.exception_msg)

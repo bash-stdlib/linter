@@ -15,4 +15,4 @@ class STD001(LinterErrorBase):
         super().__init__(file, line, column, match)
 
     def format_message(self) -> str:
-        return f"Invalid namespace '{self.namespace}'."
+        return "Invalid namespace '{}'.".format(self.namespace)

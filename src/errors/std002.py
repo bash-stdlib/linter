@@ -24,7 +24,7 @@ class STD002(LinterErrorBase):
         super().__init__(file, line, column, match)
 
     def format_message(self) -> str:
-        msg = f"Invalid function '{self.match}' in valid namespace '{self.namespace}'."
+        msg = "Invalid function '{}' in valid namespace '{}'.".format(self.match, self.namespace)
         if self.suggestion:
-            msg += f" Did you mean '{self.suggestion}'?"
+            msg += " Did you mean '{}'?".format(self.suggestion)
         return msg

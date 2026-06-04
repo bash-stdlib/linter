@@ -1,6 +1,6 @@
 """FormatterBase for standard JSON output."""
 
-from __future__ import annotations
+
 
 import json
 from typing import TYPE_CHECKING
@@ -12,5 +12,5 @@ if TYPE_CHECKING:
 
 
 class JSONFormatterBase(FormatterBase):
-    def format(self, errors: list[LinterErrorBase]) -> str:
+    def format(self, errors: "List[LinterErrorBase]") -> "str":
         return json.dumps([error.to_dict() for error in errors], indent=4)

@@ -2,14 +2,14 @@
 
 import sys
 import urllib.request
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Set
 
 from constants import URL_STANDARD_DOC, URL_TESTING_DOC
 from .parser import HTMLParser
 
 
 class HTMLFetcher:
-    def __init__(self) -> None:
+    def __init__(self) -> "None":
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -18,37 +18,39 @@ class HTMLFetcher:
             )
         }
 
-    def fetch(self) -> Optional[dict[str, Any]]:
+    def fetch(self) -> "Optional[Dict[str, Any]]":
         print("Fetching documentation to build cache...", file=sys.stderr)
-        all_functions = self._extract_functions()
+        all_metadata = self._extract_functions()
 
-        if not all_functions:
+        if not all_metadata:
             print("Error: No functions found. Cache not updated.", file=sys.stderr)
             return None
 
-        namespaces = self._build_namespaces(all_functions)
+        namespaces = self._build_namespaces(set(all_metadata.keys()))
 
         return {
-            "functions": sorted(list(all_functions)),
+            "functions": dict(
+                (name, meta.to_dict()) for name, meta in all_metadata.items()
+            ),
             "namespaces": sorted(list(namespaces)),
         }
 
-    def _extract_functions(self) -> set[str]:
-        functions: set[str] = set()
+    def _extract_functions(self) -> "Dict[str, Any]":
+        functions_metadata = {}
         for url in [URL_STANDARD_DOC, URL_TESTING_DOC]:
             try:
                 req = urllib.request.Request(url, headers=self.headers)
                 with urllib.request.urlopen(req) as response:
                     content = response.read().decode("utf-8")
                     parser = HTMLParser()
-                    functions.update(parser.parse(content))
+                    functions_metadata.update(parser.parse(content))
             except Exception as e:
-                print(f"Warning: Failed to fetch {url}: {e}", file=sys.stderr)
-        return functions
+                print("Warning: Failed to fetch {url}: {e}".format(url=url, e=e), file=sys.stderr)
+        return functions_metadata
 
-    def _build_namespaces(self, functions: set[str]) -> set[str]:
-        namespaces: set[str] = set()
-        for func in functions:
+    def _build_namespaces(self, function_names: "Set[str]") -> "Set[str]":
+        namespaces: "Set[str]" = set()
+        for func in function_names:
             parts = func.split(".")
             for i in range(1, len(parts)):
                 namespaces.add(".".join(parts[:i]))

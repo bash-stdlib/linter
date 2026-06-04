@@ -9,4 +9,4 @@ class STD003(LinterErrorBase):
     DESCRIPTION = "A namespace was called directly instead of a specific function."
 
     def format_message(self) -> str:
-        return f"'{self.match}' is a namespace, not a function."
+        return "'{}' is a namespace, not a function.".format(self.match)

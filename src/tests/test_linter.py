@@ -1,8 +1,7 @@
-from __future__ import annotations
 
 import unittest
-from typing import TYPE_CHECKING
-from unittest.mock import mock_open, patch
+from typing import TYPE_CHECKING, List
+from unittest.mock import MagicMock, mock_open, patch
 
 from errors.std001 import STD001
 from errors.std002 import STD002
@@ -11,17 +10,27 @@ from errors.std004 import STD004
 from linter import Linter
 
 if TYPE_CHECKING:
-    from unittest.mock import MagicMock
-
     from errors.base import LinterErrorBase
 
 
 class TestLinter(unittest.TestCase):
 
-    def setUp(self) -> None:
+    def setUp(self) -> "None":
         self.metadata = {
-            "functions":
-            ["stdlib.array.assert.is_array", "stdlib.string.args.join"],
+            "functions": {
+                "stdlib.array.assert.is_array": {
+                    "name": "stdlib.array.assert.is_array",
+                    "arguments": ["$1"],
+                    "keywords": [],
+                    "globals": []
+                },
+                "stdlib.string.args.join": {
+                    "name": "stdlib.string.args.join",
+                    "arguments": ["$1", "..."],
+                    "keywords": [],
+                    "globals": []
+                }
+            },
             "namespaces": [
                 "stdlib",
                 "stdlib.array",
@@ -32,22 +41,22 @@ class TestLinter(unittest.TestCase):
         }
         self.linter = Linter(self.metadata)
 
-    def _lint_content(self, content: str) -> list[LinterErrorBase]:
+    def _lint_content(self, content: "str") -> "List[LinterErrorBase]":
         with patch("builtins.open", mock_open(read_data=content)):
             return self.linter.lint("test.sh")
 
-    def test_lint__exact_match__returns_no_errors(self) -> None:
+    def test_lint__exact_match__returns_no_errors(self) -> "None":
         errors = self._lint_content("stdlib.array.assert.is_array")
 
         self.assertEqual(len(errors), 0)
 
-    def test_lint__call_to_namespace__returns_std003_error(self) -> None:
+    def test_lint__call_to_namespace__returns_std003_error(self) -> "None":
         errors = self._lint_content("stdlib.array.assert")
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD003)
 
-    def test_lint__misspelled_function__returns_std002_error(self) -> None:
+    def test_lint__misspelled_function__returns_std002_error(self) -> "None":
         errors = self._lint_content("stdlib.array.assert.is_ary")
 
         self.assertEqual(len(errors), 1)
@@ -55,7 +64,7 @@ class TestLinter(unittest.TestCase):
         self.assertIn("Did you mean 'stdlib.array.assert.is_array'?",
                       errors[0].message)
 
-    def test_lint__invalid_sub_namespace__returns_std001_error(self) -> None:
+    def test_lint__invalid_sub_namespace__returns_std001_error(self) -> "None":
         errors = self._lint_content("stdlib.array.unknown.func")
 
         self.assertEqual(len(errors), 1)
@@ -63,14 +72,14 @@ class TestLinter(unittest.TestCase):
         self.assertIn("Invalid namespace 'stdlib.array.unknown'",
                       errors[0].message)
 
-    def test_lint__invalid_root_namespace__returns_std001_error(self) -> None:
+    def test_lint__invalid_root_namespace__returns_std001_error(self) -> "None":
         errors = self._lint_content("stdlib.unknown.func")
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD001)
         self.assertIn("Invalid namespace 'stdlib.unknown'", errors[0].message)
 
-    def test_lint__unknown_stdlib_call__returns_std004_error(self) -> None:
+    def test_lint__unknown_stdlib_call__returns_std004_error(self) -> "None":
         self.metadata["namespaces"].remove("stdlib")
         self.linter = Linter(self.metadata)
 
@@ -80,7 +89,7 @@ class TestLinter(unittest.TestCase):
         self.assertIsInstance(errors[0], STD004)
 
     def test_get_line_number__content_offset__returns_correct_line(
-            self) -> None:
+            self) -> "None":
         content = "line1\nline2\nline3"
         offset = content.find("line2")
 
@@ -89,7 +98,7 @@ class TestLinter(unittest.TestCase):
         self.assertEqual(result, 2)
 
     def test_get_column_number__content_offset__returns_correct_column(
-            self) -> None:
+            self) -> "None":
         content = "line1\nabcde"
         offset = content.find("c")
 
@@ -104,8 +113,8 @@ class TestLinter(unittest.TestCase):
     )
     def test_lint__script_with_error__returns_error_list_with_codes(
         self,
-        mock_file: MagicMock,
-    ) -> None:
+        mock_file: "MagicMock",
+    ) -> "None":
         errors = self.linter.lint("dummy.sh")
 
         self.assertEqual(len(errors), 1)

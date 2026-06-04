@@ -1,8 +1,9 @@
 """CLI command to rebuild the local metadata cache."""
 
-from __future__ import annotations
+
 
 from typing import TYPE_CHECKING
+import argparse
 
 from cache import save_cache
 from exceptions.empty_cache import EmptyCacheError

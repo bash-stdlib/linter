@@ -28,15 +28,15 @@ class LinterErrorBase(ABC):
     def validate_metadata(self) -> None:
         """Ensure subclasses define required metadata."""
         if not all([self.CODE, self.TITLE, self.DESCRIPTION]):
-            error_msg = f"Subclass {self.__class__.__name__} must define metadata."
+            error_msg = "Subclass {} must define metadata.".format(self.__class__.__name__)
             raise NotImplementedError(error_msg)
 
     @abstractmethod
-    def format_message(self) -> str:
+    def format_message(self) -> "str":
         """Format the specific error message for this error."""
         pass
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> "Dict[str, Any]":
         """Convert the error to a dictionary for JSON output."""
         return {
             "code": self.CODE,

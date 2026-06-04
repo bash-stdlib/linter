@@ -1,7 +1,5 @@
 """Core linter logic for validating bash-stdlib function calls."""
 
-from __future__ import annotations
-
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -10,22 +8,23 @@ from errors import STD000
 from validators import IsFunctionCallValidator, NotNamespaceCallValidator
 
 if TYPE_CHECKING:
+    from typing import List, Set
     from errors.base import LinterErrorBase
     from validators.base import ValidatorBase
 
 
 class Linter:
-    def __init__(self, metadata: dict[str, Any]) -> None:
-        self.functions = set(metadata["functions"])
-        self.namespaces = set(metadata["namespaces"])
-        self.stdlib_call_pattern = re.compile(STDLIB_PATTERN)
-        self.validators: list[ValidatorBase] = [
+    def __init__(self, metadata: "Any") -> "None":
+        self.functions: "Set[str]" = set(metadata["functions"].keys())
+        self.namespaces: "Set[str]" = set(metadata["namespaces"])
+        self.stdlib_call_pattern: "re.Pattern[str]" = re.compile(STDLIB_PATTERN)
+        self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
         ]
 
-    def lint(self, filepath: str) -> list[LinterErrorBase]:
-        errors: list[LinterErrorBase] = []
+    def lint(self, filepath: "str") -> "List[LinterErrorBase]":
+        errors: "List[LinterErrorBase]" = []
         file_content = self._read_file(filepath, errors)
         if file_content is None:
             return errors
@@ -37,7 +36,7 @@ class Linter:
 
         return errors
 
-    def _read_file(self, filepath: str, errors: list[LinterErrorBase]) -> Optional[str]:
+    def _read_file(self, filepath: "str", errors: "List[LinterErrorBase]") -> "Optional[str]":
         try:
             with open(filepath, "r") as f:
                 return f.read()
@@ -46,8 +45,8 @@ class Linter:
             return None
 
     def _process_match(
-        self, match: re.Match[str], content: str, filepath: str
-    ) -> Optional[LinterErrorBase]:
+        self, match: "re.Match[str]", content: "str", filepath: "str"
+    ) -> "Optional[LinterErrorBase]":
         call_name = self._get_call_name(match)
         line = self._get_line_number(content, match.start())
         column = self._get_column_number(content, match.start())
@@ -59,15 +58,15 @@ class Linter:
 
         return None
 
-    def _get_call_name(self, match: re.Match[str]) -> str:
+    def _get_call_name(self, match: "re.Match[str]") -> "str":
         call = str(match.group(1))
         if call.endswith("."):
             return call[:-1]
         return call
 
-    def _get_line_number(self, content: str, offset: int) -> int:
+    def _get_line_number(self, content: "str", offset: "int") -> "int":
         return content.count("\n", 0, offset) + 1
 
-    def _get_column_number(self, content: str, offset: int) -> int:
+    def _get_column_number(self, content: "str", offset: "int") -> "int":
         last_newline = content.rfind("\n", 0, offset)
         return offset - last_newline if last_newline != -1 else offset + 1

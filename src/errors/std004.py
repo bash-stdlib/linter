@@ -9,4 +9,4 @@ class STD004(LinterErrorBase):
     DESCRIPTION = "The call does not match any known stdlib pattern."
 
     def format_message(self) -> str:
-        return f"Invalid namespace or function '{self.match}'."
+        return "Invalid namespace or function '{}'.".format(self.match)

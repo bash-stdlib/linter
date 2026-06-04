@@ -7,6 +7,7 @@ requires-python = ">=3.6"
 bash-stdlib-lint = "main:main"
 
 [tool.ruff]
+target-version = "py36"
 exclude = ['.git', '__pycache__', '.mypy_cache']
 indent-width = 4
 line-length = 88
@@ -17,7 +18,7 @@ quote-style = 'double'
 
 [tool.ruff.lint]
 fixable = ['ALL']
-future-annotations = true
+future-annotations = false
 ignore = ['D100', 'D101', 'D102', 'D103', 'D104', 'D105', 'D106', 'D107', 'D203', 'D213']
 select = ['ARG001', 'D', 'DJ', 'E', 'F', 'I', 'Q', 'TCH', 'UP006', 'UP007', 'UP037']
 unfixable = []

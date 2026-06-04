@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from stdlib_html.fetcher import HTMLFetcher
+from stdlib_html.metadata import FunctionMetadata
 
 
 class TestHTMLFetcher(unittest.TestCase):
@@ -30,7 +31,8 @@ class TestHTMLFetcher(unittest.TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         mock_response = MagicMock()
-        mock_response.read.return_value = b"<html>stdlib.func1</html>"
+        # Mock HTML content that matches the new parser's expectations
+        mock_response.read.return_value = b"<section id='stdlib-func1'><h3>stdlib.func1</h3></section>"
         mock_response.__enter__.return_value = mock_response
         mock_urlopen.return_value = mock_response
 
@@ -46,13 +48,14 @@ class TestHTMLFetcher(unittest.TestCase):
         mock_extract: MagicMock,
         mock_stderr: MagicMock,
     ) -> None:
-        mock_extract.return_value = {"stdlib.a.b"}
+        mock_extract.return_value = {"stdlib.a.b": FunctionMetadata(name="stdlib.a.b")}
 
         result = self.fetcher.fetch()
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result["functions"], ["stdlib.a.b"])
+            self.assertIn("stdlib.a.b", result["functions"])
+            self.assertEqual(result["functions"]["stdlib.a.b"]["name"], "stdlib.a.b")
             self.assertEqual(result["namespaces"], ["stdlib", "stdlib.a"])
 
     @patch("sys.stderr", new_callable=MagicMock)
@@ -62,7 +65,7 @@ class TestHTMLFetcher(unittest.TestCase):
         mock_extract: MagicMock,
         mock_stderr: MagicMock,
     ) -> None:
-        mock_extract.return_value = set()
+        mock_extract.return_value = {}
 
         result = self.fetcher.fetch()
 
@@ -75,7 +78,7 @@ class TestHTMLFetcher(unittest.TestCase):
         mock_extract: MagicMock,
         mock_stderr: MagicMock,
     ) -> None:
-        mock_extract.return_value = {"stdlib.a"}
+        mock_extract.return_value = {"stdlib.a": FunctionMetadata(name="stdlib.a")}
 
         self.fetcher.fetch()
 
@@ -88,7 +91,7 @@ class TestHTMLFetcher(unittest.TestCase):
         mock_extract: MagicMock,
         mock_stderr: MagicMock,
     ) -> None:
-        mock_extract.return_value = set()
+        mock_extract.return_value = {}
 
         self.fetcher.fetch()
 

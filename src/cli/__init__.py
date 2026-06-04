@@ -1,6 +1,6 @@
 """CLI package for the bash-stdlib linter."""
 
-from __future__ import annotations
+
 
 import argparse
 import sys
@@ -57,8 +57,8 @@ def run_cli() -> None:
         else:
             parser.print_help()
     except (BaseLinterException, EmptyCacheError) as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print("Error: {}".format(e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        print("An unexpected error occurred: {}".format(e), file=sys.stderr)
         sys.exit(1)
