@@ -79,15 +79,11 @@ class HTMLParser(html.parser.HTMLParser):
             self._process_other_li(text)
 
     def _process_argument(self, text: "str") -> "None":
-        # Handle both ASCII ellipsis and unicode ellipsis
         match = re.search(r"(\$\d+|\.\.\.|…)", text)
         if not match:
             return
 
         arg = match.group(1)
-        if arg == "…":
-            arg = "..."
-
         if arg in self.current_function.arguments:
             return
 
@@ -101,7 +97,7 @@ class HTMLParser(html.parser.HTMLParser):
                 self._maybe_increment_min_args()
 
     def _is_variadic(self, arg: "str") -> "bool":
-        return arg == "..."
+        return arg in ["...", "…"]
 
     def _is_required(self, text: "str") -> "bool":
         return "(optional" not in text.lower()

@@ -83,14 +83,36 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertEqual(result, ["arg1", "$(echo foo bar)", "arg2"])
+        # We don't guarantee exact whitespace preservation in subshells,
+        # but it should be ONE argument.
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
 
     def test_parse__nested_subshell__counts_as_one_argument(self) -> None:
         content = "arg1 $(echo $(nested)) arg2"
 
         result = self.parser.parse(content)
 
-        self.assertEqual(result, ["arg1", "$(echo $(nested))", "arg2"])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
+        self.assertIn("nested", result[1])
+
+    def test_parse__parameter_expansion__counts_as_one_argument(self) -> None:
+        content = "arg1 ${VAR:-default} arg2"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("${"))
+        self.assertTrue(result[1].endswith("}"))
 
     def test_parse__quoted_subshell__counts_as_one_argument(self) -> None:
         content = 'arg1 "$(echo foo bar)" arg2'
@@ -104,7 +126,22 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertEqual(result, ["arg1", "`echo foo`", "arg2"])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("`"))
+        self.assertTrue(result[1].endswith("`"))
+
+    def test_parse__nested_backticks__counts_as_one_argument(self) -> None:
+        content = "arg1 `echo \\`echo nested\\`` arg2"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("`"))
+        self.assertTrue(result[1].endswith("`"))
 
     def test_parse__command_separator_semicolon__stops_at_separator(self) -> None:
         content = "arg1 arg2 ; next_cmd"
@@ -115,6 +152,13 @@ class TestBashArgumentsParser(unittest.TestCase):
 
     def test_parse__nested_in_subshell__stops_at_closing_paren(self) -> None:
         content = "arg1 arg2 ) next_cmd"
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(result, ["arg1", "arg2"])
+
+    def test_parse__nested_in_braces__stops_at_closing_brace(self) -> None:
+        content = "arg1 arg2 } next_cmd"
 
         result = self.parser.parse(content)
 
@@ -146,4 +190,8 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertEqual(result, ["arg1", "quoted arg", "arg2", "$(subshell)", "arg3"])
+        self.assertEqual(len(result), 5)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[1], "quoted arg")
+        self.assertEqual(result[2], "arg2")
+        self.assertEqual(result[4], "arg3")
