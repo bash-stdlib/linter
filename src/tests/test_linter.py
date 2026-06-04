@@ -7,6 +7,7 @@ from errors.std002 import STD002
 from errors.std003 import STD003
 from errors.std004 import STD004
 from errors.std005 import STD005
+from errors.std006 import STD006
 from linter import Linter
 
 if TYPE_CHECKING:
@@ -50,32 +51,42 @@ class TestLinter(unittest.TestCase):
             return linter.lint("test.sh")
 
     def test_lint__exact_match__returns_no_errors(self) -> "None":
-        errors = self._lint_content("stdlib.array.assert.is_array arg1")
+        content = "stdlib.array.assert.is_array arg1"
+
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 0)
 
     def test_lint__call_to_namespace__returns_std003_error(self) -> "None":
-        errors = self._lint_content("stdlib.array.assert")
+        content = "stdlib.array.assert"
+
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD003)
 
     def test_lint__misspelled_function__returns_std002_error(self) -> "None":
-        errors = self._lint_content("stdlib.array.assert.is_ary arg1")
+        content = "stdlib.array.assert.is_ary arg1"
+
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD002)
         self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", errors[0].message)
 
     def test_lint__invalid_sub_namespace__returns_std001_error(self) -> "None":
-        errors = self._lint_content("stdlib.array.unknown.func arg1")
+        content = "stdlib.array.unknown.func arg1"
+
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD001)
         self.assertIn("Invalid namespace 'stdlib.array.unknown'", errors[0].message)
 
     def test_lint__invalid_root_namespace__returns_std001_error(self) -> "None":
-        errors = self._lint_content("stdlib.unknown.func arg1")
+        content = "stdlib.unknown.func arg1"
+
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD001)
@@ -84,8 +95,9 @@ class TestLinter(unittest.TestCase):
     def test_lint__unknown_stdlib_call__returns_std004_error(self) -> "None":
         self.metadata["namespaces"].remove("stdlib")
         self.linter = Linter(self.metadata)
+        content = "stdlib.completely_unknown arg1"
 
-        errors = self._lint_content("stdlib.completely_unknown arg1")
+        errors = self._lint_content(content)
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD004)
@@ -116,6 +128,7 @@ class TestLinter(unittest.TestCase):
         mock_file: "MagicMock",
     ) -> "None":
         linter = Linter(self.metadata)
+
         errors = linter.lint("dummy.sh")
 
         self.assertEqual(len(errors), 2)
@@ -123,6 +136,15 @@ class TestLinter(unittest.TestCase):
         self.assertEqual(errors[0].line, 1)
         self.assertIsInstance(errors[1], STD005)
         self.assertEqual(errors[1].line, 2)
+
+    def test_lint__unbalanced_quotes__returns_std006_error(self) -> "None":
+        content = 'stdlib.array.assert.is_array "unbalanced'
+
+        errors = self._lint_content(content)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], STD006)
+        self.assertIn("Failed to parse arguments", errors[0].message)
 
 
 if __name__ == "__main__":

@@ -57,7 +57,9 @@ class HTMLParser(html.parser.HTMLParser):
                 self.functions[name] = self.current_function
                 self.current_section = None
         elif self.in_h4:
-            self.current_section = data.strip()
+            section_name = data.strip()
+            if section_name in ["Arguments", "Variables set"]:
+                self.current_section = section_name
         elif self.collecting_li:
             self.li_data.append(data)
 
@@ -70,11 +72,28 @@ class HTMLParser(html.parser.HTMLParser):
             return
 
         if self.current_section == "Arguments":
-            match = re.search(r"(\$\d+|\.\.\.)", text)
+            match = re.search(r"(\$\d+|\.\.\.|…)", text)
             if match:
                 arg = match.group(1)
+                if arg == "…":
+                    arg = "..."
+
                 if arg not in self.current_function.arguments:
                     self.current_function.arguments.append(arg)
+
+                    if arg == "...":
+                        self.current_function.max_args = -1
+                    else:
+                        if self.current_function.max_args != -1:
+                            self.current_function.max_args += 1
+
+                        if "(optional" not in text.lower():
+                            if (
+                                self.current_function.min_args
+                                == self.current_function.max_args - 1
+                            ):
+                                self.current_function.min_args += 1
+
         elif self.current_section == "Variables set":
             match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
             if match:
