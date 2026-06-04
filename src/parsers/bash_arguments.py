@@ -2,7 +2,7 @@
 
 import re
 import shlex
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from .base import ParserBase
 
@@ -17,6 +17,13 @@ class BashArgumentsParser(ParserBase):
     SELF_CONTAINED_REDIRECT_PATTERN = re.compile(r"^\d+>&?\d+$|^\d+>/\S+$")
     WHITESPACE_CHARS = " \t\r"
     WORDCHARS_APPENDUM = "./$*?@-_"
+
+    # Configuration for nested entities: (start_tokens, end_tokens, can_nest, escape_char)
+    NESTED_CONFIG = {
+        "$(": {"end": ")", "can_nest": True, "escape": None},
+        "${": {"end": "}", "can_nest": True, "escape": None},
+        "`": {"end": "`", "can_nest": True, "escape": "\\"},
+    }
 
     def parse(self, content: "str") -> "Optional[List[str]]":
         """Extract arguments from the given Bash code string."""
@@ -45,21 +52,13 @@ class BashArgumentsParser(ParserBase):
             if self._is_command_end(token):
                 break
 
-            if self._is_start_of_subshell(token, tokens, index):
-                full_subshell, next_index = self._consume_subshell(tokens, index)
-                args.append(full_subshell)
-                index = next_index
-                continue
-
-            if self._is_start_of_parameter_expansion(token, tokens, index):
-                full_expansion, next_index = self._consume_parameter_expansion(tokens, index)
-                args.append(full_expansion)
-                index = next_index
-                continue
-
-            if self._is_start_of_backticks(token):
-                full_backtick, next_index = self._consume_backticks(tokens, index)
-                args.append(full_backtick)
+            # Handle nested entities like $(...), ${...}, `...`
+            nested_start = self._get_nested_start(tokens, index)
+            if nested_start:
+                full_entity, next_index = self._consume_nested_entity(
+                    tokens, index, nested_start
+                )
+                args.append(full_entity)
                 index = next_index
                 continue
 
@@ -76,94 +75,101 @@ class BashArgumentsParser(ParserBase):
     def _is_command_end(self, token: "str") -> "bool":
         return token in self.SHELL_SEPARATORS or token == "\n"
 
-    def _is_start_of_subshell(
-        self, token: "str", tokens: "List[str]", index: "int"
-    ) -> "bool":
-        return token == "$" and index + 1 < len(tokens) and tokens[index + 1] == "("
+    def _get_nested_start(self, tokens: "List[str]", index: "int") -> "Optional[str]":
+        token = tokens[index]
+        if token == "$":
+            if index + 1 < len(tokens):
+                potential_start = "$" + tokens[index + 1]
+                if potential_start in self.NESTED_CONFIG:
+                    return potential_start
+        if token in self.NESTED_CONFIG:
+            return token
+        return None
 
-    def _is_start_of_parameter_expansion(
-        self, token: "str", tokens: "List[str]", index: "int"
-    ) -> "bool":
-        return token == "$" and index + 1 < len(tokens) and tokens[index + 1] == "{"
+    def _consume_nested_entity(
+        self, tokens: "List[str]", start_index: "int", start_marker: "str"
+    ) -> "Tuple[str, int]":
+        """Generalized method to consume nested Bash entities."""
+        config = self.NESTED_CONFIG[start_marker]
+        end_marker = config["end"]
+        can_nest = config["can_nest"]
+        escape_char = config["escape"]
 
-    def _is_start_of_backticks(self, token: "str") -> "bool":
-        return token == "`"
+        consumed = [start_marker]
+        index = start_index + len(start_marker)
 
-    def _consume_subshell(self, tokens: "List[str]", start_index: "int") -> "tuple":
-        """Consumes tokens belonging to a $(...) subshell, handling nesting."""
+        # shlex split $( and ${ into two tokens
+        if start_marker in ["$(", "${"]:
+            index = start_index + 2
+
         level = 1
-        consumed = ["$", "("]
-        index = start_index + 2
 
         while index < len(tokens):
             token = tokens[index]
-            if token == "(":
+
+            # Handle escapes
+            if escape_char and token == escape_char and index + 1 < len(tokens):
+                next_token = tokens[index + 1]
+                if next_token == end_marker:
+                    consumed.append(escape_char + next_token)
+                    index += 2
+                    continue
+
+            if can_nest and self._is_same_nested_start(token, tokens, index, start_marker):
                 level += 1
-            elif token == ")":
+                # If start_marker is multi-char, we need to consume the extra token
+                if len(start_marker) > 1:
+                    consumed.append(start_marker)
+                    index += 2
+                    continue
+            elif token == end_marker:
                 level -= 1
                 if level == 0:
                     consumed.append(token)
                     index += 1
                     break
 
-            if token == "))":
+            # Special case for )) split by shlex
+            if token == "))" and end_marker == ")":
                 level -= 2
                 if level <= 0:
                     consumed.append("))")
                     index += 1
                     break
 
-            # To accurately reconstruct the argument, we'd need whitespace info.
-            # Since we don't have it, we just append tokens.
-            # In many cases this is fine for COUNTING arguments.
-            consumed.append(token)
-            index += 1
-
-        return "".join(consumed), index
-
-    def _consume_parameter_expansion(self, tokens: "List[str]", start_index: "int") -> "tuple":
-        """Consumes tokens belonging to a ${...} parameter expansion."""
-        level = 1
-        consumed = ["$", "{"]
-        index = start_index + 2
-
-        while index < len(tokens):
-            token = tokens[index]
-            if token == "{":
-                level += 1
-            elif token == "}":
-                level -= 1
-                if level == 0:
-                    consumed.append(token)
-                    index += 1
-                    break
+            if self._should_insert_space(consumed, token):
+                consumed.append(" ")
 
             consumed.append(token)
             index += 1
 
         return "".join(consumed), index
 
-    def _consume_backticks(self, tokens: "List[str]", start_index: "int") -> "tuple":
-        """Consumes tokens belonging to a `...` backtick command, handling nesting."""
-        consumed = ["`"]
-        index = start_index + 1
+    def _is_same_nested_start(
+        self, token: "str", tokens: "List[str]", index: "int", start_marker: "str"
+    ) -> "bool":
+        if len(start_marker) == 1:
+            # Avoid matching end_marker as a new start if they are the same (like `)
+            config = self.NESTED_CONFIG[start_marker]
+            if token == start_marker and token != config["end"]:
+                 return True
+            return False
 
-        while index < len(tokens):
-            token = tokens[index]
+        return (
+            token == start_marker[0]
+            and index + 1 < len(tokens)
+            and tokens[index + 1] == start_marker[1]
+        )
 
-            # Handle escaped backticks for nesting
-            if token == "\\" and index + 1 < len(tokens) and tokens[index + 1] == "`":
-                consumed.append("\\`")
-                index += 2
-                continue
-
-            consumed.append(token)
-            if token == "`":
-                index += 1
-                break
-            index += 1
-
-        return "".join(consumed), index
+    def _should_insert_space(self, consumed: "List[str]", next_token: "str") -> "bool":
+        if not consumed:
+            return False
+        last = consumed[-1]
+        if last in ["(", "$", "{"] or last.endswith(("${", "$(")):
+            return False
+        if next_token in [")", "(", "}", "{", " "]:
+            return False
+        return True
 
     def _get_redirect_skip_count(self, tokens: "List[str]", current_index: "int") -> "int":
         """Determines how many tokens to skip if a redirection is encountered."""
@@ -199,6 +205,9 @@ class BashArgumentsParser(ParserBase):
         )
 
     def _requires_target(self, token: "str") -> "bool":
+        # Operators like >&1 or 2>&1 are often self-contained tokens in some lexer modes,
+        # but with punctuation_chars=True, we might see >& or >.
+        # If it ends with a digit, it might already have a target.
         return not re.search(r"&\d+$", token) and not re.search(r"[^>]\d+$", token)
 
     def _is_self_contained_redirect(self, token: "str") -> "bool":

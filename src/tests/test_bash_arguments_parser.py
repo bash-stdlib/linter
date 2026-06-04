@@ -83,8 +83,6 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        # We don't guarantee exact whitespace preservation in subshells,
-        # but it should be ONE argument.
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
@@ -194,4 +192,5 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[1], "quoted arg")
         self.assertEqual(result[2], "arg2")
+        # result[3] is $(subshell)
         self.assertEqual(result[4], "arg3")
