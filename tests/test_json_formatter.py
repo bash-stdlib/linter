@@ -2,12 +2,12 @@ import json
 import unittest
 
 from errors.std003 import STD003
-from formatters.json_formatter import JSONFormatter
+from formatters.json_formatter import JSONFormatterBase
 
 
-class TestJSONFormatter(unittest.TestCase):
+class TestJSONFormatterBase(unittest.TestCase):
     def setUp(self) -> None:
-        self.formatter = JSONFormatter()
+        self.formatter = JSONFormatterBase()
 
     def test_format__single_error__returns_json_array(self) -> None:
         error = STD003("test.sh", 1, 1, "stdlib.ns")

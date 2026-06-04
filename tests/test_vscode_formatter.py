@@ -2,12 +2,12 @@ import json
 import unittest
 
 from errors.std003 import STD003
-from formatters.vscode_formatter import VSCodeFormatter
+from formatters.vscode_formatter import VSCodeFormatterBase
 
 
-class TestVSCodeFormatter(unittest.TestCase):
+class TestVSCodeFormatterBase(unittest.TestCase):
     def setUp(self) -> None:
-        self.formatter = VSCodeFormatter()
+        self.formatter = VSCodeFormatterBase()
 
     def test_format__single_error__returns_vscode_json(self) -> None:
         error = STD003("test.sh", 5, 10, "stdlib.ns")

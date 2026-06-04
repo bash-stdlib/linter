@@ -14,7 +14,7 @@ from .base import Command
 if TYPE_CHECKING:
     import argparse
 
-    from errors.base import LinterError
+    from errors.base import LinterErrorBase
 
 
 class LintCommand(Command):
@@ -33,7 +33,7 @@ class LintCommand(Command):
                 raise EmptyCacheError()
 
         linter = Linter(metadata)
-        all_errors: list[LinterError] = []
+        all_errors: list[LinterErrorBase] = []
         for filepath in args.files:
             all_errors.extend(linter.lint(filepath))
 

@@ -10,7 +10,7 @@ class BaseLinterException(Exception):
     pass
 
 
-class LinterError(ABC):
+class LinterErrorBase(ABC):
     """Base class for all specific linting errors and warnings."""
 
     CODE: str = ""

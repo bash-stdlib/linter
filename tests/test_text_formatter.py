@@ -1,12 +1,12 @@
 import unittest
 
 from errors.std003 import STD003
-from formatters.text_formatter import TextFormatter
+from formatters.text_formatter import TextFormatterBase
 
 
-class TestTextFormatter(unittest.TestCase):
+class TestTextFormatterBase(unittest.TestCase):
     def setUp(self) -> None:
-        self.formatter = TextFormatter()
+        self.formatter = TextFormatterBase()
 
     def test_format__single_error__returns_formatted_string(self) -> None:
         error = STD003("test.sh", 5, 10, "stdlib.ns")

@@ -10,8 +10,8 @@ from errors import STD000
 from validators import IsFunctionCallValidator, NotNamespaceCallValidator
 
 if TYPE_CHECKING:
-    from errors.base import LinterError
-    from validators.base import Validator
+    from errors.base import LinterErrorBase
+    from validators.base import ValidatorBase
 
 
 class Linter:
@@ -19,13 +19,13 @@ class Linter:
         self.functions = set(metadata["functions"])
         self.namespaces = set(metadata["namespaces"])
         self.stdlib_call_pattern = re.compile(STDLIB_PATTERN)
-        self.validators: list[Validator] = [
+        self.validators: list[ValidatorBase] = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
         ]
 
-    def lint(self, filepath: str) -> list[LinterError]:
-        errors: list[LinterError] = []
+    def lint(self, filepath: str) -> list[LinterErrorBase]:
+        errors: list[LinterErrorBase] = []
         file_content = self._read_file(filepath, errors)
         if file_content is None:
             return errors
@@ -37,7 +37,7 @@ class Linter:
 
         return errors
 
-    def _read_file(self, filepath: str, errors: list[LinterError]) -> Optional[str]:
+    def _read_file(self, filepath: str, errors: list[LinterErrorBase]) -> Optional[str]:
         try:
             with open(filepath, "r") as f:
                 return f.read()
@@ -47,7 +47,7 @@ class Linter:
 
     def _process_match(
         self, match: re.Match[str], content: str, filepath: str
-    ) -> Optional[LinterError]:
+    ) -> Optional[LinterErrorBase]:
         call_name = self._get_call_name(match)
         line = self._get_line_number(content, match.start())
         column = self._get_column_number(content, match.start())

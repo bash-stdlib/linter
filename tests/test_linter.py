@@ -11,7 +11,7 @@ from errors.std004 import STD004
 from linter import Linter
 
 if TYPE_CHECKING:
-    from errors.base import LinterError
+    from errors.base import LinterErrorBase
     from unittest.mock import MagicMock
 
 
@@ -29,7 +29,7 @@ class TestLinter(unittest.TestCase):
         }
         self.linter = Linter(self.metadata)
 
-    def _lint_content(self, content: str) -> list[LinterError]:
+    def _lint_content(self, content: str) -> list[LinterErrorBase]:
         with patch("builtins.open", mock_open(read_data=content)):
             return self.linter.lint("test.sh")
 

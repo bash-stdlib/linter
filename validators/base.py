@@ -7,10 +7,10 @@ import difflib
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from errors.base import LinterError
+    from errors.base import LinterErrorBase
 
 
-class Validator(abc.ABC):
+class ValidatorBase(abc.ABC):
     """Abstract base class for all linter validators."""
 
     def __init__(self, functions: set[str], namespaces: set[str]) -> None:
@@ -20,7 +20,7 @@ class Validator(abc.ABC):
     @abc.abstractmethod
     def check(
         self, call: str, file: str, line: int, column: int
-    ) -> Optional[LinterError]:
+    ) -> Optional[LinterErrorBase]:
         """Check if the given call violates this validator."""
         pass
 

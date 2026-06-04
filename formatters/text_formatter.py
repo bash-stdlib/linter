@@ -1,17 +1,17 @@
-"""Formatter for human-readable text output."""
+"""FormatterBase for human-readable text output."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .base import Formatter
+from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterError
+    from errors.base import LinterErrorBase
 
 
-class TextFormatter(Formatter):
-    def format(self, errors: list[LinterError]) -> str:
+class TextFormatterBase(FormatterBase):
+    def format(self, errors: list[LinterErrorBase]) -> str:
         if not errors:
             return "No errors found."
 
