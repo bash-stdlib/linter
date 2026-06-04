@@ -8,6 +8,7 @@ from .std001 import STD001
 from .std002 import STD002
 from .std003 import STD003
 from .std004 import STD004
+from .std005 import STD005
 
 
 def get_all_errors() -> "List[Type[LinterErrorBase]]":
@@ -15,4 +16,4 @@ def get_all_errors() -> "List[Type[LinterErrorBase]]":
     return LinterErrorBase.__subclasses__()
 
 
-__all__ = ["STD000", "STD001", "STD002", "STD003", "STD004", "get_all_errors"]
+__all__ = ["STD000", "STD001", "STD002", "STD003", "STD004", "STD005", "get_all_errors"]
