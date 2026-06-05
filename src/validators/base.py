@@ -2,7 +2,7 @@
 
 import abc
 import difflib
-from typing import TYPE_CHECKING, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set
 
 if TYPE_CHECKING:
     from errors.base import LinterErrorBase
@@ -17,7 +17,12 @@ class ValidatorBase(abc.ABC):
 
     @abc.abstractmethod
     def check(
-        self, call: str, file: str, line: int, column: int
+        self,
+        call: str,
+        filepath: str,
+        line: int,
+        column: int,
+        args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
         """Check if the given call violates this validator."""
         pass
