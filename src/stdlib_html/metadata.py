@@ -14,6 +14,7 @@ class FunctionMetadata:
         globals: "Optional[List[str]]" = None,
         min_args: "int" = 0,
         max_args: "int" = 0,
+        is_testing: "bool" = False,
     ) -> "None":
         self.name = name
         self.arguments = arguments if arguments is not None else []
@@ -21,6 +22,7 @@ class FunctionMetadata:
         self.globals = globals if globals is not None else []
         self.min_args = min_args
         self.max_args = max_args
+        self.is_testing = is_testing
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the metadata to a dictionary for JSON serialization."""
@@ -31,4 +33,5 @@ class FunctionMetadata:
             "globals": self.globals,
             "min_args": self.min_args,
             "max_args": self.max_args,
+            "is_testing": self.is_testing,
         }

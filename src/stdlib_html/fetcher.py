@@ -38,11 +38,12 @@ class HTMLFetcher:
     def _extract_functions(self) -> "Dict[str, Any]":
         functions_metadata = {}
         for url in [URL_STANDARD_DOC, URL_TESTING_DOC]:
+            is_testing = url == URL_TESTING_DOC
             try:
                 req = urllib.request.Request(url, headers=self.headers)
                 with urllib.request.urlopen(req) as response:
                     content = response.read().decode("utf-8")
-                    parser = HTMLParser()
+                    parser = HTMLParser(is_testing=is_testing)
                     functions_metadata.update(parser.parse(content))
             except Exception as e:
                 print(

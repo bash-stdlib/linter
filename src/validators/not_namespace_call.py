@@ -1,6 +1,6 @@
 """ValidatorBase to prevent calling namespaces directly."""
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from errors import STD003
 from errors.base import LinterErrorBase
@@ -17,7 +17,7 @@ class NotNamespaceCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> Optional[LinterErrorBase]:
+    ) -> "Optional[LinterErrorBase]":
         if call in self.namespaces:
             return STD003(file, line, column, call)
         return None

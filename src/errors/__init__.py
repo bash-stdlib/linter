@@ -10,6 +10,7 @@ from .std003 import STD003
 from .std004 import STD004
 from .std005 import STD005
 from .std006 import STD006
+from .std007 import STD007
 
 
 def get_all_errors() -> "List[Type[LinterErrorBase]]":
