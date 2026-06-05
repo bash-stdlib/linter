@@ -63,7 +63,7 @@ class HTMLParser(html.parser.HTMLParser):
             self.li_data.append(data)
 
     def _process_h3_data(self, data: "str") -> "None":
-        name = data.strip()
+        name = self._clean_heading(data)
         if name.startswith("stdlib."):
             name = name.split()[0]
             self.current_function = FunctionMetadata(name=name)
@@ -73,7 +73,12 @@ class HTMLParser(html.parser.HTMLParser):
             self.current_function = None
 
     def _process_h4_data(self, data: "str") -> "None":
-        self.current_section = data.strip()
+        self.current_section = self._clean_heading(data)
+
+    def _clean_heading(self, text: "str") -> "str":
+        # Remove common RTD/Sphinx permalink symbols
+        text = text.replace("\uf0c1", "").replace("\u00b6", "")
+        return text.strip()
 
     def _process_li_data(self, text: "str") -> "None":
         if not self.current_function:
