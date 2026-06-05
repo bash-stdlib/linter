@@ -10,6 +10,18 @@ from .metadata import FunctionMetadata
 class HTMLParser(html.parser.HTMLParser):
     """Parses bash-stdlib documentation to extract function metadata."""
 
+    FUNCTION_PREFIX: "str" = "stdlib."
+    PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
+    SECTION_ARGUMENTS: "str" = "Arguments"
+    SECTION_VARIABLES_SET: "str" = "Variables set"
+    INDICATOR_OPTIONAL: "str" = "optional"
+    INDICATOR_KEYWORD: "str" = "keyword"
+    INDICATOR_GLOBAL: "str" = "global"
+    VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
+
+    RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
+    RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
+
     def __init__(self) -> "None":
         super().__init__()
         self.functions: "Dict[str, FunctionMetadata]" = {}
@@ -64,7 +76,7 @@ class HTMLParser(html.parser.HTMLParser):
 
     def _process_h3_data(self, data: "str") -> "None":
         name = self._clean_heading(data)
-        if name.startswith("stdlib."):
+        if name.startswith(self.FUNCTION_PREFIX):
             name = name.split()[0]
             self.current_function = FunctionMetadata(name=name)
             self.functions[name] = self.current_function
@@ -77,7 +89,8 @@ class HTMLParser(html.parser.HTMLParser):
 
     def _clean_heading(self, text: "str") -> "str":
         # Remove common RTD/Sphinx permalink symbols
-        text = text.replace("\uf0c1", "").replace("\u00b6", "")
+        for symbol in self.PERMALINK_SYMBOLS:
+            text = text.replace(symbol, "")
         return text.strip()
 
     def _process_li_data(self, text: "str") -> "None":
@@ -88,15 +101,15 @@ class HTMLParser(html.parser.HTMLParser):
         if not text:
             return
 
-        if self.current_section == "Arguments":
+        if self.current_section == self.SECTION_ARGUMENTS:
             self._process_argument(text)
-        elif self.current_section == "Variables set":
+        elif self.current_section == self.SECTION_VARIABLES_SET:
             self._process_variable_set(text)
         else:
             self._process_other_li(text)
 
     def _process_argument(self, text: "str") -> "None":
-        args = re.findall(r"(\$\d+|\.\.\.|…)", text)
+        args = re.findall(self.RE_ARGUMENT, text)
         if not args:
             return
 
@@ -116,31 +129,31 @@ class HTMLParser(html.parser.HTMLParser):
                     self.current_function.min_args += 1
 
     def _is_variadic(self, arg: "str") -> "bool":
-        return arg in ["...", "…"]
+        return arg in self.VARIADIC_SYMBOLS
 
     def _is_required(self, text: "str") -> "bool":
-        return "optional" not in text.lower()
+        return self.INDICATOR_OPTIONAL not in text.lower()
 
     def _increment_max_args(self) -> "None":
         if self.current_function.max_args != -1:
             self.current_function.max_args += 1
 
     def _process_variable_set(self, text: "str") -> "None":
-        match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
+        match = re.search(self.RE_STDLIB_VAR, text)
         if match:
             var = match.group(1)
             if var not in self.current_function.globals:
                 self.current_function.globals.append(var)
 
     def _process_other_li(self, text: "str") -> "None":
-        if "keyword" in text.lower():
-            match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
+        if self.INDICATOR_KEYWORD in text.lower():
+            match = re.search(self.RE_STDLIB_VAR, text)
             if match:
                 kw = match.group(1)
                 if kw not in self.current_function.keywords:
                     self.current_function.keywords.append(kw)
-        elif "global" in text.lower():
-            match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
+        elif self.INDICATOR_GLOBAL in text.lower():
+            match = re.search(self.RE_STDLIB_VAR, text)
             if match:
                 var = match.group(1)
                 if var not in self.current_function.globals:
