@@ -1,13 +1,12 @@
-"""Tests for linter error STD007: Testing function used in production script."""
+"""Tests for IsTestingFunctionCallValidator."""
 
 import unittest
-from unittest.mock import MagicMock
 
 from errors import STD007
 from validators import IsTestingFunctionCallValidator
 
 
-class TestSTD007(unittest.TestCase):
+class TestIsTestingFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
         self.functions = {"assert_array_equals", "stdlib.string.echo"}
         self.namespaces = {"stdlib.string"}
@@ -21,11 +20,11 @@ class TestSTD007(unittest.TestCase):
 
     def test_check__testing_function_in_production_script__returns_std007(self) -> None:
         call = "assert_array_equals"
-        file = "/path/to/script.sh"
+        filepath = "/path/to/script.sh"
         line = 1
         column = 1
 
-        error = self.validator.check(call, file, line, column)
+        error = self.validator.check(call, filepath, line, column)
 
         self.assertIsInstance(error, STD007)
         if error:
@@ -34,31 +33,33 @@ class TestSTD007(unittest.TestCase):
 
     def test_check__testing_function_in_test_script__returns_none(self) -> None:
         call = "assert_array_equals"
-        file = "/path/to/test_script.sh"
+        filepath = "/path/to/test_script.sh"
         line = 1
         column = 1
 
-        error = self.validator.check(call, file, line, column)
+        error = self.validator.check(call, filepath, line, column)
 
         self.assertIsNone(error)
 
     def test_check__non_testing_function_in_production_script__returns_none(self) -> None:
         call = "stdlib.string.echo"
-        file = "/path/to/script.sh"
+        filepath = "/path/to/script.sh"
         line = 1
         column = 1
 
-        error = self.validator.check(call, file, line, column)
+        error = self.validator.check(call, filepath, line, column)
 
         self.assertIsNone(error)
 
-    def test_format_message__returns_expected_string(self) -> None:
-        error = STD007("/path/to/script.sh", 1, 1, "assert_array_equals")
+    def test_check__unknown_function__returns_none(self) -> None:
+        call = "unknown_func"
+        filepath = "/path/to/script.sh"
+        line = 1
+        column = 1
 
-        message = error.format_message()
+        error = self.validator.check(call, filepath, line, column)
 
-        self.assertIn("'assert_array_equals' is being used in a production script", message)
-        self.assertIn("path containing 'test'", message)
+        self.assertIsNone(error)
 
 
 if __name__ == "__main__":
