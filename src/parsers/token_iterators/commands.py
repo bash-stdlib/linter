@@ -19,10 +19,7 @@ class CommandsTokenIterator:
         if self.stopped_at_separator:
             raise StopIteration
 
-        try:
-            token = next(self.iterator)
-        except StopIteration:
-            raise StopIteration
+        token = next(self.iterator)
 
         if self._is_command_end(token):
             self.stopped_at_separator = True
