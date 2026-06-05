@@ -10,7 +10,7 @@ from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
     NotNamespaceCallValidator,
-    TestFunctionValidator,
+    IsTestingFunctionCallValidator,
 )
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ class Linter:
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
             ArgumentCountValidator(self.functions, self.namespaces, self.metadata),
-            TestFunctionValidator(self.functions, self.namespaces, self.metadata),
+            IsTestingFunctionCallValidator(self.functions, self.namespaces, self.metadata),
         ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":

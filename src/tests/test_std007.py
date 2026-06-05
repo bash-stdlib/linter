@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from errors import STD007
-from validators import TestFunctionValidator
+from validators import IsTestingFunctionCallValidator
 
 
 class TestSTD007(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestSTD007(unittest.TestCase):
             "assert_array_equals": {"name": "assert_array_equals", "is_testing": True},
             "stdlib.string.echo": {"name": "stdlib.string.echo", "is_testing": False},
         }
-        self.validator = TestFunctionValidator(
+        self.validator = IsTestingFunctionCallValidator(
             self.functions, self.namespaces, self.metadata
         )
 

@@ -26,7 +26,7 @@ class ArgumentCountValidator(ValidatorBase):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
@@ -52,6 +52,6 @@ class ArgumentCountValidator(ValidatorBase):
             is_valid = False
 
         if not is_valid:
-            return STD005(file, line, column, call, actual_args, min_args, max_args)
+            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
 
         return None

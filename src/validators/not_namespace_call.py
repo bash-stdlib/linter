@@ -13,11 +13,11 @@ class NotNamespaceCallValidator(ValidatorBase):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
         if call in self.namespaces:
-            return STD003(file, line, column, call)
+            return STD003(filepath, line, column, call)
         return None

@@ -19,7 +19,7 @@ class ValidatorBase(abc.ABC):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,

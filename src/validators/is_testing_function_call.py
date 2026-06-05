@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from errors.base import LinterErrorBase
 
 
-class TestFunctionValidator(ValidatorBase):
+class IsTestingFunctionCallValidator(ValidatorBase):
     """Checks if testing functions are used outside of test scripts."""
 
     def __init__(
@@ -25,7 +25,7 @@ class TestFunctionValidator(ValidatorBase):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
@@ -37,7 +37,7 @@ class TestFunctionValidator(ValidatorBase):
         if not func_meta.get("is_testing", False):
             return None
 
-        if "test" in file.lower():
+        if "test" in filepath.lower():
             return None
 
-        return STD007(file, line, column, call)
+        return STD007(filepath, line, column, call)

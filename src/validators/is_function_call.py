@@ -13,7 +13,7 @@ class IsFunctionCallValidator(ValidatorBase):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
@@ -26,9 +26,9 @@ class IsFunctionCallValidator(ValidatorBase):
         if longest_namespace:
             if self._is_immediate_child_of_namespace(call, longest_namespace):
                 suggestion = self._get_suggestion(call, longest_namespace)
-                return STD002(file, line, column, call, longest_namespace, suggestion)
+                return STD002(filepath, line, column, call, longest_namespace, suggestion)
 
             invalid_namespace = self._extract_invalid_namespace(call, longest_namespace)
-            return STD001(file, line, column, call, invalid_namespace)
+            return STD001(filepath, line, column, call, invalid_namespace)
 
-        return STD004(file, line, column, call)
+        return STD004(filepath, line, column, call)
