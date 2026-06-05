@@ -77,22 +77,24 @@ class HTMLParser(html.parser.HTMLParser):
             self._process_other_li(text)
 
     def _process_argument(self, text: "str") -> "None":
-        match = re.search(r"(\$\d+|\.\.\.|…)", text)
-        if not match:
+        args = re.findall(r"(\$\d+|\.\.\.|…)", text)
+        if not args:
             return
 
-        arg = match.group(1)
-        if arg in self.current_function.arguments:
-            return
+        is_required = self._is_required(text)
 
-        self.current_function.arguments.append(arg)
+        for arg in args:
+            if arg in self.current_function.arguments:
+                continue
 
-        if self._is_variadic(arg):
-            self.current_function.max_args = -1
-        else:
-            self._increment_max_args()
-            if self._is_required(text):
-                self.current_function.min_args += 1
+            self.current_function.arguments.append(arg)
+
+            if self._is_variadic(arg):
+                self.current_function.max_args = -1
+            else:
+                self._increment_max_args()
+                if is_required:
+                    self.current_function.min_args += 1
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in ["...", "…"]

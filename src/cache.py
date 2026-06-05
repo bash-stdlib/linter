@@ -15,7 +15,7 @@ def save_cache(metadata: "Dict[str, Any]") -> None:
     try:
         with open(LOCAL_CACHE_PATH, "w") as f:
             json.dump(metadata, f, indent=4)
-        print("Cache saved to {}".format(LOCAL_CACHE_PATH), file=sys.stderr)
+        print("Cache saved to {}".format(CACHE_FILE), file=sys.stderr)
     except Exception as e:
         print("Error: Failed to save cache: {}".format(e), file=sys.stderr)
 
