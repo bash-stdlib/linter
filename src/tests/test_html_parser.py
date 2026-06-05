@@ -180,6 +180,25 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.min_args, 1)
         self.assertEqual(metadata.max_args, 2)
 
+    def test_parse__multiple_args_in_one_li__extracts_all_counts_correctly(
+            self) -> "None":
+        html = """
+        <section id="stdlib-test-multiple">
+        <h3>stdlib.test.multiple</h3>
+        <section id="arguments">
+        <h4>Arguments</h4>
+        <ul class="simple">
+        <li><p><strong>$1, $2</strong> (string): Two required args</p></li>
+        </ul>
+        </section>
+        </section>
+        """
+        result = self.parser.parse(html)
+        metadata = result["stdlib.test.multiple"]
+        self.assertEqual(metadata.min_args, 2)
+        self.assertEqual(metadata.max_args, 2)
+        self.assertEqual(len(metadata.arguments), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
