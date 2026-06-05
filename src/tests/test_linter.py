@@ -131,7 +131,8 @@ class TestLinter(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data="stdlib.array.assert.is_array\nstdlib.array.assert.is_array arg1 arg2",
+        read_data="stdlib.array.assert.is_array\n"
+        "stdlib.array.assert.is_array arg1 arg2",
     )
     def test_lint__script_with_error__returns_error_list_with_codes(
         self,

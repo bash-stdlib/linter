@@ -16,6 +16,9 @@ class CommandsTokenIterator:
         return self
 
     def __next__(self) -> "str":
+        if self.stopped_at_separator:
+            raise StopIteration
+
         token = next(self.iterator)
 
         if self._is_command_end(token):

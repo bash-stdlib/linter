@@ -1,6 +1,7 @@
 """Iterator for grouping nested Bash tokens into single logical entities."""
 
-from typing import List, Optional
+from collections import deque
+from typing import Iterable, Iterator, Optional
 
 
 class FilterNestedEntitiesTokenIterator:
@@ -12,30 +13,45 @@ class FilterNestedEntitiesTokenIterator:
         "`": {"end": "`", "can_nest": True, "escape": "\\"},
     }
 
-    def __init__(self, tokens: "List[str]") -> None:
-        self.tokens = tokens
-        self.index = 0
+    def __init__(self, tokens: "Iterable[str]") -> None:
+        self.iterator: "Iterator[str]" = iter(tokens)
+        self.lookahead: "deque[str]" = deque()
 
     def __iter__(self) -> "FilterNestedEntitiesTokenIterator":
         return self
 
+    def _peek(self, n: "int" = 0) -> "Optional[str]":
+        """Peek at the n-th token ahead (0-indexed)."""
+        while len(self.lookahead) <= n:
+            try:
+                self.lookahead.append(next(self.iterator))
+            except StopIteration:
+                return None
+        return self.lookahead[n]
+
+    def _consume(self) -> "str":
+        """Consume and return the next token."""
+        if self.lookahead:
+            return self.lookahead.popleft()
+        return next(self.iterator)
+
     def __next__(self) -> "str":
-        if self.index >= len(self.tokens):
+        token = self._peek(0)
+        if token is None:
             raise StopIteration
 
-        token = self.tokens[self.index]
         nested_start = self._get_nested_start(token)
 
         if nested_start:
             return self._consume_nested_entity(nested_start)
 
-        self.index += 1
-        return token
+        return self._consume()
 
     def _get_nested_start(self, token: "str") -> "Optional[str]":
         if token == "$":
-            if self.index + 1 < len(self.tokens):
-                potential_start = "$" + self.tokens[self.index + 1]
+            next_token = self._peek(1)
+            if next_token:
+                potential_start = "$" + next_token
                 if potential_start in self.NESTED_CONFIG:
                     return potential_start
         if token in self.NESTED_CONFIG:
@@ -44,59 +60,57 @@ class FilterNestedEntitiesTokenIterator:
 
     def _consume_nested_entity(self, start_marker: "str") -> "str":
         config = self.NESTED_CONFIG[start_marker]
-        end_marker = config["end"]
-        can_nest = config["can_nest"]
+        end_marker = str(config["end"])
+        can_nest = bool(config["can_nest"])
         escape_char = config["escape"]
+        if escape_char is not None:
+            escape_char = str(escape_char)
 
         consumed = [start_marker]
-        self.index += len(start_marker)
 
         # shlex split $( and ${ into two tokens
         if start_marker in ["$(", "${"]:
-            self.index = self.index - len(start_marker) + 2
+            self._consume()  # consume '$'
+            self._consume()  # consume '(' or '{'
+        else:
+            self._consume()  # consume '`'
 
         level = 1
 
-        while self.index < len(self.tokens):
-            token = self.tokens[self.index]
+        while True:
+            token = self._peek(0)
+            if token is None:
+                break
 
-            if (
-                escape_char
-                and token == escape_char
-                and self.index + 1 < len(self.tokens)
-            ):
-                next_token = self.tokens[self.index + 1]
-                if next_token == end_marker:
-                    consumed.append(escape_char + next_token)
-                    self.index += 2
-                    continue
+            if escape_char and token == escape_char and self._peek(1) == end_marker:
+                self._consume()  # consume escape_char
+                next_token = self._consume()  # consume end_marker
+                consumed.append(escape_char + next_token)
+                continue
 
             if can_nest and self._is_same_nested_start(token, start_marker):
                 level += 1
                 if len(start_marker) > 1:
+                    self._consume()  # consume '$'
+                    self._consume()  # consume '(' or '{'
                     consumed.append(start_marker)
-                    self.index += 2
                     continue
                 else:
-                    consumed.append(token)
-                    self.index += 1
+                    consumed.append(self._consume())
                     continue
             elif token == end_marker:
                 level -= 1
                 if level == 0:
-                    consumed.append(token)
-                    self.index += 1
+                    consumed.append(self._consume())
                     break
 
             if token == "))" and end_marker == ")":
                 level -= 2
                 if level <= 0:
-                    consumed.append("))")
-                    self.index += 1
+                    consumed.append(self._consume())
                     break
 
-            consumed.append(token)
-            self.index += 1
+            consumed.append(self._consume())
 
         return "".join(consumed)
 
@@ -105,8 +119,4 @@ class FilterNestedEntitiesTokenIterator:
             config = self.NESTED_CONFIG[start_marker]
             return token == start_marker and token != config["end"]
 
-        return (
-            token == start_marker[0]
-            and self.index + 1 < len(self.tokens)
-            and self.tokens[self.index + 1] == start_marker[1]
-        )
+        return token == start_marker[0] and self._peek(1) == start_marker[1]
