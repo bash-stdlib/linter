@@ -46,7 +46,7 @@ class HTMLParser(html.parser.HTMLParser):
         elif tag == "li":
             self.collecting_li = False
             if self.li_data:
-                self._process_li_data(" ".join(self.li_data))
+                self._process_li_data("".join(self.li_data))
 
     def handle_data(self, data: "str") -> "None":
         if self.in_h3:
@@ -92,22 +92,17 @@ class HTMLParser(html.parser.HTMLParser):
         else:
             self._increment_max_args()
             if self._is_required(text):
-                self._maybe_increment_min_args()
+                self.current_function.min_args += 1
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in ["...", "…"]
 
     def _is_required(self, text: "str") -> "bool":
-        return "(optional" not in text.lower()
+        return "optional" not in text.lower()
 
     def _increment_max_args(self) -> "None":
         if self.current_function.max_args != -1:
             self.current_function.max_args += 1
-
-    def _maybe_increment_min_args(self) -> "None":
-        # If we haven't encountered an optional arg yet, min_args follows max_args
-        if self.current_function.min_args == self.current_function.max_args - 1:
-            self.current_function.min_args += 1
 
     def _process_variable_set(self, text: "str") -> "None":
         match = re.search(r"\b(STDLIB_[A-Z0-9_]+)\b", text)
