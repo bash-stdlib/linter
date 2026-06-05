@@ -23,6 +23,30 @@ class TestCommandsTokenIterator(unittest.TestCase):
 
         self.assertEqual(result, ["arg1", "arg2"])
 
+    def test_iterator__no_separators__stopped_at_separator_is_false(self) -> None:
+        tokens = ["arg1", "arg2"]
+        iterator = CommandsTokenIterator(tokens)
+
+        list(iterator)
+
+        self.assertFalse(iterator.stopped_at_separator)
+
+    def test_iterator__with_separator__stopped_at_separator_is_true(self) -> None:
+        tokens = ["arg1", ";", "arg2"]
+        iterator = CommandsTokenIterator(tokens)
+
+        list(iterator)
+
+        self.assertTrue(iterator.stopped_at_separator)
+
+    def test_iterator__with_newline__stopped_at_separator_is_true(self) -> None:
+        tokens = ["arg1", "\n", "arg2"]
+        iterator = CommandsTokenIterator(tokens)
+
+        list(iterator)
+
+        self.assertTrue(iterator.stopped_at_separator)
+
     def test_iterator__newline__stops_at_newline(self) -> None:
         tokens = ["arg1", "arg2", "\n", "next_line"]
         iterator = CommandsTokenIterator(tokens)
