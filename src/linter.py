@@ -4,8 +4,13 @@ import re
 from typing import TYPE_CHECKING, Any, Optional
 
 from constants import STDLIB_PATTERN
-from errors import STD000
-from validators import IsFunctionCallValidator, NotNamespaceCallValidator
+from errors import STD000, STD006
+from parsers import BashArgumentsParser
+from validators import (
+    ArgumentCountValidator,
+    IsFunctionCallValidator,
+    NotNamespaceCallValidator,
+)
 
 if TYPE_CHECKING:
     from typing import List, Set
@@ -18,10 +23,13 @@ class Linter:
     def __init__(self, metadata: "Any") -> "None":
         self.functions: "Set[str]" = set(metadata["functions"].keys())
         self.namespaces: "Set[str]" = set(metadata["namespaces"])
+        self.metadata = metadata["functions"]
         self.stdlib_call_pattern: "re.Pattern[str]" = re.compile(STDLIB_PATTERN)
+        self.argument_parser = BashArgumentsParser()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
+            ArgumentCountValidator(self.functions, self.namespaces, self.metadata),
         ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
@@ -56,8 +64,12 @@ class Linter:
         line = self._get_line_number(content, match.start())
         column = self._get_column_number(content, match.start())
 
+        args = self.argument_parser.parse(content[match.end() :])
+        if args is None:
+            return STD006(filepath, line, column, call_name)
+
         for validator in self.validators:
-            error = validator.check(call_name, filepath, line, column)
+            error = validator.check(call_name, filepath, line, column, args)
             if error:
                 return error
 

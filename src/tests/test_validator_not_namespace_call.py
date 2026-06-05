@@ -9,8 +9,10 @@ class TestNotNamespaceCallValidator(unittest.TestCase):
     def setUp(self) -> None:
         self.functions = {"stdlib.string.join"}
         self.namespaces = {"stdlib.string"}
-        self.validator = NotNamespaceCallValidator(self.functions,
-                                                   self.namespaces)
+        self.validator = NotNamespaceCallValidator(
+            self.functions,
+            self.namespaces,
+        )
 
     def test_check__call_is_namespace__returns_std003(self) -> None:
         call = "stdlib.string"
