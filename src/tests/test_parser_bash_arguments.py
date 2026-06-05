@@ -184,6 +184,13 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         self.assertIsNone(result)
 
+    def test_parse__unbalanced_quotes_after_separator__returns_parsed_tokens(self) -> None:
+        content = 'arg1 ) "unbalanced quote'
+
+        result = self.parser.parse(content)
+
+        self.assertEqual(result, ["arg1"])
+
     def test_parse__complex_mixed__correctly_identifies_arguments(self) -> None:
         content = "arg1 'quoted arg' 2>/dev/null arg2 $(subshell) arg3\nnext_line"
 

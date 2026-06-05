@@ -10,14 +10,19 @@ class CommandsTokenIterator:
 
     def __init__(self, token_iterator: "Iterable[str]") -> None:
         self.iterator: "Iterator[str]" = iter(token_iterator)
+        self.stopped_at_separator = False
 
     def __iter__(self) -> "CommandsTokenIterator":
         return self
 
     def __next__(self) -> "str":
-        token = next(self.iterator)
+        try:
+            token = next(self.iterator)
+        except StopIteration:
+            raise StopIteration
 
         if self._is_command_end(token):
+            self.stopped_at_separator = True
             raise StopIteration
 
         return token

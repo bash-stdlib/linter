@@ -18,7 +18,7 @@ class IsFunctionCallValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> Optional[LinterErrorBase]:
-        if call in self.functions:
+        if call in self.functions or ".__" in call:
             return None
 
         longest_namespace = self._find_longest_namespace_prefix(call)
