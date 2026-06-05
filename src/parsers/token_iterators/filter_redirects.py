@@ -1,7 +1,8 @@
 """Iterator for filtering out shell redirections from a Bash token stream."""
 
 import re
-from typing import List
+from collections import deque
+from typing import Iterable, Iterator, Optional
 
 
 class FilterRedirectsTokenIterator:
@@ -12,34 +13,52 @@ class FilterRedirectsTokenIterator:
     FD_REDIRECT_WITH_TARGET_PATTERN = re.compile(r"^\d+>&?$")
     SELF_CONTAINED_REDIRECT_PATTERN = re.compile(r"^\d+>&?\d+$|^\d+>/\S+$")
 
-    def __init__(self, tokens: "List[str]") -> None:
-        self.tokens = tokens
-        self.index = 0
+    def __init__(self, tokens: "Iterable[str]") -> None:
+        self.iterator: "Iterator[str]" = iter(tokens)
+        self.lookahead: "deque[str]" = deque()
 
     def __iter__(self) -> "FilterRedirectsTokenIterator":
         return self
 
+    def _peek(self, n: "int" = 0) -> "Optional[str]":
+        """Peek at the n-th token ahead (0-indexed)."""
+        while len(self.lookahead) <= n:
+            try:
+                self.lookahead.append(next(self.iterator))
+            except StopIteration:
+                return None
+        return self.lookahead[n]
+
+    def _consume(self) -> "str":
+        """Consume and return the next token."""
+        if self.lookahead:
+            return self.lookahead.popleft()
+        return next(self.iterator)
+
     def __next__(self) -> "str":
-        while self.index < len(self.tokens):
-            token = self.tokens[self.index]
+        while True:
+            token = self._peek(0)
+            if token is None:
+                raise StopIteration
 
             skip_count = self._get_redirect_skip_count()
             if skip_count > 0:
-                self.index += skip_count
+                for _ in range(skip_count):
+                    self._consume()
                 continue
 
-            self.index += 1
-            return token
-
-        raise StopIteration
+            return self._consume()
 
     def _get_redirect_skip_count(self) -> "int":
         """Determine how many tokens to skip for redirections."""
-        token = self.tokens[self.index]
+        token = self._peek(0)
+        if token is None:
+            return 0
 
         if self._is_prefixed_redirect():
             # Skip fd, operator, and potentially target
-            return 3 if self._requires_target(self.tokens[self.index + 1]) else 2
+            op = self._peek(1)
+            return 3 if op is not None and self._requires_target(op) else 2
 
         if self._is_redirect_operator(token):
             return 2 if self._requires_target(token) else 1
@@ -53,10 +72,13 @@ class FilterRedirectsTokenIterator:
         return 0
 
     def _is_prefixed_redirect(self) -> "bool":
+        token = self._peek(0)
+        next_token = self._peek(1)
         return (
-            self.index + 1 < len(self.tokens)
-            and self.tokens[self.index].isdigit()
-            and self._is_redirect_operator(self.tokens[self.index + 1])
+            token is not None
+            and next_token is not None
+            and token.isdigit()
+            and self._is_redirect_operator(next_token)
         )
 
     def _is_redirect_operator(self, token: "str") -> "bool":
