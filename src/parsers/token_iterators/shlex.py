@@ -26,5 +26,3 @@ class ShlexTokenIterator:
         except ValueError:
             self.parsing_error = True
             raise StopIteration
-        except StopIteration:
-            raise StopIteration
