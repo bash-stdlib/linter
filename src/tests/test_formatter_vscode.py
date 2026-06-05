@@ -21,6 +21,7 @@ class TestVSCodeFormatterBase(unittest.TestCase):
         self.assertEqual(diag["range"]["start"]["character"], 9)  # 0-indexed
         self.assertEqual(diag["code"], "STD003")
         self.assertEqual(diag["source"], "bash-stdlib-lint")
+        self.assertEqual(diag["file"], "test.sh")
 
 
 if __name__ == "__main__":

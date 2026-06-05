@@ -1,5 +1,6 @@
 """Core linter logic for validating bash-stdlib function calls."""
 
+import os
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -34,6 +35,7 @@ class Linter:
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
         errors: "List[LinterErrorBase]" = []
+        filepath = os.path.abspath(filepath)
         file_content = self._read_file(filepath, errors)
         if file_content is None:
             return errors

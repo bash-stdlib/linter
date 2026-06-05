@@ -35,5 +35,6 @@ class VSCodeFormatterBase(FormatterBase):
                 "code": error.CODE,
                 "source": "bash-stdlib-lint",
                 "message": error.message,
+                "file": error.file,
             })
         return json.dumps(diagnostics, indent=4)

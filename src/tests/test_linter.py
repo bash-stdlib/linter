@@ -1,3 +1,4 @@
+import os
 import unittest
 from typing import TYPE_CHECKING, List
 from unittest.mock import MagicMock, mock_open, patch
@@ -50,6 +51,15 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")
+
+    def test_lint__returns_absolute_path(self) -> "None":
+        content = "stdlib.array.assert"
+        expected_path = os.path.abspath("test.sh")
+
+        errors = self._lint_content(content)
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].file, expected_path)
 
     def test_lint__exact_match__returns_no_errors(self) -> "None":
         content = "stdlib.array.assert.is_array arg1"
