@@ -4,7 +4,6 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
-from constants import STDLIB_PATTERN
 from errors import STD000, STD006
 from parsers import BashArgumentsParser
 from validators import (
@@ -26,7 +25,7 @@ class Linter:
         self.functions: "Set[str]" = set(metadata["functions"].keys())
         self.namespaces: "Set[str]" = set(metadata["namespaces"])
         self.metadata = metadata["functions"]
-        self.stdlib_call_pattern: "re.Pattern[str]" = re.compile(STDLIB_PATTERN)
+        self.stdlib_call_pattern: "re.Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
@@ -48,6 +47,27 @@ class Linter:
                 errors.append(error)
 
         return errors
+
+    def _build_call_pattern(self) -> "re.Pattern[str]":
+        roots = set()
+        for name in self.functions | self.namespaces:
+            if "." in name:
+                roots.add(name.split(".")[0])
+            elif "_" in name:
+                # Capture prefixes like 'assert_'
+                roots.add(name.split("_")[0] + "_")
+            elif name.startswith("@"):
+                roots.add("@")
+            else:
+                roots.add(name)
+
+        # Sort by length descending to match longest roots first
+        sorted_roots = sorted(list(roots), key=len, reverse=True)
+        pattern = r"(?<!\w)({}[a-z0-9._]*)\b".format(
+            "|".join(re.escape(r) for r in sorted_roots)
+        )
+
+        return re.compile(pattern)
 
     def _read_file(
         self,
