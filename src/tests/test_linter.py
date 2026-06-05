@@ -157,6 +157,24 @@ class TestLinter(unittest.TestCase):
         self.assertIsInstance(errors[0], STD006)
         self.assertIn("Failed to parse arguments", errors[0].message)
 
+    def test_lint__ignored_error_code__filters_out_error(self) -> "None":
+        content = "stdlib.array.assert.is_array arg1 arg2"
+        linter = Linter(self.metadata, ignored_codes=["STD005"])
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        self.assertEqual(len(errors), 0)
+
+    def test_lint__ignored_error_code_lowercase__filters_out_error(self) -> "None":
+        content = "stdlib.array.assert.is_array arg1 arg2"
+        linter = Linter(self.metadata, ignored_codes=["std005"])
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        self.assertEqual(len(errors), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,17 +21,26 @@ if TYPE_CHECKING:
 
 
 class Linter:
-    def __init__(self, metadata: "Any") -> "None":
+    def __init__(
+        self,
+        metadata: "Any",
+        ignored_codes: "Optional[List[str]]" = None,
+    ) -> "None":
         self.functions: "Set[str]" = set(metadata["functions"].keys())
         self.namespaces: "Set[str]" = set(metadata["namespaces"])
         self.metadata = metadata["functions"]
+        self.ignored_codes: "Set[str]" = (
+            {c.upper() for c in ignored_codes} if ignored_codes else set()
+        )
         self.stdlib_call_pattern: "re.Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
             ArgumentCountValidator(self.functions, self.namespaces, self.metadata),
-            IsTestingFunctionCallValidator(self.functions, self.namespaces, self.metadata),
+            IsTestingFunctionCallValidator(
+                self.functions, self.namespaces, self.metadata
+            ),
         ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
@@ -76,7 +85,8 @@ class Linter:
             with open(filepath, "r") as f:
                 return f.read()
         except Exception as e:
-            errors.append(STD000(filepath, str(e)))
+            if STD000.CODE not in self.ignored_codes:
+                errors.append(STD000(filepath, str(e)))
             return None
 
     def _process_match(
@@ -88,12 +98,16 @@ class Linter:
 
         args = self.argument_parser.parse(content[match.end() :])
         if args is None:
-            return STD006(filepath, line, column, call_name)
+            if STD006.CODE not in self.ignored_codes:
+                return STD006(filepath, line, column, call_name)
+            return None
 
         for validator in self.validators:
             error = validator.check(call_name, filepath, line, column, args)
             if error:
-                return error
+                if error.CODE not in self.ignored_codes:
+                    return error
+                return None
 
         return None
 
