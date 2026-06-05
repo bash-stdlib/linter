@@ -1,6 +1,5 @@
 """Bash argument parser for extracting arguments from function calls."""
 
-import shlex
 from typing import List, Optional
 
 from .base import ParserBase
