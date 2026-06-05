@@ -57,9 +57,7 @@ class HTMLParser(html.parser.HTMLParser):
                 self.functions[name] = self.current_function
                 self.current_section = None
         elif self.in_h4:
-            section_name = data.strip()
-            if section_name in ["Arguments", "Variables set"]:
-                self.current_section = section_name
+            self.current_section = data.strip()
         elif self.collecting_li:
             self.li_data.append(data)
 

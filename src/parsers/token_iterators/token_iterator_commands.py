@@ -1,9 +1,9 @@
 """Iterator for extracting tokens belonging to a single Bash command."""
 
-from typing import Iterable, Iterator, Set
+from typing import Iterable, Iterator
 
 
-class BashCommandTokenIterator:
+class TokenIteratorCommands:
     """Iterates over Bash tokens and stops when a command separator or newline is reached."""
 
     SHELL_SEPARATORS = {";", "|", "&", "&&", "||", ")", "}"}
@@ -11,7 +11,7 @@ class BashCommandTokenIterator:
     def __init__(self, token_iterator: "Iterable[str]") -> None:
         self.iterator: "Iterator[str]" = iter(token_iterator)
 
-    def __iter__(self) -> "BashCommandTokenIterator":
+    def __iter__(self) -> "TokenIteratorCommands":
         return self
 
     def __next__(self) -> "str":

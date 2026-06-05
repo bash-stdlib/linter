@@ -4,9 +4,11 @@ import shlex
 from typing import List, Optional
 
 from .base import ParserBase
-from .bash_command_token import BashCommandTokenIterator
-from .bash_redirect_filter import BashRedirectFilterIterator
-from .bash_token_iterator import BashTokenIterator
+from .token_iterators import (
+    TokenIteratorCommands,
+    TokenIteratorFilterNestedEntities,
+    TokenIteratorFilterRedirects,
+)
 
 
 class BashArgumentsParser(ParserBase):
@@ -26,13 +28,13 @@ class BashArgumentsParser(ParserBase):
 
             # Chain iterators:
             # 1. Group nested entities (subshells, backticks, expansions)
-            token_iterator = BashTokenIterator(list(lexer))
+            token_iterator = TokenIteratorFilterNestedEntities(list(lexer))
 
             # 2. Stop at command boundaries (separators, newlines)
-            command_iterator = BashCommandTokenIterator(token_iterator)
+            command_iterator = TokenIteratorCommands(token_iterator)
 
             # 3. Filter out redirections
-            redirect_filter = BashRedirectFilterIterator(list(command_iterator))
+            redirect_filter = TokenIteratorFilterRedirects(list(command_iterator))
 
             return list(redirect_filter)
         except Exception:

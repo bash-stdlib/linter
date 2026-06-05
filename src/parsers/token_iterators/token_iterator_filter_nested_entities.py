@@ -3,7 +3,7 @@
 from typing import Dict, List, Optional, Tuple
 
 
-class BashTokenIterator:
+class TokenIteratorFilterNestedEntities:
     """Iterates over Bash tokens, grouping nested entities into single tokens."""
 
     NESTED_CONFIG = {
@@ -16,7 +16,7 @@ class BashTokenIterator:
         self.tokens = tokens
         self.index = 0
 
-    def __iter__(self) -> "BashTokenIterator":
+    def __iter__(self) -> "TokenIteratorFilterNestedEntities":
         return self
 
     def __next__(self) -> "str":

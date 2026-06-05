@@ -4,7 +4,7 @@ import re
 from typing import List, Optional
 
 
-class BashRedirectFilterIterator:
+class TokenIteratorFilterRedirects:
     """Iterates over Bash tokens and skips those that are part of a redirection."""
 
     REDIRECT_OPERATORS = {">", ">>", "<", ">&", "<&", "<<<", "<<"}
@@ -16,7 +16,7 @@ class BashRedirectFilterIterator:
         self.tokens = tokens
         self.index = 0
 
-    def __iter__(self) -> "BashRedirectFilterIterator":
+    def __iter__(self) -> "TokenIteratorFilterRedirects":
         return self
 
     def __next__(self) -> "str":
