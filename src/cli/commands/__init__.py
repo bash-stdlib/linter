@@ -12,7 +12,8 @@ def get_command_map() -> "Dict[str, Type[CommandBase]]":
     """Retrieve a mapping of command names to their respective classes."""
     return {
         str(cmd.COMMAND_NAME): cmd
-        for cmd in CommandBase.__subclasses__() if cmd.COMMAND_NAME is not None
+        for cmd in CommandBase.__subclasses__()
+        if cmd.COMMAND_NAME is not None
     }
 
 

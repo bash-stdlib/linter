@@ -5,7 +5,6 @@ from validators.not_namespace_call import NotNamespaceCallValidator
 
 
 class TestNotNamespaceCallValidator(unittest.TestCase):
-
     def setUp(self) -> None:
         self.functions = {"stdlib.string.join"}
         self.namespaces = {"stdlib.string"}

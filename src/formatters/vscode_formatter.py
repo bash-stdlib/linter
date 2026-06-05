@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 
 class VSCodeFormatterBase(FormatterBase):
-
     def format(self, errors: "List[LinterErrorBase]") -> "str":
         diagnostics = []
         for error in errors:
@@ -20,21 +19,17 @@ class VSCodeFormatterBase(FormatterBase):
             start_char = max(0, error.column - 1)
             end_char = start_char + len(error.match)
 
-            diagnostics.append({
-                "range": {
-                    "start": {
-                        "line": start_line,
-                        "character": start_char
+            diagnostics.append(
+                {
+                    "range": {
+                        "start": {"line": start_line, "character": start_char},
+                        "end": {"line": start_line, "character": end_char},
                     },
-                    "end": {
-                        "line": start_line,
-                        "character": end_char
-                    },
-                },
-                "severity": 1,  # Error
-                "code": error.CODE,
-                "source": "bash-stdlib-lint",
-                "message": error.message,
-                "file": error.file,
-            })
+                    "severity": 1,  # Error
+                    "code": error.CODE,
+                    "source": "bash-stdlib-lint",
+                    "message": error.message,
+                    "file": error.file,
+                }
+            )
         return json.dumps(diagnostics, indent=4)

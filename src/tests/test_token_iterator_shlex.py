@@ -6,7 +6,6 @@ from parsers.token_iterators.shlex import ShlexTokenIterator
 
 
 class TestShlexTokenIterator(unittest.TestCase):
-
     def test_iterator__basic_tokens__returns_all_tokens(self) -> None:
         content = "arg1 'arg 2' arg3"
         iterator = ShlexTokenIterator(content)

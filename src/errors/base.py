@@ -35,7 +35,8 @@ class LinterErrorBase(ABC):
         """Ensure subclasses define required metadata."""
         if not all([self.CODE, self.TITLE, self.DESCRIPTION]):
             error_msg = "Subclass {} must define metadata.".format(
-                self.__class__.__name__)
+                self.__class__.__name__
+            )
             raise NotImplementedError(error_msg)
 
     @abstractmethod

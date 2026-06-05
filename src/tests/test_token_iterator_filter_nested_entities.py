@@ -1,4 +1,5 @@
 """Unit tests for the FilterNestedEntitiesTokenIterator."""
+
 import unittest
 
 from parsers.token_iterators.filter_nested_entities import (
@@ -7,7 +8,6 @@ from parsers.token_iterators.filter_nested_entities import (
 
 
 class TestFilterNestedEntitiesTokenIterator(unittest.TestCase):
-
     def test_iterator__basic_tokens__returns_unchanged(self) -> None:
         tokens = ["arg1", "arg2"]
         iterator = FilterNestedEntitiesTokenIterator(tokens)

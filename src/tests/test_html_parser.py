@@ -4,7 +4,6 @@ from stdlib_html.parser import HTMLParser
 
 
 class TestHTMLParser(unittest.TestCase):
-
     def setUp(self) -> "None":
         self.parser = HTMLParser()
 
@@ -19,8 +18,7 @@ class TestHTMLParser(unittest.TestCase):
 
         self.assertIn("stdlib.array.assert.is_array", result)
 
-    def test_parse__multiple_functions__extracts_all_names_correctly(
-            self) -> "None":
+    def test_parse__multiple_functions__extracts_all_names_correctly(self) -> "None":
         html = """
         <section id="stdlib-func1"><h3>stdlib.func1</h3></section>
         <section id="stdlib-func2"><h3>stdlib.func2</h3></section>
@@ -85,8 +83,7 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.globals"]
         self.assertEqual(metadata.globals, ["STDLIB_VAR_1"])
 
-    def test_parse__mixed_metadata__extracts_everything_correctly(
-            self) -> "None":
+    def test_parse__mixed_metadata__extracts_everything_correctly(self) -> "None":
         html = """
         <section id="stdlib-test-mixed">
         <h3>stdlib.test.mixed</h3>
@@ -116,8 +113,7 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.keywords, ["STDLIB_KW"])
         self.assertEqual(metadata.globals, ["STDLIB_GLOBAL"])
 
-    def test_parse__optional_arguments__calculates_min_max_correctly(
-            self) -> "None":
+    def test_parse__optional_arguments__calculates_min_max_correctly(self) -> "None":
         html = """
         <section id="stdlib-test-optional">
         <h3>stdlib.test.optional</h3>
@@ -137,8 +133,7 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.min_args, 1)
         self.assertEqual(metadata.max_args, 2)
 
-    def test_parse__variadic_arguments__calculates_min_max_correctly(
-            self) -> "None":
+    def test_parse__variadic_arguments__calculates_min_max_correctly(self) -> "None":
         html = """
         <section id="stdlib-test-variadic">
         <h3>stdlib.test.variadic</h3>
@@ -159,7 +154,8 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.max_args, -1)
 
     def test_parse__required_after_optional__calculates_min_args_as_count(
-            self) -> "None":
+        self,
+    ) -> "None":
         html = """
         <section id="stdlib-test-mixed-order">
         <h3>stdlib.test.mixed_order</h3>
@@ -181,7 +177,8 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.max_args, 2)
 
     def test_parse__multiple_args_in_one_li__extracts_all_counts_correctly(
-            self) -> "None":
+        self,
+    ) -> "None":
         html = """
         <section id="stdlib-test-multiple">
         <h3>stdlib.test.multiple</h3>

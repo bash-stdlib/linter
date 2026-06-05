@@ -6,25 +6,13 @@ from validators.argument_count import ArgumentCountValidator
 
 
 class TestArgumentCountValidator(unittest.TestCase):
-
     def setUp(self) -> None:
-        self.functions = {
-            "stdlib.foo.bar", "stdlib.baz.qux", "stdlib.variadic"
-        }
+        self.functions = {"stdlib.foo.bar", "stdlib.baz.qux", "stdlib.variadic"}
         self.namespaces = {"stdlib.foo", "stdlib.baz"}
         self.metadata = {
-            "stdlib.foo.bar": {
-                "min_args": 1,
-                "max_args": 2
-            },
-            "stdlib.baz.qux": {
-                "min_args": 0,
-                "max_args": 1
-            },
-            "stdlib.variadic": {
-                "min_args": 1,
-                "max_args": -1
-            },
+            "stdlib.foo.bar": {"min_args": 1, "max_args": 2},
+            "stdlib.baz.qux": {"min_args": 0, "max_args": 1},
+            "stdlib.variadic": {"min_args": 1, "max_args": -1},
         }
         self.validator = ArgumentCountValidator(
             self.functions,

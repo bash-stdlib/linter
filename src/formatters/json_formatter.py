@@ -10,6 +10,5 @@ if TYPE_CHECKING:
 
 
 class JSONFormatterBase(FormatterBase):
-
     def format(self, errors: "List[LinterErrorBase]") -> "str":
         return json.dumps([error.to_dict() for error in errors], indent=4)

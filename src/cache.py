@@ -7,8 +7,7 @@ from typing import Any, Dict, Optional
 
 from constants import CACHE_FILE
 
-LOCAL_CACHE_FILE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), CACHE_FILE))
+LOCAL_CACHE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), CACHE_FILE))
 
 
 def save_cache(metadata: "Dict[str, Any]") -> None:

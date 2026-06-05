@@ -9,10 +9,7 @@ class TestSTD006(unittest.TestCase):
     def test_format_message__correctly_formatted(self) -> None:
         error = STD006("file.sh", 10, 5, "stdlib.foo")
 
-        self.assertEqual(
-            error.message,
-            "Failed to parse arguments for 'stdlib.foo'."
-        )
+        self.assertEqual(error.message, "Failed to parse arguments for 'stdlib.foo'.")
 
     def test_to_dict__contains_all_fields(self) -> None:
         error = STD006("file.sh", 10, 5, "stdlib.foo")

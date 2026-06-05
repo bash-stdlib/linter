@@ -7,21 +7,9 @@ class FilterNestedEntitiesTokenIterator:
     """Iterates over Bash tokens, grouping nested entities into single tokens."""
 
     NESTED_CONFIG = {
-        "$(": {
-            "end": ")",
-            "can_nest": True,
-            "escape": None
-        },
-        "${": {
-            "end": "}",
-            "can_nest": True,
-            "escape": None
-        },
-        "`": {
-            "end": "`",
-            "can_nest": True,
-            "escape": "\\"
-        },
+        "$(": {"end": ")", "can_nest": True, "escape": None},
+        "${": {"end": "}", "can_nest": True, "escape": None},
+        "`": {"end": "`", "can_nest": True, "escape": "\\"},
     }
 
     def __init__(self, tokens: "List[str]") -> None:
@@ -72,8 +60,11 @@ class FilterNestedEntitiesTokenIterator:
         while self.index < len(self.tokens):
             token = self.tokens[self.index]
 
-            if (escape_char and token == escape_char
-                    and self.index + 1 < len(self.tokens)):
+            if (
+                escape_char
+                and token == escape_char
+                and self.index + 1 < len(self.tokens)
+            ):
                 next_token = self.tokens[self.index + 1]
                 if next_token == end_marker:
                     consumed.append(escape_char + next_token)
@@ -109,11 +100,13 @@ class FilterNestedEntitiesTokenIterator:
 
         return "".join(consumed)
 
-    def _is_same_nested_start(self, token: "str",
-                              start_marker: "str") -> "bool":
+    def _is_same_nested_start(self, token: "str", start_marker: "str") -> "bool":
         if len(start_marker) == 1:
             config = self.NESTED_CONFIG[start_marker]
             return token == start_marker and token != config["end"]
 
-        return (token == start_marker[0] and self.index + 1 < len(self.tokens)
-                and self.tokens[self.index + 1] == start_marker[1])
+        return (
+            token == start_marker[0]
+            and self.index + 1 < len(self.tokens)
+            and self.tokens[self.index + 1] == start_marker[1]
+        )

@@ -6,7 +6,6 @@ from parsers.token_iterators.commands import CommandsTokenIterator
 
 
 class TestCommandsTokenIterator(unittest.TestCase):
-
     def test_iterator__no_separators__returns_all_tokens(self) -> None:
         tokens = ["arg1", "arg2", "arg3"]
         iterator = CommandsTokenIterator(tokens)

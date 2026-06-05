@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class TestLinter(unittest.TestCase):
-
     def setUp(self) -> "None":
         self.metadata = {
             "functions": {
@@ -83,8 +82,7 @@ class TestLinter(unittest.TestCase):
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD002)
-        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?",
-                      errors[0].message)
+        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", errors[0].message)
 
     def test_lint__invalid_sub_namespace__returns_std001_error(self) -> "None":
         content = "stdlib.array.unknown.func arg1"
@@ -93,11 +91,9 @@ class TestLinter(unittest.TestCase):
 
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD001)
-        self.assertIn("Invalid namespace 'stdlib.array.unknown'",
-                      errors[0].message)
+        self.assertIn("Invalid namespace 'stdlib.array.unknown'", errors[0].message)
 
-    def test_lint__invalid_root_namespace__returns_std001_error(
-            self) -> "None":
+    def test_lint__invalid_root_namespace__returns_std001_error(self) -> "None":
         content = "stdlib.unknown.func arg1"
 
         errors = self._lint_content(content)
@@ -116,8 +112,7 @@ class TestLinter(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertIsInstance(errors[0], STD004)
 
-    def test_get_line_number__content_offset__returns_correct_line(
-            self) -> "None":
+    def test_get_line_number__content_offset__returns_correct_line(self) -> "None":
         content = "line1\nline2\nline3"
         offset = content.find("line2")
 
@@ -125,8 +120,7 @@ class TestLinter(unittest.TestCase):
 
         self.assertEqual(result, 2)
 
-    def test_get_column_number__content_offset__returns_correct_column(
-            self) -> "None":
+    def test_get_column_number__content_offset__returns_correct_column(self) -> "None":
         content = "line1\nabcde"
         offset = content.find("c")
 
@@ -137,8 +131,7 @@ class TestLinter(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data=
-        "stdlib.array.assert.is_array\nstdlib.array.assert.is_array arg1 arg2",
+        read_data="stdlib.array.assert.is_array\nstdlib.array.assert.is_array arg1 arg2",
     )
     def test_lint__script_with_error__returns_error_list_with_codes(
         self,

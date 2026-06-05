@@ -1,7 +1,6 @@
 """Iterator for tokenizing Bash code using shlex."""
 
 import shlex
-from typing import Iterator
 
 
 class ShlexTokenIterator:

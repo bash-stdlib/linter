@@ -13,10 +13,7 @@ class HTMLParser(html.parser.HTMLParser):
 
     FUNCTION_PREFIX: "str" = "stdlib."
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
-    SECTIONS_TITLES: "Dict[str, str]" = {
-        "args": "Arguments",
-        "set": "Variables set"
-    }
+    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     INDICATORS = enum.Enum("type", ["optional"])
     MODIFIER_TYPES = enum.Enum("type", ["keyword", "global"])
     VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
@@ -147,12 +144,12 @@ class HTMLParser(html.parser.HTMLParser):
                 self.current_function.globals.append(var)
 
     def _process_other_li(self, text: "str") -> "None":
-        for modifier, function_set in dict({
-                self.MODIFIER_TYPES["global"].name:
-                self.current_function.globals,
-                self.MODIFIER_TYPES["keyword"].name:
-                self.current_function.keywords,
-        }).items():
+        for modifier, function_set in dict(
+            {
+                self.MODIFIER_TYPES["global"].name: self.current_function.globals,
+                self.MODIFIER_TYPES["keyword"].name: self.current_function.keywords,
+            }
+        ).items():
             if modifier in text.lower():
                 match = re.search(self.RE_STDLIB_VAR, text)
                 if match:
