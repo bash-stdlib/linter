@@ -18,6 +18,8 @@ class HTMLParser(html.parser.HTMLParser):
         self.in_h3: "bool" = False
         self.in_h4: "bool" = False
         self.collecting_li: "bool" = False
+        self.h3_data: "List[str]" = []
+        self.h4_data: "List[str]" = []
         self.li_data: "List[str]" = []
 
     def parse(self, html_content: "str") -> "Dict[str, FunctionMetadata]":
@@ -32,8 +34,10 @@ class HTMLParser(html.parser.HTMLParser):
     ) -> "None":
         if tag == "h3":
             self.in_h3 = True
+            self.h3_data = []
         elif tag == "h4":
             self.in_h4 = True
+            self.h4_data = []
         elif tag == "li":
             self.collecting_li = True
             self.li_data = []
@@ -41,8 +45,10 @@ class HTMLParser(html.parser.HTMLParser):
     def handle_endtag(self, tag: "str") -> "None":
         if tag == "h3":
             self.in_h3 = False
+            self._process_h3_data("".join(self.h3_data))
         elif tag == "h4":
             self.in_h4 = False
+            self._process_h4_data("".join(self.h4_data))
         elif tag == "li":
             self.collecting_li = False
             if self.li_data:
@@ -50,16 +56,24 @@ class HTMLParser(html.parser.HTMLParser):
 
     def handle_data(self, data: "str") -> "None":
         if self.in_h3:
-            name = data.strip()
-            if name.startswith("stdlib."):
-                name = name.split()[0]
-                self.current_function = FunctionMetadata(name=name)
-                self.functions[name] = self.current_function
-                self.current_section = None
+            self.h3_data.append(data)
         elif self.in_h4:
-            self.current_section = data.strip()
+            self.h4_data.append(data)
         elif self.collecting_li:
             self.li_data.append(data)
+
+    def _process_h3_data(self, data: "str") -> "None":
+        name = data.strip()
+        if name.startswith("stdlib."):
+            name = name.split()[0]
+            self.current_function = FunctionMetadata(name=name)
+            self.functions[name] = self.current_function
+            self.current_section = None
+        else:
+            self.current_function = None
+
+    def _process_h4_data(self, data: "str") -> "None":
+        self.current_section = data.strip()
 
     def _process_li_data(self, text: "str") -> "None":
         if not self.current_function:
