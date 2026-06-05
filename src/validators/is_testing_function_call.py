@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class IsTestingFunctionCallValidator(ValidatorBase):
-    """Checks if testing functions are used outside of test scripts."""
+    """Ensures testing functions are not used outside of test scripts."""
 
     def __init__(
         self,
