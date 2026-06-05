@@ -45,6 +45,10 @@ class LinterErrorBase(ABC):
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the error to a dictionary for JSON output."""
+        start_line = max(0, self.line - 1)
+        start_char = max(0, self.column - 1)
+        end_char = start_char + len(self.match)
+
         return {
             "code": self.CODE,
             "title": self.TITLE,
@@ -53,4 +57,16 @@ class LinterErrorBase(ABC):
             "column": self.column,
             "message": self.message,
             "match": self.match,
+            "range": {
+                "start": {
+                    "line": start_line,
+                    "character": start_char
+                },
+                "end": {
+                    "line": start_line,
+                    "character": end_char
+                },
+            },
+            "severity": 1,  # Error
+            "source": "bash-stdlib-lint",
         }

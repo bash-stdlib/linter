@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from errors.std000 import STD000
@@ -11,13 +12,13 @@ class TestSTD000(unittest.TestCase):
         self.assertEqual(error.CODE, "STD000")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
-        error = STD000("test.sh", "Error")
+        error = STD000(os.path.abspath("test.sh"), "Error")
 
         result = error.to_dict()
 
         self.assertEqual(result["code"], "STD000")
         self.assertEqual(result["title"], "system error")
-        self.assertEqual(result["file"], "test.sh")
+        self.assertEqual(result["file"], os.path.abspath("test.sh"))
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ requires-python = ">=3.6"
 bash-stdlib-lint = "main:main"
 
 [tool.ruff]
-target-version = "py37"  # We are actually targeting 3.6 here
 exclude = ['.git', '__pycache__', '.mypy_cache']
 indent-width = 4
 line-length = 88

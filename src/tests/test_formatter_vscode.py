@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 
 from errors.std003 import STD003
@@ -10,7 +11,7 @@ class TestVSCodeFormatterBase(unittest.TestCase):
         self.formatter = VSCodeFormatterBase()
 
     def test_format__single_error__returns_vscode_json(self) -> None:
-        error = STD003("test.sh", 5, 10, "stdlib.ns")
+        error = STD003(os.path.abspath("test.sh"), 5, 10, "stdlib.ns")
 
         result = self.formatter.format([error])
 
@@ -21,7 +22,7 @@ class TestVSCodeFormatterBase(unittest.TestCase):
         self.assertEqual(diag["range"]["start"]["character"], 9)  # 0-indexed
         self.assertEqual(diag["code"], "STD003")
         self.assertEqual(diag["source"], "bash-stdlib-lint")
-        self.assertEqual(diag["file"], "test.sh")
+        self.assertEqual(diag["file"], os.path.abspath("test.sh"))
 
 
 if __name__ == "__main__":
