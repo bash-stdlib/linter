@@ -54,14 +54,12 @@ class Linter:
             if "." in name:
                 roots.add(name.split(".")[0])
             elif "_" in name:
-                # Capture prefixes like 'assert_'
                 roots.add(name.split("_")[0] + "_")
             elif name.startswith("@"):
                 roots.add("@")
             else:
                 roots.add(name)
 
-        # Sort by length descending to match longest roots first
         sorted_roots = sorted(list(roots), key=len, reverse=True)
         pattern = r"(?<!\w)({}[a-z0-9._]*)\b".format(
             "|".join(re.escape(r) for r in sorted_roots)
