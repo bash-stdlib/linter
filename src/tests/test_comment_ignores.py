@@ -37,6 +37,20 @@ class TestCommentIgnores(unittest.TestCase):
         ignores = CommentIgnores(content)
         self.assertTrue(ignores.is_ignored("STD001", 1))
 
+    def test_get_unused_ignores__not_used__returns_code_and_line(self):
+        content = "# stdlib: disable STD001\necho hello"
+        ignores = CommentIgnores(content)
+        unused = ignores.get_unused_ignores()
+        self.assertEqual(len(unused), 1)
+        self.assertEqual(unused[0], ("STD001", 1))
+
+    def test_get_unused_ignores__used__returns_empty(self):
+        content = "# stdlib: disable STD001\nstdlib.namespace"
+        ignores = CommentIgnores(content)
+        ignores.is_ignored("STD001", 2)
+        unused = ignores.get_unused_ignores()
+        self.assertEqual(len(unused), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

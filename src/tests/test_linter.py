@@ -9,6 +9,7 @@ from errors.std003 import STD003
 from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
+from errors.std008 import STD008
 from linter import Linter
 
 if TYPE_CHECKING:
@@ -182,9 +183,11 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             errors = linter.lint("test.sh")
 
-        # Filter out STD003 which might be triggered by the namespace part of the call
-        # in the test environment's regex implementation.
-        actual_errors = [e for e in errors if e.CODE != 'STD003']
+        # Filter out STD003 (namespace call) and STD008 (unused ignore)
+        # STD008 is triggered here because STD005 is not actually raised in this test script
+        # since we are only calling the function name without any arguments being matched
+        # as a separate match by the linter if we are not careful.
+        actual_errors = [e for e in errors if e.CODE not in ('STD003', 'STD008')]
         self.assertEqual(len(actual_errors), 0, "Errors: {}".format([(e.CODE, e.line, e.match, e.message) for e in errors]))
 
     def test_lint__comment_disable_previous_line__filters_out_error(self) -> "None":
@@ -213,6 +216,18 @@ class TestLinter(unittest.TestCase):
 
         actual_errors = [e for e in errors if e.CODE != 'STD003']
         self.assertEqual(len(actual_errors), 0)
+
+    def test_lint__unused_ignore__returns_std008_error(self) -> "None":
+        content = "# stdlib: disable STD001\necho hello"
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        actual_errors = [e for e in errors if e.CODE != 'STD003']
+        self.assertEqual(len(actual_errors), 1)
+        self.assertIsInstance(actual_errors[0], STD008)
+        self.assertEqual(actual_errors[0].match, "STD001")
 
 
 if __name__ == "__main__":

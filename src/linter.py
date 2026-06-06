@@ -4,7 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
-from errors import STD000, STD006
+from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from validators import (
@@ -62,6 +62,10 @@ class Linter:
             error = self._process_match(match, file_content, filepath, comment_ignores)
             if error:
                 errors.append(error)
+
+        # Report unused ignores
+        for code, line in comment_ignores.get_unused_ignores():
+            errors.append(STD008(filepath, line, 0, code))
 
         return errors
 

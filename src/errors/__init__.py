@@ -11,6 +11,7 @@ from .std004 import STD004
 from .std005 import STD005
 from .std006 import STD006
 from .std007 import STD007
+from .std008 import STD008
 
 
 def get_all_errors() -> "List[Type[LinterErrorBase]]":
@@ -26,5 +27,7 @@ __all__ = [
     "STD004",
     "STD005",
     "STD006",
+    "STD007",
+    "STD008",
     "get_all_errors",
 ]
