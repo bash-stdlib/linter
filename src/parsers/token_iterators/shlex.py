@@ -3,7 +3,7 @@
 import shlex
 
 
-from constants import COMMAND_SEPARATORS
+from constants import SHELL_COMMAND_SEPARATORS
 
 
 class ShlexTokenIterator:
@@ -49,7 +49,7 @@ class ShlexTokenIterator:
         try:
             at_start = True
             for token in self:
-                if token in COMMAND_SEPARATORS:
+                if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
                 if token == "$":
