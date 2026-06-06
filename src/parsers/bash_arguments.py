@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 from .base import ParserBase
 from .token_iterators import (
     CommandsTokenIterator,
@@ -9,7 +10,6 @@ from .token_iterators import (
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
 )
-from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 
 
 class BashArgumentsParser(ParserBase):

@@ -9,7 +9,6 @@ from errors.std003 import STD003
 from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
-from errors.std008 import STD008
 from linter import Linter
 
 if TYPE_CHECKING:

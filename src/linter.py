@@ -12,8 +12,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
-    NotNamespaceCallValidator,
     IsTestingFunctionCallValidator,
+    NotNamespaceCallValidator,
 )
 
 if TYPE_CHECKING:
@@ -90,9 +90,16 @@ class Linter:
             if "." in name:
                 roots.add(name.split(".")[0])
             elif "_" in name:
-                roots.add(name.split("_")[0] + "_")
+                if name.startswith("_"):
+                    parts = name.split(".")
+                    roots.add(parts[0])
+                else:
+                    roots.add(name.split("_")[0] + "_")
             elif name.startswith("@"):
-                roots.add("@")
+                if "." in name:
+                    roots.add(name.split(".")[0])
+                else:
+                    roots.add(name)
             else:
                 roots.add(name)
 
