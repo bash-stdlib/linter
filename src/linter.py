@@ -8,7 +8,7 @@ from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
-from transformers import LineContinuationTransformer
+from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
@@ -28,6 +28,7 @@ class Linter:
         self,
         metadata: "Any",
         ignored_codes: "Optional[List[str]]" = None,
+        appendum: "Optional[List[str]]" = None,
     ) -> "None":
         self.functions: "Set[str]" = set(metadata["functions"].keys())
         self.namespaces: "Set[str]" = set(metadata["namespaces"])
@@ -35,6 +36,7 @@ class Linter:
         self.ignored_codes: "Set[str]" = (
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
+        self.appendum: "Set[str]" = set(appendum) if appendum else set()
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -82,7 +84,7 @@ class Linter:
 
     def _build_call_pattern(self) -> "Pattern[str]":
         roots = set()
-        for name in self.functions | self.namespaces:
+        for name in self.functions | self.namespaces | self.appendum:
             if "." in name:
                 roots.add(name.split(".")[0])
             elif "_" in name:
@@ -112,6 +114,18 @@ class Linter:
             return True
         return False
 
+    def _is_appendum(self, call_name: str) -> bool:
+        """Check if the call name or any of its parent namespaces are in appendum."""
+        if call_name in self.appendum:
+            return True
+
+        parts = call_name.split(".")
+        for i in range(1, len(parts)):
+            prefix = ".".join(parts[:i])
+            if prefix in self.appendum:
+                return True
+        return False
+
     def _process_match(
         self,
         match: "Match[str]",
@@ -128,6 +142,10 @@ class Linter:
             return None
 
         call_name = self._get_call_name(match)
+
+        if self._is_appendum(call_name):
+            return None
+
         absolute_end = offset + match.end()
         column = match.start() + 1
 

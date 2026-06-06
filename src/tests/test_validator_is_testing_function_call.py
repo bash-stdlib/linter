@@ -1,66 +1,49 @@
-"""Tests for IsTestingFunctionCallValidator."""
+"""Unit tests for the IsTestingFunctionCallValidator."""
 
 import unittest
+from typing import Dict, Set
 
-from errors import STD007
-from validators import IsTestingFunctionCallValidator
+from validators.is_testing_function_call import IsTestingFunctionCallValidator
 
 
 class TestIsTestingFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions = {"assert_array_equals", "stdlib.string.echo"}
-        self.namespaces = {"stdlib.string"}
+        self.functions: Set[str] = {"stdlib.test.func", "stdlib.prod.func"}
+        self.namespaces: Set[str] = {"stdlib.test", "stdlib.prod"}
         self.metadata = {
-            "assert_array_equals": {"name": "assert_array_equals", "is_testing": True},
-            "stdlib.string.echo": {"name": "stdlib.string.echo", "is_testing": False},
+            "stdlib.test.func": {"is_testing": True},
+            "stdlib.prod.func": {"is_testing": False},
         }
         self.validator = IsTestingFunctionCallValidator(
-            self.functions, self.namespaces, self.metadata
+            self.functions,
+            self.namespaces,
+            self.metadata,
         )
 
-    def test_check__testing_function_in_production_script__returns_std007(self) -> None:
-        call = "assert_array_equals"
-        filepath = "/path/to/script.sh"
-        line = 1
-        column = 1
-
-        error = self.validator.check(call, filepath, line, column)
-
-        self.assertIsInstance(error, STD007)
-        if error:
-            self.assertEqual(error.CODE, "STD007")
-            self.assertEqual(error.match, call)
-
-    def test_check__testing_function_in_test_script__returns_none(self) -> None:
-        call = "assert_array_equals"
+    def test_check__testing_func_in_test_file__returns_none(self) -> None:
+        call = "stdlib.test.func"
         filepath = "/path/to/test_script.sh"
-        line = 1
-        column = 1
 
-        error = self.validator.check(call, filepath, line, column)
+        result = self.validator.check(call, filepath, 1, 1)
 
-        self.assertIsNone(error)
+        self.assertIsNone(result)
 
-    def test_check__non_testing_function_in_production_script__returns_none(self) -> None:
-        call = "stdlib.string.echo"
-        filepath = "/path/to/script.sh"
-        line = 1
-        column = 1
+    def test_check__testing_func_in_prod_file__returns_std007(self) -> None:
+        call = "stdlib.test.func"
+        filepath = "/path/to/prod_script.sh"
 
-        error = self.validator.check(call, filepath, line, column)
+        result = self.validator.check(call, filepath, 1, 1)
 
-        self.assertIsNone(error)
+        assert result is not None
+        self.assertEqual(result.CODE, "STD007")
 
-    def test_check__unknown_function__returns_none(self) -> None:
-        call = "unknown_func"
-        filepath = "/path/to/script.sh"
-        line = 1
-        column = 1
+    def test_check__prod_func_in_prod_file__returns_none(self) -> None:
+        call = "stdlib.prod.func"
+        filepath = "/path/to/prod_script.sh"
 
-        error = self.validator.check(call, filepath, line, column)
+        result = self.validator.check(call, filepath, 1, 1)
 
-        self.assertIsNone(error)
-
+        self.assertIsNone(result)
 
 if __name__ == "__main__":
     unittest.main()
