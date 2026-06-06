@@ -37,6 +37,8 @@ class Linter:
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
+        # Add 'fake' to appendum to ensure it's recognized as a command
+        self.appendum.add("fake")
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -65,19 +67,27 @@ class Linter:
             return errors
 
         comment_ignores = CommentIgnores()
-        offset = 0
-        for i, line_content in enumerate(file_content.splitlines(True)):
-            line_num = i + 1
-            comment_ignores.process_line(line_content, line_num)
+        dynamic_mocks = self._find_dynamic_mocks(file_content)
+        new_mocks = dynamic_mocks - self.functions
+        self.functions.update(new_mocks)
 
-            for match in self.stdlib_call_pattern.finditer(line_content):
-                error = self._process_match(
-                    match, file_content, filepath, comment_ignores, line_num, offset
-                )
-                if error:
-                    errors.append(error)
+        try:
+            offset = 0
+            for i, line_content in enumerate(file_content.splitlines(True)):
+                line_num = i + 1
+                comment_ignores.process_line(line_content, line_num)
 
-            offset += len(line_content)
+                for match in self.stdlib_call_pattern.finditer(line_content):
+                    error = self._process_match(
+                        match, file_content, filepath, comment_ignores, line_num, offset
+                    )
+                    if error:
+                        errors.append(error)
+
+                offset += len(line_content)
+        finally:
+            for mock in new_mocks:
+                self.functions.remove(mock)
 
         for code, line in comment_ignores.get_unused_ignores():
             errors.append(STD008(filepath, line, 1, code))
@@ -127,6 +137,27 @@ class Linter:
             if prefix in self.appendum:
                 return True
         return False
+
+    def _find_dynamic_mocks(self, content: str) -> "Set[str]":
+        """Identify mocks created dynamically via _mock.create or fake."""
+        mocks: "Set[str]" = set()
+        mock_creators = {"_mock.create", "fake"}
+        offset = 0
+
+        for match in self.stdlib_call_pattern.finditer(content):
+            call_name = self._get_call_name(match)
+            if call_name in mock_creators:
+                if self._is_function_definition(match, content, offset):
+                    continue
+                if not self._is_at_command_position(match, content, offset):
+                    continue
+
+                absolute_end = offset + match.end()
+                args = self.argument_parser.parse(content[absolute_end:])
+                if args:
+                    mocks.add(args[0])
+
+        return mocks
 
     def _process_match(
         self,
