@@ -15,7 +15,7 @@ from validators import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Set
+    from typing import List, Match, Pattern, Set
 
     from errors.base import LinterErrorBase
     from validators.base import ValidatorBase
@@ -33,7 +33,7 @@ class Linter:
         self.ignored_codes: "Set[str]" = (
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
-        self.stdlib_call_pattern: "re.Pattern[str]" = self._build_call_pattern()
+        self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
@@ -76,7 +76,7 @@ class Linter:
 
         return errors
 
-    def _build_call_pattern(self) -> "re.Pattern[str]":
+    def _build_call_pattern(self) -> "Pattern[str]":
         roots = set()
         for name in self.functions | self.namespaces:
             if "." in name:
@@ -110,7 +110,7 @@ class Linter:
 
     def _process_match(
         self,
-        match: "re.Match[str]",
+        match: "Match[str]",
         content: "str",
         filepath: "str",
         comment_ignores: CommentIgnores,
@@ -136,7 +136,7 @@ class Linter:
 
         return None
 
-    def _get_call_name(self, match: "re.Match[str]") -> "str":
+    def _get_call_name(self, match: "Match[str]") -> "str":
         call = str(match.group(1))
         if call.endswith("."):
             return call[:-1]

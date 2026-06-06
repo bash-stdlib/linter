@@ -38,7 +38,6 @@ class CommentIgnores:
             for code in codes:
                 self.file_ignores[(code, line_num)] = False
         else:
-            # Determine if it's a same-line or next-line ignore
             before_match = line_content[: match.start()].strip()
             is_same_line = bool(before_match)
 
