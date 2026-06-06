@@ -39,3 +39,6 @@ class TestShlexTokenIterator(unittest.TestCase):
         result = list(iterator)
 
         self.assertEqual(result, ["file-with.ext", "path/to/file", "$VAR"])
+
+if __name__ == "__main__":
+    unittest.main()

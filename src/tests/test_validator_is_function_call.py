@@ -45,3 +45,6 @@ class TestIsFunctionCallValidator(unittest.TestCase):
         result = self.validator.check(call, "test.sh", 1, 1)
 
         self.assertIsInstance(result, STD004)
+
+if __name__ == "__main__":
+    unittest.main()

@@ -9,7 +9,7 @@ from .token_iterators import (
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
 )
-from transformers import ExpansionTransformer, LineContinuationTransformer
+from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 
 
 class BashArgumentsParser(ParserBase):

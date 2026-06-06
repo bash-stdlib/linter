@@ -21,3 +21,6 @@ class TestSTD006(unittest.TestCase):
         self.assertEqual(data["column"], 5)
         self.assertEqual(data["match"], "stdlib.foo")
         self.assertIn("message", data)
+
+if __name__ == "__main__":
+    unittest.main()

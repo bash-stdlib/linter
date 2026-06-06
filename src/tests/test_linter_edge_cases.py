@@ -7,7 +7,7 @@ from linter import Linter
 
 
 class TestLinterEdgeCases(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metadata = {
             "functions": {
                 "stdlib.message.get": {"min_args": 0, "max_args": -1},
@@ -26,7 +26,7 @@ class TestLinterEdgeCases(unittest.TestCase):
         self.linter = Linter(self.metadata)
         self.test_file = "test_edge_cases.sh"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if os.path.exists(self.test_file):
             os.remove(self.test_file)
 
@@ -36,7 +36,7 @@ class TestLinterEdgeCases(unittest.TestCase):
 
         return self.linter.lint(self.test_file)
 
-    def test_function_definitions_ignored(self):
+    def test_function_definitions_ignored(self) -> None:
         content = """
 stdlib.message.get() { echo hello; }
 function stdlib.message.get { echo world; }
@@ -46,19 +46,19 @@ stdlib.message.get () { echo foo; }
 
         self.assertEqual(len(errors), 0)
 
-    def test_function_as_argument_ignored(self):
+    def test_function_as_argument_ignored(self) -> None:
         content = "echo stdlib.message.get"
         errors = self.lint_content(content)
 
         self.assertEqual(len(errors), 0)
 
-    def test_assignment_ignored(self):
+    def test_assignment_ignored(self) -> None:
         content = "FOO=stdlib.message.get"
         errors = self.lint_content(content)
 
         self.assertEqual(len(errors), 0)
 
-    def test_line_continuation_handled(self):
+    def test_line_continuation_handled(self) -> None:
         content = """
 stdlib.string.colour \\
    "arg1" \\
@@ -68,7 +68,7 @@ stdlib.string.colour \\
 
         self.assertEqual(len(errors), 0)
 
-    def test_nested_complex_subshell_handled(self):
+    def test_nested_complex_subshell_handled(self) -> None:
         content = (
             'padded="$(stdlib.string.pad.right "$(("${3}" - "${#2}"))" "${padded}")"'
         )
@@ -76,7 +76,7 @@ stdlib.string.colour \\
 
         self.assertEqual(len(errors), 0)
 
-    def test_namespace_and_function_ambiguity(self):
+    def test_namespace_and_function_ambiguity(self) -> None:
         content = 'stdlib.string.colour "red" "text"'
         errors = self.lint_content(content)
 

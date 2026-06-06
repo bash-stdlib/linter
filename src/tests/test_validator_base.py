@@ -1,5 +1,5 @@
 import unittest
-from typing import Optional
+from typing import List, Optional
 
 from errors.base import LinterErrorBase
 from validators.base import ValidatorBase
@@ -9,9 +9,10 @@ class ConcreteValidator(ValidatorBase):
     def check(
         self,
         call: str,
-        file: str,
+        filepath: str,
         line: int,
         column: int,
+        args: Optional[List[str]] = None,
     ) -> Optional[LinterErrorBase]:
         return None
 
@@ -80,3 +81,6 @@ class TestValidator(unittest.TestCase):
         result = self.validator._extract_invalid_namespace(call, prefix)
 
         self.assertEqual(result, "stdlib.string.unknown")
+
+if __name__ == "__main__":
+    unittest.main()

@@ -87,3 +87,6 @@ class TestArgumentCountValidator(unittest.TestCase):
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
         self.assertIsNone(result)
+
+if __name__ == "__main__":
+    unittest.main()

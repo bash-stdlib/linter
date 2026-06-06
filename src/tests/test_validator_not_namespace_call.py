@@ -26,3 +26,6 @@ class TestNotNamespaceCallValidator(unittest.TestCase):
         result = self.validator.check(call, "test.sh", 1, 1)
 
         self.assertIsNone(result)
+
+if __name__ == "__main__":
+    unittest.main()

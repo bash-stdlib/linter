@@ -14,8 +14,8 @@ class HTMLParser(html.parser.HTMLParser):
     EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
     SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
-    INDICATORS = enum.Enum("type", ["optional"])
-    MODIFIER_TYPES = enum.Enum("type", ["keyword", "global"])
+    INDICATORS = enum.Enum("INDICATORS", ["optional"])
+    MODIFIER_TYPES = enum.Enum("MODIFIER_TYPES", ["keyword", "global"])
     VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
@@ -62,9 +62,9 @@ class HTMLParser(html.parser.HTMLParser):
             self.in_h4 = False
             self._process_h4_data("".join(self.h4_data))
         elif tag == "li":
-            self.collecting_li = False
-            if self.li_data:
+            if self.collecting_li and self.li_data:
                 self._process_li_data("".join(self.li_data))
+            self.collecting_li = False
 
     def handle_data(self, data: "str") -> "None":
         if self.in_h3:
@@ -114,7 +114,7 @@ class HTMLParser(html.parser.HTMLParser):
 
     def _process_argument(self, text: "str") -> "None":
         args = re.findall(self.RE_ARGUMENT, text)
-        if not args:
+        if not args or not self.current_function:
             return
 
         is_required = self._is_required(text)
@@ -139,17 +139,20 @@ class HTMLParser(html.parser.HTMLParser):
         return self.INDICATORS.optional.name not in text.lower()
 
     def _increment_max_args(self) -> "None":
-        if self.current_function.max_args != -1:
+        if self.current_function and self.current_function.max_args != -1:
             self.current_function.max_args += 1
 
     def _process_variable_set(self, text: "str") -> "None":
         match = re.search(self.RE_STDLIB_VAR, text)
-        if match:
+        if match and self.current_function:
             var = match.group(1)
             if var not in self.current_function.globals:
                 self.current_function.globals.append(var)
 
     def _process_other_li(self, text: "str") -> "None":
+        if not self.current_function:
+            return
+
         for modifier, function_set in dict(
             {
                 self.MODIFIER_TYPES["global"].name: self.current_function.globals,

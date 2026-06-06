@@ -104,7 +104,7 @@ class TestLinter(unittest.TestCase):
         self.assertIn("Invalid namespace 'stdlib.unknown'", errors[0].message)
 
     def test_lint__unknown_stdlib_call__returns_std004_error(self) -> "None":
-        self.metadata["namespaces"].remove("stdlib")
+        self.metadata["namespaces"] = [ns for ns in self.metadata["namespaces"] if ns != "stdlib"]
         self.linter = Linter(self.metadata)
         content = "stdlib.completely_unknown arg1"
 

@@ -8,7 +8,7 @@ from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
-from transformers import LineContinuationTransformer
+from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
