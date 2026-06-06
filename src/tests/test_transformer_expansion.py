@@ -47,5 +47,19 @@ class TestExpansionTransformer(unittest.TestCase):
 
         self.assertEqual(result, "echo $((X))")
 
+    def test_transform__subshell_in_parameter_expansion__simplifies_fully(self) -> None:
+        content = 'nested="${HELLO:-"$(echo "}")"}"'
+
+        result = self.transformer.transform(content)
+
+        self.assertEqual(result, 'nested="${X}"')
+
+    def test_transform__mixed_nesting__simplifies_fully(self) -> None:
+        content = 'echo $(echo $(( 1 + 2 )))'
+
+        result = self.transformer.transform(content)
+
+        self.assertEqual(result, 'echo $(X)')
+
 if __name__ == "__main__":
     unittest.main()

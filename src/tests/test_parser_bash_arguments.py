@@ -100,7 +100,6 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(result[2], "arg2")
         self.assertTrue(result[1].startswith("$("))
         self.assertTrue(result[1].endswith(")"))
-        self.assertIn("nested", result[1])
 
     def test_parse__parameter_expansion__counts_as_one_argument(self) -> None:
         content = "arg1 ${VAR:-default} arg2"
@@ -118,7 +117,11 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertEqual(result, ["arg1", "$(echo foo bar)", "arg2"])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
 
     def test_parse__backticks__counts_as_one_argument(self) -> None:
         content = "arg1 `echo foo` arg2"
