@@ -26,5 +26,5 @@
 
 ## Testing & Tooling
 - **Run all**: `PYTHONPATH=src python3 -m unittest discover src/tests`
-- **Mypy**: `mypy --namespace-packages --explicit-package-bases --ignore-missing-imports src`
+- **Mypy**: `mypy src` (configured in `pyproject.toml`).
 - **Formatting**: `ruff check src`, `ruff format src` (Py3.6 target).

@@ -37,6 +37,8 @@ max-args = 6
 [tool.mypy]
 ignore_missing_imports = false
 mypy_path = "src"
+explicit_package_bases = true
+namespace_packages = true
 strict = true
 show_error_codes = true
 pretty = true
