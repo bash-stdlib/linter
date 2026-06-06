@@ -33,5 +33,19 @@ class TestExpansionTransformer(unittest.TestCase):
 
         self.assertEqual(result, "echo $((X)) and $((X))")
 
+    def test_transform__nested_parameter_expansion__simplifies_fully(self) -> None:
+        content = 'nested="${HELLO:-"${BYE}"}"'
+
+        result = self.transformer.transform(content)
+
+        self.assertEqual(result, 'nested="${X}"')
+
+    def test_transform__nested_arithmetic_expansion__simplifies_fully(self) -> None:
+        content = "echo $(( 1 + $(( 2 + 3 )) ))"
+
+        result = self.transformer.transform(content)
+
+        self.assertEqual(result, "echo $((X))")
+
 if __name__ == "__main__":
     unittest.main()
