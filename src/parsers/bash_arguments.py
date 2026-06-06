@@ -9,14 +9,20 @@ from .token_iterators import (
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
 )
+from transformers import ExpansionTransformer, LineContinuationTransformer
 
 
 class BashArgumentsParser(ParserBase):
     """Parses Bash code to extract arguments following a function call."""
 
+    def __init__(self) -> None:
+        self.line_transformer = LineContinuationTransformer()
+        self.expansion_transformer = ExpansionTransformer()
+
     def parse(self, content: "str") -> "Optional[List[str]]":
         """Extract arguments from the given Bash code string."""
-        content = self._remove_line_continuations(content)
+        content = self.line_transformer.transform(content)
+        content = self.expansion_transformer.transform(content)
 
         shlex_iterator = ShlexTokenIterator(content)
         nested_iterator = FilterNestedEntitiesTokenIterator(shlex_iterator)
@@ -29,6 +35,3 @@ class BashArgumentsParser(ParserBase):
             return None
 
         return arguments
-
-    def _remove_line_continuations(self, content: "str") -> "str":
-        return content.replace("\\\n", "")

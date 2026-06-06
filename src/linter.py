@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, List, Optional, Set
 from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
+from parsers.token_iterators import ShlexTokenIterator
+from transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
@@ -35,6 +37,7 @@ class Linter:
         )
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
+        self.line_continuation_transformer = LineContinuationTransformer()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
@@ -50,7 +53,8 @@ class Linter:
 
         try:
             with open(filepath, "r") as f:
-                file_content = f.read()
+                raw_content = f.read()
+                file_content = self.line_continuation_transformer.transform(raw_content)
         except Exception as e:
             if not self._is_ignored("STD000", 1, None):
                 errors.append(STD000(filepath, str(e)))
@@ -89,7 +93,7 @@ class Linter:
                 roots.add(name)
 
         sorted_roots = sorted(list(roots), key=len, reverse=True)
-        pattern = r"(?<!\w)({}[a-z0-9._]*)\b".format(
+        pattern = r"(?<!\w)((?:{})[a-z0-9._]*)(?![a-z0-9._])".format(
             "|".join(re.escape(r) for r in sorted_roots)
         )
 
@@ -117,6 +121,12 @@ class Linter:
         line_num: int,
         offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
+        if self._is_function_definition(match, content, offset):
+            return None
+
+        if not self._is_at_command_position(match, content, offset):
+            return None
+
         call_name = self._get_call_name(match)
         absolute_end = offset + match.end()
         column = match.start() + 1
@@ -135,6 +145,33 @@ class Linter:
                 # Continue checking other validators if this error was ignored
 
         return None
+
+    def _is_at_command_position(
+        self, match: "Match[str]", content: "str", offset: "int"
+    ) -> bool:
+        """Check if the match is at the start of a command."""
+        before = content[: offset + match.start()]
+
+        if before.endswith("$") or before.endswith("${"):
+            return False
+
+        last_newline = before.rfind("\n")
+        line_before = before[last_newline + 1 :]
+
+        shlex_iterator = ShlexTokenIterator(line_before)
+        return shlex_iterator.is_at_command_position()
+
+    def _is_function_definition(
+        self, match: "Match[str]", content: "str", offset: "int"
+    ) -> bool:
+        """Check if the match is part of a function definition."""
+        before = content[: offset + match.start()]
+        if ShlexTokenIterator.is_preceded_by_function_keyword(before):
+            return True
+
+        after_content = content[offset + match.end() :]
+        shlex_iterator = ShlexTokenIterator(after_content)
+        return shlex_iterator.is_function_definition()
 
     def _get_call_name(self, match: "Match[str]") -> "str":
         call = str(match.group(1))
