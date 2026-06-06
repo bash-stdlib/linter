@@ -53,7 +53,7 @@ class ExpansionTransformer(TransformerBase):
         """Finds a matching expansion and returns the placeholder and next index."""
         count = 1
         j = start_index + len(config.start_token)
-        while j < len(content) and count > 0:
+        while j <= len(content) - len(config.end_token) and count > 0:
             nested_config = None
             for c in self.EXPANSION_CONFIG.values():
                 if content.startswith(c.start_token, j):
