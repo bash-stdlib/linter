@@ -1,6 +1,6 @@
 """Transformer for simplifying Bash expansions for easier parsing."""
 
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from .base import TransformerBase
 

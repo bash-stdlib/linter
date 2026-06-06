@@ -1,7 +1,7 @@
 """Unit tests for the ArgumentCountValidator."""
 
 import unittest
-from typing import Dict, List, Set
+from typing import List, Set
 
 from validators.argument_count import ArgumentCountValidator
 
@@ -43,10 +43,9 @@ class TestArgumentCountValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD005")
-            self.assertIn("expects between 1 and 2 arguments, but 0", result.message)
+        assert result is not None
+        self.assertEqual(result.CODE, "STD005")
+        self.assertIn("expects between 1 and 2 arguments, but 0", result.message)
 
     def test_check__too_many_args__returns_std005(self) -> None:
         call = "stdlib.foo.bar"
@@ -54,10 +53,9 @@ class TestArgumentCountValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD005")
-            self.assertIn("expects between 1 and 2 arguments, but 3", result.message)
+        assert result is not None
+        self.assertEqual(result.CODE, "STD005")
+        self.assertIn("expects between 1 and 2 arguments, but 3", result.message)
 
     def test_check__variadic_args__returns_none(self) -> None:
         call = "stdlib.variadic"
@@ -73,10 +71,9 @@ class TestArgumentCountValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD005")
-            self.assertIn("expects at least 1 arguments, but 0", result.message)
+        assert result is not None
+        self.assertEqual(result.CODE, "STD005")
+        self.assertIn("expects at least 1 arguments, but 0", result.message)
 
 if __name__ == "__main__":
     unittest.main()

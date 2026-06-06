@@ -24,10 +24,9 @@ class TestNotNamespaceCallValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD003")
-            self.assertEqual(result.match, "stdlib.string")
+        assert result is not None
+        self.assertEqual(result.CODE, "STD003")
+        self.assertEqual(result.match, "stdlib.string")
 
     def test_check__unknown_call__returns_none(self) -> None:
         call = "unknown.command"

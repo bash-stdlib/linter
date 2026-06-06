@@ -24,30 +24,26 @@ class TestIsFunctionCallValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD002")
-            self.assertEqual(result.match, "stdlib.string.jin")
+        assert result is not None
+        self.assertEqual(result.CODE, "STD002")
+        self.assertEqual(result.match, "stdlib.string.jin")
 
     def test_check__invalid_sub_namespace__returns_std001(self) -> None:
         call = "stdlib.unknown.func"
 
         result = self.validator.check(call, "test.sh", 1, 1)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD001")
-            # For stdlib.unknown.func with namespace 'stdlib', the invalid namespace is stdlib.unknown
-            self.assertEqual(getattr(result, "namespace", None), "stdlib.unknown")
+        assert result is not None
+        self.assertEqual(result.CODE, "STD001")
+        self.assertEqual(getattr(result, "namespace", None), "stdlib.unknown")
 
     def test_check__completely_unknown__returns_std004(self) -> None:
         call = "unknown.command"
 
         result = self.validator.check(call, "test.sh", 1, 1)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(result.CODE, "STD004")
+        assert result is not None
+        self.assertEqual(result.CODE, "STD004")
 
 if __name__ == "__main__":
     unittest.main()

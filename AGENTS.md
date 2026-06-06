@@ -15,7 +15,8 @@
 - **Regex**: Use `(?<!\w)` lookbehind and `(?![a-z0-9._])` lookahead for function matching.
 - **Testing**:
   - Pattern: `test_<method>__<scenario>__<outcome>`.
-  - Style: AAA without comments; use empty line separators.
+  - Style: AAA without comments. Group assertions at the end. Use empty line separators.
+  - No Conditionals: Prohibited in tests. Use `assert x is not None` for type narrowing.
   - Isolation: No disk I/O; use `mock_open` and `patch`.
   - Execution: Every test file must end with:
     ```python

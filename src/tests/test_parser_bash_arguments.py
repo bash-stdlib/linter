@@ -1,6 +1,7 @@
 """Unit tests for the BashArgumentsParser."""
 
 import unittest
+from typing import List, Optional
 
 from parsers.bash_arguments import BashArgumentsParser
 
@@ -84,78 +85,72 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("$("))
-            self.assertTrue(result[1].endswith(")"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
 
     def test_parse__nested_subshell__counts_as_one_argument(self) -> None:
         content = "arg1 $(echo $(nested)) arg2"
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("$("))
-            self.assertTrue(result[1].endswith(")"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
 
     def test_parse__parameter_expansion__counts_as_one_argument(self) -> None:
         content = "arg1 ${VAR:-default} arg2"
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("${"))
-            self.assertTrue(result[1].endswith("}"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("${"))
+        self.assertTrue(result[1].endswith("}"))
 
     def test_parse__quoted_subshell__counts_as_one_argument(self) -> None:
         content = 'arg1 "$(echo foo bar)" arg2'
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("$("))
-            self.assertTrue(result[1].endswith(")"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("$("))
+        self.assertTrue(result[1].endswith(")"))
 
     def test_parse__backticks__counts_as_one_argument(self) -> None:
         content = "arg1 `echo foo` arg2"
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("`"))
-            self.assertTrue(result[1].endswith("`"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("`"))
+        self.assertTrue(result[1].endswith("`"))
 
     def test_parse__nested_backticks__counts_as_one_argument(self) -> None:
         content = "arg1 `echo \\`echo nested\\`` arg2"
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[2], "arg2")
-            self.assertTrue(result[1].startswith("`"))
-            self.assertTrue(result[1].endswith("`"))
+        assert result is not None
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[2], "arg2")
+        self.assertTrue(result[1].startswith("`"))
+        self.assertTrue(result[1].endswith("`"))
 
     def test_parse__command_separator_semicolon__stops_at_separator(self) -> None:
         content = "arg1 arg2 ; next_cmd"
@@ -204,13 +199,12 @@ class TestBashArgumentsParser(unittest.TestCase):
 
         result = self.parser.parse(content)
 
-        self.assertIsNotNone(result)
-        if result:
-            self.assertEqual(len(result), 5)
-            self.assertEqual(result[0], "arg1")
-            self.assertEqual(result[1], "quoted arg")
-            self.assertEqual(result[2], "arg2")
-            self.assertEqual(result[4], "arg3")
+        assert result is not None
+        self.assertEqual(len(result), 5)
+        self.assertEqual(result[0], "arg1")
+        self.assertEqual(result[1], "quoted arg")
+        self.assertEqual(result[2], "arg2")
+        self.assertEqual(result[4], "arg3")
 
 if __name__ == "__main__":
     unittest.main()
