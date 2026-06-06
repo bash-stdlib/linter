@@ -9,11 +9,9 @@ class TestLinterAppendum(unittest.TestCase):
             "namespaces": ["stdlib"]
         }
 
-    def test_appendum_function(self):
-        # Arrange
+    def test_lint__appendum_function__returns_no_errors(self):
         linter = Linter(self.metadata, appendum=["stdlib.__message.get"])
 
-        # Act
         with open("test_appendum.sh", "w") as f:
             f.write("stdlib.__message.get 'hello'\n")
 
@@ -21,14 +19,11 @@ class TestLinterAppendum(unittest.TestCase):
         if os.path.exists("test_appendum.sh"):
             os.remove("test_appendum.sh")
 
-        # Assert
         self.assertEqual(len(errors), 0)
 
-    def test_appendum_namespace(self):
-        # Arrange
+    def test_lint__appendum_namespace__returns_no_errors(self):
         linter = Linter(self.metadata, appendum=["my_ns"])
 
-        # Act
         with open("test_appendum_ns.sh", "w") as f:
             f.write("my_ns.foo 'bar'\n")
 
@@ -36,25 +31,19 @@ class TestLinterAppendum(unittest.TestCase):
         if os.path.exists("test_appendum_ns.sh"):
             os.remove("test_appendum_ns.sh")
 
-        # Assert
         self.assertEqual(len(errors), 0)
 
-    def test_appendum_partial_namespace(self):
-        # Arrange
+    def test_lint__appendum_partial_namespace__returns_errors_only_for_non_appendum_calls(self):
         linter = Linter(self.metadata, appendum=["stdlib.private"])
 
-        # Act
         with open("test_appendum_partial.sh", "w") as f:
             f.write("stdlib.private.call 'arg'\n")
-            f.write("stdlib.public.call 'arg'\n") # This should still error
+            f.write("stdlib.public.call 'arg'\n")
 
         errors = linter.lint("test_appendum_partial.sh")
         if os.path.exists("test_appendum_partial.sh"):
             os.remove("test_appendum_partial.sh")
 
-        # Assert
-        # stdlib.private.call is ignored
-        # stdlib.public.call should have an error (STD001)
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].CODE, "STD001")
         self.assertIn("stdlib.public", errors[0].message)
