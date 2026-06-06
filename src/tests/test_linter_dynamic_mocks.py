@@ -28,22 +28,6 @@ function test_one() {
 
         self.assertEqual(len(errors), 0)
 
-    def test_lint__fake__registers_dynamic_mock(self) -> None:
-        content = """
-function setup() {
-  fake my_custom_fake
-}
-
-function test_one() {
-  my_custom_fake "hello"
-}
-"""
-        # fake is not in metadata, but added to appendum in __init__
-        with patch("builtins.open", mock_open(read_data=content)):
-            errors = self.linter.lint("test_file.sh")
-
-        self.assertEqual(len(errors), 0)
-
     def test_lint__dynamic_mock__is_removed_after_lint(self) -> None:
         content = "_mock.create dyn_mock"
         with patch("builtins.open", mock_open(read_data=content)):

@@ -37,8 +37,6 @@ class Linter:
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
-        # Add 'fake' to appendum to ensure it's recognized as a command
-        self.appendum.add("fake")
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -67,24 +65,18 @@ class Linter:
             return errors
 
         comment_ignores = CommentIgnores()
+        for i, line in enumerate(file_content.splitlines(True)):
+            comment_ignores.process_line(line, i + 1)
+
         dynamic_mocks = self._find_dynamic_mocks(file_content)
         new_mocks = dynamic_mocks - self.functions
         self.functions.update(new_mocks)
 
         try:
-            offset = 0
-            for i, line_content in enumerate(file_content.splitlines(True)):
-                line_num = i + 1
-                comment_ignores.process_line(line_content, line_num)
-
-                for match in self.stdlib_call_pattern.finditer(line_content):
-                    error = self._process_match(
-                        match, file_content, filepath, comment_ignores, line_num, offset
-                    )
-                    if error:
-                        errors.append(error)
-
-                offset += len(line_content)
+            for match in self.stdlib_call_pattern.finditer(file_content):
+                error = self._process_match(match, file_content, filepath, comment_ignores)
+                if error:
+                    errors.append(error)
         finally:
             for mock in new_mocks:
                 self.functions.remove(mock)
@@ -139,20 +131,19 @@ class Linter:
         return False
 
     def _find_dynamic_mocks(self, content: str) -> "Set[str]":
-        """Identify mocks created dynamically via _mock.create or fake."""
+        """Identify mocks created dynamically via _mock.create."""
         mocks: "Set[str]" = set()
-        mock_creators = {"_mock.create", "fake"}
-        offset = 0
+        mock_creators = {"_mock.create"}
 
         for match in self.stdlib_call_pattern.finditer(content):
             call_name = self._get_call_name(match)
             if call_name in mock_creators:
-                if self._is_function_definition(match, content, offset):
+                if self._is_function_definition(match, content):
                     continue
-                if not self._is_at_command_position(match, content, offset):
+                if not self._is_at_command_position(match, content):
                     continue
 
-                absolute_end = offset + match.end()
+                absolute_end = match.end()
                 args = self.argument_parser.parse(content[absolute_end:])
                 if args:
                     mocks.add(args[0])
@@ -165,13 +156,11 @@ class Linter:
         content: "str",
         filepath: "str",
         comment_ignores: CommentIgnores,
-        line_num: int,
-        offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
-        if self._is_function_definition(match, content, offset):
+        if self._is_function_definition(match, content):
             return None
 
-        if not self._is_at_command_position(match, content, offset):
+        if not self._is_at_command_position(match, content):
             return None
 
         call_name = self._get_call_name(match)
@@ -179,8 +168,9 @@ class Linter:
         if self._is_appendum(call_name):
             return None
 
-        absolute_end = offset + match.end()
-        column = match.start() + 1
+        absolute_end = match.end()
+        line_num = self._get_line_number(content, match.start())
+        column = self._get_column_number(content, match.start())
 
         args = self.argument_parser.parse(content[absolute_end:])
         if args is None:
@@ -198,10 +188,10 @@ class Linter:
         return None
 
     def _is_at_command_position(
-        self, match: "Match[str]", content: "str", offset: "int"
+        self, match: "Match[str]", content: "str"
     ) -> bool:
         """Check if the match is at the start of a command."""
-        before = content[: offset + match.start()]
+        before = content[: match.start()]
 
         if before.endswith("$") or before.endswith("${"):
             return False
@@ -213,14 +203,14 @@ class Linter:
         return shlex_iterator.is_at_command_position()
 
     def _is_function_definition(
-        self, match: "Match[str]", content: "str", offset: "int"
+        self, match: "Match[str]", content: "str"
     ) -> bool:
         """Check if the match is part of a function definition."""
-        before = content[: offset + match.start()]
+        before = content[: match.start()]
         if ShlexTokenIterator.is_preceded_by_function_keyword(before):
             return True
 
-        after_content = content[offset + match.end() :]
+        after_content = content[match.end() :]
         shlex_iterator = ShlexTokenIterator(after_content)
         return shlex_iterator.is_function_definition()
 
