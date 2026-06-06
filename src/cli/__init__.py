@@ -37,6 +37,13 @@ def run_cli() -> None:
         default="json",
         help="Output format (default: json)",
     )
+    check_parser.add_argument(
+        "--ignore",
+        "-i",
+        nargs="+",
+        default=[],
+        help="Error codes to ignore",
+    )
 
     # List command
     subparsers.add_parser("list", help="List all linter error codes and explanations")
