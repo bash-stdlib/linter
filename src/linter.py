@@ -2,7 +2,7 @@
 
 import os
 import re
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
@@ -56,16 +56,23 @@ class Linter:
                 errors.append(STD000(filepath, str(e)))
             return errors
 
-        comment_ignores = CommentIgnores(file_content)
+        comment_ignores = CommentIgnores()
+        offset = 0
+        for i, line_content in enumerate(file_content.splitlines(True)):
+            line_num = i + 1
+            comment_ignores.process_line(line_content, line_num)
 
-        for match in self.stdlib_call_pattern.finditer(file_content):
-            error = self._process_match(match, file_content, filepath, comment_ignores)
-            if error:
-                errors.append(error)
+            for match in self.stdlib_call_pattern.finditer(line_content):
+                error = self._process_match(
+                    match, file_content, filepath, comment_ignores, line_num, offset
+                )
+                if error:
+                    errors.append(error)
 
-        # Report unused ignores
+            offset += len(line_content)
+
         for code, line in comment_ignores.get_unused_ignores():
-            errors.append(STD008(filepath, line, 0, code))
+            errors.append(STD008(filepath, line, 1, code))
 
         return errors
 
@@ -107,23 +114,25 @@ class Linter:
         content: "str",
         filepath: "str",
         comment_ignores: CommentIgnores,
+        line_num: int,
+        offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
         call_name = self._get_call_name(match)
-        line = self._get_line_number(content, match.start())
-        column = self._get_column_number(content, match.start())
+        absolute_end = offset + match.end()
+        column = match.start() + 1
 
-        args = self.argument_parser.parse(content[match.end() :])
+        args = self.argument_parser.parse(content[absolute_end:])
         if args is None:
-            if not self._is_ignored(STD006.CODE, line, comment_ignores):
-                return STD006(filepath, line, column, call_name)
+            if not self._is_ignored(STD006.CODE, line_num, comment_ignores):
+                return STD006(filepath, line_num, column, call_name)
             return None
 
         for validator in self.validators:
-            error = validator.check(call_name, filepath, line, column, args)
+            error = validator.check(call_name, filepath, line_num, column, args)
             if error:
-                if not self._is_ignored(error.CODE, line, comment_ignores):
+                if not self._is_ignored(error.CODE, line_num, comment_ignores):
                     return error
-                return None
+                # Continue checking other validators if this error was ignored
 
         return None
 

@@ -9,14 +9,49 @@ class CommentIgnores:
 
     IGNORE_PATTERN = re.compile(r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE)
 
-    def __init__(self, content: str) -> None:
+    def __init__(self) -> None:
         # file_ignores: (code, definition_line) -> is_used
         self.file_ignores: Dict[Tuple[str, int], bool] = {}
 
         # line_ignores: line_to_check -> (code, definition_line) -> is_used
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
 
-        self._parse(content)
+        self._in_header = True
+
+    def process_line(self, line_content: str, line_num: int) -> None:
+        """Process a single line to extract ignore directives."""
+        if self._in_header:
+            if line_num == 1 and line_content.startswith("#!"):
+                return
+            if not line_content.strip():
+                return
+
+        match = self.IGNORE_PATTERN.search(line_content)
+        if not match:
+            if self._in_header:
+                self._in_header = False
+            return
+
+        codes = self._extract_codes(match.group(1))
+
+        if self._in_header:
+            for code in codes:
+                self.file_ignores[(code, line_num)] = False
+        else:
+            # Determine if it's a same-line or next-line ignore
+            before_match = line_content[: match.start()].strip()
+            is_same_line = bool(before_match)
+
+            for code in codes:
+                if is_same_line:
+                    if line_num not in self.line_ignores:
+                        self.line_ignores[line_num] = {}
+                    self.line_ignores[line_num][(code, line_num)] = False
+                else:
+                    next_line = line_num + 1
+                    if next_line not in self.line_ignores:
+                        self.line_ignores[next_line] = {}
+                    self.line_ignores[next_line][(code, line_num)] = False
 
     def is_ignored(self, code: str, line: int) -> bool:
         """Check if a specific error code is ignored for a given line."""
@@ -58,54 +93,6 @@ class CommentIgnores:
                 all_defs[(code, def_line)] = all_defs.get((code, def_line), False) or used
 
         return sorted([k for k, v in all_defs.items() if not v], key=lambda x: x[1])
-
-    def _parse(self, content: str) -> None:
-        lines = content.splitlines()
-        if not lines:
-            return
-
-        self._parse_file_ignores(lines)
-        self._parse_line_ignores(lines)
-
-    def _parse_file_ignores(self, lines: List[str]) -> None:
-        start_index = 0
-        if lines and lines[0].startswith("#!"):
-            start_index = 1
-
-        for i in range(start_index, len(lines)):
-            line_content = lines[i]
-            if not line_content.strip():
-                continue
-
-            match = self.IGNORE_PATTERN.search(line_content)
-            if not match:
-                break
-
-            codes = self._extract_codes(match.group(1))
-            for code in codes:
-                self.file_ignores[(code, i + 1)] = False
-
-    def _parse_line_ignores(self, lines: List[str]) -> None:
-        for i, line_content in enumerate(lines):
-            line_num = i + 1
-            match = self.IGNORE_PATTERN.search(line_content)
-            if not match:
-                continue
-
-            codes = self._extract_codes(match.group(1))
-            before_match = line_content[: match.start()].strip()
-            is_same_line = bool(before_match)
-
-            for code in codes:
-                if is_same_line:
-                    if line_num not in self.line_ignores:
-                        self.line_ignores[line_num] = {}
-                    self.line_ignores[line_num][(code, line_num)] = False
-                else:
-                    next_line = line_num + 1
-                    if next_line not in self.line_ignores:
-                        self.line_ignores[next_line] = {}
-                    self.line_ignores[next_line][(code, line_num)] = False
 
     def _extract_codes(self, codes_str: str) -> Set[str]:
         return {c.strip().upper() for c in codes_str.replace(",", " ").split()}
