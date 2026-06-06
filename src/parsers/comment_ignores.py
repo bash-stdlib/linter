@@ -11,12 +11,9 @@ class CommentIgnores:
 
     def __init__(self, content: str) -> None:
         # file_ignores: (code, definition_line) -> is_used
-        # Maps a global error code and its definition line to its usage status.
         self.file_ignores: Dict[Tuple[str, int], bool] = {}
 
         # line_ignores: line_to_check -> (code, definition_line) -> is_used
-        # Maps a line number to a dictionary of error codes (and their definition lines)
-        # that are ignored for that specific line.
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
 
         self._parse(content)
