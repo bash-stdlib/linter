@@ -24,26 +24,33 @@ class CommentIgnores:
     def is_ignored(self, code: str, line: int) -> bool:
         """Check if a specific error code is ignored for a given line."""
         code = code.upper()
-        ignored = False
 
-        # Check file-level ignores
-        for (f_code, def_line), used in self.file_ignores.items():
+        file_ignored = self._check_file_ignores(code)
+        line_ignored = self._check_line_ignores(code, line)
+
+        return file_ignored or line_ignored
+
+    def _check_file_ignores(self, code: str) -> bool:
+        """Check and mark file-level ignores."""
+        ignored = False
+        for (f_code, def_line) in self.file_ignores:
             if f_code == code:
                 self.file_ignores[(f_code, def_line)] = True
                 ignored = True
+        return ignored
 
-        # Check line-level ignores
+    def _check_line_ignores(self, code: str, line: int) -> bool:
+        """Check and mark line-level ignores."""
+        ignored = False
         if line in self.line_ignores:
-            for (l_code, def_line), used in self.line_ignores[line].items():
+            for (l_code, def_line) in self.line_ignores[line]:
                 if l_code == code:
                     self.line_ignores[line][(l_code, def_line)] = True
                     ignored = True
-
         return ignored
 
     def get_unused_ignores(self) -> List[Tuple[str, int]]:
         """Return a list of (code, line_number) for ignores that were never used."""
-        # Collect all definitions and their usage status
         all_defs: Dict[Tuple[str, int], bool] = {}
 
         for (code, def_line), used in self.file_ignores.items():
