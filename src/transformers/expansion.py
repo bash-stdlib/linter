@@ -12,7 +12,7 @@ class ExpansionTransformer(TransformerBase):
         # Simplify $(( ... )) to $((X)) non-greedily
         content = re.sub(r"\$\(\(.*?\)\)", "$((X))", content)
 
-        # Simplify ${ ... } to ${X}
-        content = re.sub(r"\${[^}]*}", "${X}", content)
+        # Simplify ${ ... } to ${X} non-greedily
+        content = re.sub(r"\${.*?}", "${X}", content)
 
         return content

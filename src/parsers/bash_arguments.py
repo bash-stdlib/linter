@@ -15,8 +15,6 @@ from transformers import ExpansionTransformer, LineContinuationTransformer
 class BashArgumentsParser(ParserBase):
     """Parses Bash code to extract arguments following a function call."""
 
-    ShlexTokenIterator = ShlexTokenIterator
-
     def __init__(self) -> None:
         self.line_transformer = LineContinuationTransformer()
         self.expansion_transformer = ExpansionTransformer()

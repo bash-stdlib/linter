@@ -9,6 +9,7 @@ from constants import COMMAND_SEPARATORS
 class ShlexTokenIterator:
     """Iterates over tokens produced by shlex.shlex."""
 
+    FUNCTION_KEYWORD = "function"
     WHITESPACE_CHARS = " \t\r"
     WORDCHARS_APPENDUM = "./$*?@-_"
 
@@ -17,6 +18,17 @@ class ShlexTokenIterator:
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
         self.parsing_error = False
+
+    @classmethod
+    def is_preceded_by_function_keyword(cls, content_before: str) -> bool:
+        """Check if the content before a match ends with the 'function' keyword."""
+        before = content_before.rstrip()
+        if before.endswith(cls.FUNCTION_KEYWORD):
+            # Ensure it's a whole word
+            keyword_len = len(cls.FUNCTION_KEYWORD)
+            if len(before) == keyword_len or not before[-(keyword_len + 1)].isalnum():
+                return True
+        return False
 
     def is_function_definition(self) -> bool:
         """Check if the next tokens indicate a function definition."""
