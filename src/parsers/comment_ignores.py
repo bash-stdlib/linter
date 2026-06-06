@@ -10,10 +10,15 @@ class CommentIgnores:
     IGNORE_PATTERN = re.compile(r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE)
 
     def __init__(self, content: str) -> None:
-        # (code, definition_line) -> is_used
+        # file_ignores: (code, definition_line) -> is_used
+        # Maps a global error code and its definition line to its usage status.
         self.file_ignores: Dict[Tuple[str, int], bool] = {}
-        # line_to_check -> (code, definition_line) -> is_used
+
+        # line_ignores: line_to_check -> (code, definition_line) -> is_used
+        # Maps a line number to a dictionary of error codes (and their definition lines)
+        # that are ignored for that specific line.
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
+
         self._parse(content)
 
     def is_ignored(self, code: str, line: int) -> bool:
@@ -38,8 +43,6 @@ class CommentIgnores:
 
     def get_unused_ignores(self) -> List[Tuple[str, int]]:
         """Return a list of (code, line_number) for ignores that were never used."""
-        unused: Set[Tuple[str, int]] = set()
-
         # Collect all definitions and their usage status
         all_defs: Dict[Tuple[str, int], bool] = {}
 
@@ -90,10 +93,6 @@ class CommentIgnores:
             is_same_line = bool(before_match)
 
             for code in codes:
-                # Skip if already globally ignored by a definition AT OR BEFORE this line
-                if any(c == code and dl <= line_num for (c, dl) in self.file_ignores):
-                    continue
-
                 if is_same_line:
                     if line_num not in self.line_ignores:
                         self.line_ignores[line_num] = {}
