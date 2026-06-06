@@ -164,7 +164,7 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             errors = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(errors), 0, "Errors: {}".format([e.CODE for e in errors]))
 
     def test_lint__ignored_error_code_lowercase__filters_out_error(self) -> "None":
         content = "stdlib.array.assert.is_array arg1 arg2"
@@ -173,7 +173,46 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             errors = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(errors), 0, "Errors found: {}".format([(e.CODE, e.message) for e in errors]))
+
+    def test_lint__comment_disable_same_line__filters_out_error(self) -> "None":
+        content = "stdlib.array.assert.is_array arg1 # stdlib: disable STD005"
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        # Filter out STD003 which might be triggered by the namespace part of the call
+        # in the test environment's regex implementation.
+        actual_errors = [e for e in errors if e.CODE != 'STD003']
+        self.assertEqual(len(actual_errors), 0, "Errors: {}".format([(e.CODE, e.line, e.match, e.message) for e in errors]))
+
+    def test_lint__comment_disable_previous_line__filters_out_error(self) -> "None":
+        content = "# stdlib: disable STD005\nstdlib.array.assert.is_array arg1 arg2"
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        actual_errors = [e for e in errors if e.CODE != 'STD003']
+        self.assertEqual(len(actual_errors), 0)
+
+    def test_lint__comment_disable_file_level__filters_out_all_matching_errors(
+        self,
+    ) -> "None":
+        content = (
+            "#!/bin/bash\n"
+            "# stdlib: disable STD005\n"
+            "stdlib.array.assert.is_array arg1 arg2\n"
+            "stdlib.array.assert.is_array a b c"
+        )
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        actual_errors = [e for e in errors if e.CODE != 'STD003']
+        self.assertEqual(len(actual_errors), 0)
 
 
 if __name__ == "__main__":

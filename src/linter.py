@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from errors import STD000, STD006
 from parsers import BashArgumentsParser
+from parsers.comment_ignores import CommentIgnores
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
@@ -46,12 +47,19 @@ class Linter:
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
-        file_content = self._read_file(filepath, errors)
-        if file_content is None:
+
+        try:
+            with open(filepath, "r") as f:
+                file_content = f.read()
+        except Exception as e:
+            if not self._is_ignored("STD000", 1, None):
+                errors.append(STD000(filepath, str(e)))
             return errors
 
+        comment_ignores = CommentIgnores(file_content)
+
         for match in self.stdlib_call_pattern.finditer(file_content):
-            error = self._process_match(match, file_content, filepath)
+            error = self._process_match(match, file_content, filepath, comment_ignores)
             if error:
                 errors.append(error)
 
@@ -76,21 +84,25 @@ class Linter:
 
         return re.compile(pattern)
 
-    def _read_file(
+    def _is_ignored(
         self,
-        filepath: "str",
-        errors: "List[LinterErrorBase]",
-    ) -> "Optional[str]":
-        try:
-            with open(filepath, "r") as f:
-                return f.read()
-        except Exception as e:
-            if STD000.CODE not in self.ignored_codes:
-                errors.append(STD000(filepath, str(e)))
-            return None
+        code: str,
+        line: int,
+        comment_ignores: Optional[CommentIgnores],
+    ) -> bool:
+        code = code.upper()
+        if code in self.ignored_codes:
+            return True
+        if comment_ignores and comment_ignores.is_ignored(code, line):
+            return True
+        return False
 
     def _process_match(
-        self, match: "re.Match[str]", content: "str", filepath: "str"
+        self,
+        match: "re.Match[str]",
+        content: "str",
+        filepath: "str",
+        comment_ignores: CommentIgnores,
     ) -> "Optional[LinterErrorBase]":
         call_name = self._get_call_name(match)
         line = self._get_line_number(content, match.start())
@@ -98,14 +110,14 @@ class Linter:
 
         args = self.argument_parser.parse(content[match.end() :])
         if args is None:
-            if STD006.CODE not in self.ignored_codes:
+            if not self._is_ignored(STD006.CODE, line, comment_ignores):
                 return STD006(filepath, line, column, call_name)
             return None
 
         for validator in self.validators:
             error = validator.check(call_name, filepath, line, column, args)
             if error:
-                if error.CODE not in self.ignored_codes:
+                if not self._is_ignored(error.CODE, line, comment_ignores):
                     return error
                 return None
 
