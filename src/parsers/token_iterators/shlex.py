@@ -10,7 +10,7 @@ class ShlexTokenIterator:
     """Iterates over tokens produced by shlex.shlex."""
 
     FUNCTION_KEYWORD = "function"
-    WHITESPACE_CHARS = " \t\r"
+    WHITESPACE_CHARS = " \t\r\x0b"
     WORDCHARS_APPENDUM = "./$*?@-_"
 
     def __init__(self, content: "str") -> None:
