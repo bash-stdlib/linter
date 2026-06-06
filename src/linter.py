@@ -4,6 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
+from constants import SHELL_COMMAND_SEPARATORS
 from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
@@ -131,22 +132,57 @@ class Linter:
         return False
 
     def _find_dynamic_mocks(self, content: str) -> "Set[str]":
-        """Identify mocks created dynamically via _mock.create."""
+        """Identify mocks created dynamically via _mock.create inside setup functions."""
         mocks: "Set[str]" = set()
         mock_creators = {"_mock.create"}
+        setup_functions = {"setup", "setup_suite"}
 
-        for match in self.stdlib_call_pattern.finditer(content):
-            call_name = self._get_call_name(match)
-            if call_name in mock_creators:
-                if self._is_function_definition(match, content):
-                    continue
-                if not self._is_at_command_position(match, content):
+        tokens = ShlexTokenIterator(content)
+        inside_setup = False
+        brace_count = 0
+        last_word = None
+        potential_func = None
+
+        try:
+            while True:
+                token = next(tokens)
+
+                if token == "function":
+                    potential_func = next(tokens)
                     continue
 
-                absolute_end = match.end()
-                args = self.argument_parser.parse(content[absolute_end:])
-                if args:
-                    mocks.add(args[0])
+                if token == "()":
+                    potential_func = last_word
+                    continue
+
+                if token == "{":
+                    if potential_func in setup_functions:
+                        inside_setup = True
+                    brace_count += 1
+                    continue
+
+                if token == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        inside_setup = False
+                        potential_func = None
+                    continue
+
+                if token in mock_creators and inside_setup:
+                    # Extract the mock name (next token)
+                    try:
+                        mock_name = next(tokens)
+                        mocks.add(mock_name)
+                    except StopIteration:
+                        pass
+
+                if token not in SHELL_COMMAND_SEPARATORS:
+                    last_word = token
+                elif token != "\n" and brace_count == 0:
+                    potential_func = None
+
+        except StopIteration:
+            pass
 
         return mocks
 
