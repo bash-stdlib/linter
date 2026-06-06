@@ -87,19 +87,12 @@ class Linter:
     def _build_call_pattern(self) -> "Pattern[str]":
         roots = set()
         for name in self.functions | self.namespaces | self.appendum:
-            if "." in name:
+            if name.startswith(("@", "_")):
+                roots.add(name.split(".")[0])
+            elif "." in name:
                 roots.add(name.split(".")[0])
             elif "_" in name:
-                if name.startswith("_"):
-                    parts = name.split(".")
-                    roots.add(parts[0])
-                else:
-                    roots.add(name.split("_")[0] + "_")
-            elif name.startswith("@"):
-                if "." in name:
-                    roots.add(name.split(".")[0])
-                else:
-                    roots.add(name)
+                roots.add(name.split("_")[0] + "_")
             else:
                 roots.add(name)
 
