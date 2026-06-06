@@ -14,9 +14,12 @@ from .token_iterators import (
 class BashArgumentsParser(ParserBase):
     """Parses Bash code to extract arguments following a function call."""
 
+    ShlexTokenIterator = ShlexTokenIterator
+
     def parse(self, content: "str") -> "Optional[List[str]]":
         """Extract arguments from the given Bash code string."""
         content = self._remove_line_continuations(content)
+        content = self._simplify_expansions(content)
 
         shlex_iterator = ShlexTokenIterator(content)
         nested_iterator = FilterNestedEntitiesTokenIterator(shlex_iterator)
@@ -32,3 +35,14 @@ class BashArgumentsParser(ParserBase):
 
     def _remove_line_continuations(self, content: "str") -> "str":
         return content.replace("\\\n", "")
+
+    def _simplify_expansions(self, content: "str") -> "str":
+        import re
+
+        # Simplify $(( ... )) to $((X)) non-greedily
+        content = re.sub(r"\$\(\(.*?\)\)", "$((X))", content)
+
+        # Simplify ${ ... } to ${X}
+        content = re.sub(r"\${[^}]*}", "${X}", content)
+
+        return content

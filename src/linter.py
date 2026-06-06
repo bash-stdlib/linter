@@ -48,9 +48,11 @@ class Linter:
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
 
+        # Pre-process content to join lines with continuations for correct command position detection
         try:
             with open(filepath, "r") as f:
-                file_content = f.read()
+                raw_content = f.read()
+                file_content = raw_content.replace("\\\n", "  ")
         except Exception as e:
             if not self._is_ignored("STD000", 1, None):
                 errors.append(STD000(filepath, str(e)))
@@ -89,7 +91,7 @@ class Linter:
                 roots.add(name)
 
         sorted_roots = sorted(list(roots), key=len, reverse=True)
-        pattern = r"(?<!\w)({}[a-z0-9._]*)\b".format(
+        pattern = r"(?<!\w)((?:{})[a-z0-9._]*)(?![a-z0-9._])".format(
             "|".join(re.escape(r) for r in sorted_roots)
         )
 
@@ -117,6 +119,12 @@ class Linter:
         line_num: int,
         offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
+        if self._is_function_definition(match, content, offset):
+            return None
+
+        if not self._is_at_command_position(match, content, offset):
+            return None
+
         call_name = self._get_call_name(match)
         absolute_end = offset + match.end()
         column = match.start() + 1
@@ -135,6 +143,38 @@ class Linter:
                 # Continue checking other validators if this error was ignored
 
         return None
+
+    def _is_at_command_position(
+        self, match: "Match[str]", content: "str", offset: "int"
+    ) -> bool:
+        """Check if the match is at the start of a command."""
+        before = content[: offset + match.start()]
+
+        if before.endswith("$") or before.endswith("${"):
+            return False
+
+        # Check the current line before the match
+        last_newline = before.rfind("\n")
+        line_before = before[last_newline + 1 :]
+
+        shlex_iterator = self.argument_parser.ShlexTokenIterator(line_before)
+        return shlex_iterator.is_at_command_position()
+
+    def _is_function_definition(
+        self, match: "Match[str]", content: "str", offset: "int"
+    ) -> bool:
+        """Check if the match is part of a function definition."""
+        # Check for 'function' keyword before the match
+        before = content[: offset + match.start()].rstrip()
+        if before.endswith("function"):
+            # Ensure 'function' is a whole word
+            if len(before) == 8 or not before[-9].isalnum():
+                return True
+
+        # Check for () or ( ) after the match
+        after_content = content[offset + match.end() :]
+        shlex_iterator = self.argument_parser.ShlexTokenIterator(after_content)
+        return shlex_iterator.is_function_definition()
 
     def _get_call_name(self, match: "Match[str]") -> "str":
         call = str(match.group(1))

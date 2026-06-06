@@ -2,11 +2,11 @@
 
 from typing import Iterable, Iterator
 
+from constants import COMMAND_SEPARATORS
+
 
 class CommandsTokenIterator:
     """Iterates over tokens unil a command separator or newline is reached."""
-
-    SHELL_SEPARATORS = {";", "|", "&", "&&", "||", ")", "}"}
 
     def __init__(self, token_iterator: "Iterable[str]") -> None:
         self.iterator: "Iterator[str]" = iter(token_iterator)
@@ -28,4 +28,4 @@ class CommandsTokenIterator:
         return token
 
     def _is_command_end(self, token: "str") -> "bool":
-        return token in self.SHELL_SEPARATORS or token == "\n"
+        return token in COMMAND_SEPARATORS
