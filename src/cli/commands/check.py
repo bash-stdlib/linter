@@ -29,7 +29,9 @@ class LintCommand(CommandBase):
             else:
                 raise EmptyCacheError()
 
-        linter = Linter(metadata, ignored_codes=args.ignore)
+        linter = Linter(
+            metadata, ignored_codes=args.ignore, appendum=args.appendum
+        )
         all_errors: "List[LinterErrorBase]" = []
         for filepath in args.files:
             all_errors.extend(linter.lint(filepath))

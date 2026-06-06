@@ -44,6 +44,13 @@ def run_cli() -> None:
         default=[],
         help="Error codes to ignore",
     )
+    check_parser.add_argument(
+        "--appendum",
+        "-a",
+        nargs="+",
+        default=[],
+        help="Additional namespaces or functions to ignore",
+    )
 
     # List command
     subparsers.add_parser("list", help="List all linter error codes and explanations")
