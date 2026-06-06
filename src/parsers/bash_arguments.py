@@ -9,6 +9,7 @@ from .token_iterators import (
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
 )
+from transformers import ExpansionTransformer, LineContinuationTransformer
 
 
 class BashArgumentsParser(ParserBase):
@@ -16,10 +17,14 @@ class BashArgumentsParser(ParserBase):
 
     ShlexTokenIterator = ShlexTokenIterator
 
+    def __init__(self) -> None:
+        self.line_transformer = LineContinuationTransformer()
+        self.expansion_transformer = ExpansionTransformer()
+
     def parse(self, content: "str") -> "Optional[List[str]]":
         """Extract arguments from the given Bash code string."""
-        content = self._remove_line_continuations(content)
-        content = self._simplify_expansions(content)
+        content = self.line_transformer.transform(content)
+        content = self.expansion_transformer.transform(content)
 
         shlex_iterator = ShlexTokenIterator(content)
         nested_iterator = FilterNestedEntitiesTokenIterator(shlex_iterator)
@@ -32,17 +37,3 @@ class BashArgumentsParser(ParserBase):
             return None
 
         return arguments
-
-    def _remove_line_continuations(self, content: "str") -> "str":
-        return content.replace("\\\n", "")
-
-    def _simplify_expansions(self, content: "str") -> "str":
-        import re
-
-        # Simplify $(( ... )) to $((X)) non-greedily
-        content = re.sub(r"\$\(\(.*?\)\)", "$((X))", content)
-
-        # Simplify ${ ... } to ${X}
-        content = re.sub(r"\${[^}]*}", "${X}", content)
-
-        return content

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Set
 from errors import STD000, STD006, STD008
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
+from transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
@@ -35,6 +36,7 @@ class Linter:
         )
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
+        self.line_transformer = LineContinuationTransformer()
         self.validators: "List[ValidatorBase]" = [
             NotNamespaceCallValidator(self.functions, self.namespaces),
             IsFunctionCallValidator(self.functions, self.namespaces),
@@ -48,11 +50,10 @@ class Linter:
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
 
-        # Pre-process content to join lines with continuations for correct command position detection
         try:
             with open(filepath, "r") as f:
                 raw_content = f.read()
-                file_content = raw_content.replace("\\\n", "  ")
+                file_content = self.line_transformer.transform(raw_content)
         except Exception as e:
             if not self._is_ignored("STD000", 1, None):
                 errors.append(STD000(filepath, str(e)))
@@ -153,7 +154,6 @@ class Linter:
         if before.endswith("$") or before.endswith("${"):
             return False
 
-        # Check the current line before the match
         last_newline = before.rfind("\n")
         line_before = before[last_newline + 1 :]
 
@@ -164,14 +164,11 @@ class Linter:
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
         """Check if the match is part of a function definition."""
-        # Check for 'function' keyword before the match
         before = content[: offset + match.start()].rstrip()
         if before.endswith("function"):
-            # Ensure 'function' is a whole word
             if len(before) == 8 or not before[-9].isalnum():
                 return True
 
-        # Check for () or ( ) after the match
         after_content = content[offset + match.end() :]
         shlex_iterator = self.argument_parser.ShlexTokenIterator(after_content)
         return shlex_iterator.is_function_definition()
