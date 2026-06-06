@@ -56,7 +56,9 @@ class Linter:
         try:
             with open(filepath, "r") as f:
                 raw_content = f.read()
-                file_content = self.line_continuation_transformer.transform(raw_content)
+                file_content = self.line_continuation_transformer.transform(
+                    raw_content, preserve_lines=True
+                )
         except Exception as e:
             if not self._is_ignored("STD000", 1, None):
                 errors.append(STD000(filepath, str(e)))
