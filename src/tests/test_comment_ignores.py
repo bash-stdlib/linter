@@ -15,14 +15,16 @@ class TestCommentIgnores(unittest.TestCase):
         ignores = CommentIgnores(content)
         self.assertTrue(ignores.is_ignored("STD003", 2))
         self.assertFalse(ignores.is_ignored("STD003", 1))
-        self.assertFalse(ignores.is_ignored("STD003", 4))
+        # Now it should be false for the next line if it's a same-line ignore
+        self.assertFalse(ignores.is_ignored("STD003", 3))
 
     def test_is_ignored__previous_line__returns_true(self):
         content = "echo foo\n# stdlib: disable STD004\nstdlib.namespace\necho bar"
         ignores = CommentIgnores(content)
         self.assertTrue(ignores.is_ignored("STD004", 3))
         self.assertFalse(ignores.is_ignored("STD004", 1))
-        self.assertFalse(ignores.is_ignored("STD004", 4))
+        # Now it should be false for the comment line itself
+        self.assertFalse(ignores.is_ignored("STD004", 2))
 
     def test_is_ignored__multiple_directives__accumulates_ignores(self):
         content = "# stdlib: disable STD001\n# stdlib: disable STD002\nstdlib.namespace"

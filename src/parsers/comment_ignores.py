@@ -54,16 +54,21 @@ class CommentIgnores:
 
             codes = self._extract_codes(match.group(1))
 
-            # Same line ignore
-            if line_num not in self.line_ignores:
-                self.line_ignores[line_num] = set()
-            self.line_ignores[line_num].update(codes)
+            # Determine if it's a same-line or next-line ignore
+            before_match = line_content[: match.start()].strip()
+            is_same_line = bool(before_match)
 
-            # Next line ignore
-            next_line = line_num + 1
-            if next_line not in self.line_ignores:
-                self.line_ignores[next_line] = set()
-            self.line_ignores[next_line].update(codes)
+            if is_same_line:
+                # Same line ignore
+                if line_num not in self.line_ignores:
+                    self.line_ignores[line_num] = set()
+                self.line_ignores[line_num].update(codes)
+            else:
+                # Next line ignore
+                next_line = line_num + 1
+                if next_line not in self.line_ignores:
+                    self.line_ignores[next_line] = set()
+                self.line_ignores[next_line].update(codes)
 
     def _extract_codes(self, codes_str: str) -> Set[str]:
         return {c.strip().upper() for c in codes_str.replace(",", " ").split()}
