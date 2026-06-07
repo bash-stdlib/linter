@@ -55,14 +55,19 @@ class ShlexTokenIterator:
         try:
             at_start = True
             for token in self:
+                if (
+                    hasattr(token, "unquoted_specials")
+                    and "#" in token.unquoted_specials
+                    and token.startswith("#")
+                ):
+                    return False
+
                 if hasattr(token, "is_fully_quoted"):
-                    if (
-                        not getattr(token, "is_fully_quoted")
-                        and token in SHELL_COMMAND_SEPARATORS
-                    ):
-                        at_start = True
-                        continue
-                elif token in SHELL_COMMAND_SEPARATORS:
+                    is_quoted = getattr(token, "is_fully_quoted")
+                else:
+                    is_quoted = False
+
+                if not is_quoted and token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
 
@@ -70,6 +75,7 @@ class ShlexTokenIterator:
                     continue
                 if "=" in token and at_start:
                     continue
+
                 at_start = False
             return at_start
         except (StopIteration, ValueError):

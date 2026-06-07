@@ -28,6 +28,13 @@ class CommandsTokenIterator:
         return token
 
     def _is_command_end(self, token: "str") -> "bool":
+        if (
+            hasattr(token, "unquoted_specials")
+            and "#" in token.unquoted_specials
+            and token.startswith("#")
+        ):
+            return True
+
         if hasattr(token, "is_fully_quoted"):
             if getattr(token, "is_fully_quoted"):
                 return False
