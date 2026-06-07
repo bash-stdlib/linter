@@ -47,33 +47,20 @@ class ShlexTokenIterator:
 
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command (only assignments or separators before)."""
-        # Create two lexers to detect unquoted '#' while still processing other tokens.
-        # This is safe because is_at_command_position is called with only the line content before the match.
-        lexer_show_comments = shlex.shlex(self.content, posix=True, punctuation_chars=True)
-        lexer_show_comments.commenters = ""
-        lexer_show_comments.whitespace = self.WHITESPACE_CHARS
-        lexer_show_comments.wordchars += self.WORDCHARS_APPENDUM
+        # We need to detect if there is an unquoted # before the end of the content.
+        # Since is_at_command_position is called on the substring before the match,
+        # if a # is found, the match must be inside a comment.
+        lexer = shlex.shlex(self.content, posix=True, punctuation_chars=True)
+        lexer.commenters = ""
+        lexer.whitespace = self.WHITESPACE_CHARS
+        lexer.wordchars += self.WORDCHARS_APPENDUM
 
-        lexer_normal = shlex.shlex(self.content, posix=True, punctuation_chars=True)
-        lexer_normal.whitespace = self.WHITESPACE_CHARS
-        lexer_normal.wordchars += self.WORDCHARS_APPENDUM
-
+        # Track if we are at the beginning of a command
+        at_start = True
         try:
-            at_start = True
-            while True:
-                try:
-                    token_show = next(lexer_show_comments)
-                except (StopIteration, ValueError):
-                    break
-
-                if token_show == "#":
+            for token in lexer:
+                if token == "#":
                     return False
-
-                try:
-                    token = next(lexer_normal)
-                except (StopIteration, ValueError):
-                    token = token_show
-
                 if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
