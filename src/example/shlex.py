@@ -1,0 +1,123 @@
+import io
+import shlex
+from typing import Iterator, List, Optional, Set, Union
+
+
+class AdvancedToken:
+    def __init__(
+        self, value: str, is_fully_quoted: bool, unquoted_specials: Set[str]
+    ) -> None:
+        self.value: str = value
+        self.is_fully_quoted: bool = is_fully_quoted
+        self.unquoted_specials: Set[str] = unquoted_specials
+
+    def __repr__(self) -> str:
+        status = "Fully Quoted" if self.is_fully_quoted else "Unquoted/Partial"
+        return f"Token({repr(self.value)}, {status}, Unquoted Specials: {list(self.unquoted_specials)})"
+
+
+class EnhancedShlex(shlex.shlex):
+    def __init__(
+        self,
+        instream: Union[str, io.StringIO],
+        posix: bool = True,
+        target_chars: Optional[List[str]] = None,
+    ) -> None:
+
+        # Save a clean copy of the entire source string for our parallel scanner
+        if isinstance(instream, str):
+            self.source_str: str = instream
+            instream = io.StringIO(instream)
+        else:
+            self.source_str = instream.read()
+            instream = io.StringIO(self.source_str)
+
+        super().__init__(instream, posix=posix)
+        self.target_chars: Set[str] = set(target_chars or [])
+        self.source_ptr: int = 0
+
+        if "#" in self.target_chars:
+            self.commenters = ""
+
+    def read_token(self) -> Optional[AdvancedToken]:  # type: ignore[override]
+        raw_token: Optional[str] = super().read_token()
+        if raw_token is None:
+            return None
+
+        # 1. Advance our parallel pointer past leading whitespace or comments
+        while self.source_ptr < len(self.source_str):
+            ch = self.source_str[self.source_ptr]
+            if ch in self.whitespace:
+                self.source_ptr += 1
+            elif ch in self.commenters:
+                while (
+                    self.source_ptr < len(self.source_str)
+                    and self.source_str[self.source_ptr] != "\n"
+                ):
+                    self.source_ptr += 1
+                if self.source_ptr < len(self.source_str):
+                    self.source_ptr += 1
+            else:
+                break
+
+        start_ptr = self.source_ptr
+        unquoted_specials: Set[str] = set()
+        current_quote: Optional[str] = None
+        escaped: bool = False
+        escape_char: Optional[str] = "\\" if self.posix else None
+        match_idx = 0
+
+        # 2. Reconstruct the literal token representation from the raw source
+        while self.source_ptr < len(self.source_str):
+            if match_idx == len(raw_token) and current_quote is None:
+                break
+
+            ch = self.source_str[self.source_ptr]
+
+            if escaped:
+                escaped = False
+                if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                    match_idx += 1
+                self.source_ptr += 1
+                continue
+
+            if escape_char and ch == escape_char:
+                escaped = True
+                self.source_ptr += 1
+                continue
+
+            if current_quote:
+                if ch == current_quote:
+                    current_quote = None
+                else:
+                    if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                        match_idx += 1
+                self.source_ptr += 1
+            else:
+                if ch in self.quotes:
+                    current_quote = ch
+                    self.source_ptr += 1
+                else:
+                    if ch in self.target_chars:
+                        unquoted_specials.add(ch)
+                    if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                        match_idx += 1
+                    self.source_ptr += 1
+
+        # 3. Explicitly verify if the original text was fully wrapped in quotes
+        literal_len = self.source_ptr - start_ptr
+        first_char = self.source_str[start_ptr] if literal_len > 0 else ""
+        is_fully_quoted = (first_char in self.quotes) and (
+            literal_len == len(raw_token) + 2
+        )
+
+        return AdvancedToken(raw_token, is_fully_quoted, unquoted_specials)
+
+    def __next__(self) -> AdvancedToken:  # type: ignore[override]
+        token = self.read_token()
+        if token is None:
+            raise StopIteration
+        return token
+
+    def __iter__(self) -> Iterator[AdvancedToken]:  # type: ignore[override]
+        return self
