@@ -20,7 +20,7 @@ class ShlexTokenIterator:
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
         self.parsing_error = False
-        self.stopped_at_comment = False
+        self.comment_reached = False
 
     @classmethod
     def is_preceded_by_function_keyword(cls, content_before: str) -> bool:
@@ -49,18 +49,11 @@ class ShlexTokenIterator:
 
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command (only assignments or separators before)."""
-        # We use a local lexer to detect unquoted # characters without consuming self.lexer.
-        # This is for identifying if the match is inside a comment.
-        lexer = shlex.shlex(self.content, posix=True, punctuation_chars=True)
-        lexer.commenters = ""
-        lexer.whitespace = self.WHITESPACE_CHARS
-        lexer.wordchars += self.WORDCHARS_APPENDUM
-
         # Track if we are at the beginning of a command
         at_start = True
         try:
-            for token in lexer:
-                if token == "#":
+            for token in self:
+                if self.comment_reached:
                     return False
                 if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
@@ -70,20 +63,20 @@ class ShlexTokenIterator:
                 if "=" in token and at_start:
                     continue
                 at_start = False
-            return at_start
+            return at_start and not self.comment_reached
         except (StopIteration, ValueError):
-            return True
+            return True and not self.comment_reached
 
     def __iter__(self) -> "ShlexTokenIterator":
         return self
 
     def __next__(self) -> "str":
-        if self.stopped_at_comment:
+        if self.comment_reached:
             raise StopIteration
         try:
             token = next(self.lexer)
             if token == "#":
-                self.stopped_at_comment = True
+                self.comment_reached = True
                 raise StopIteration
             return token
         except ValueError:
