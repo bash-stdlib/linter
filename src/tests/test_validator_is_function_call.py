@@ -45,5 +45,6 @@ class TestIsFunctionCallValidator(unittest.TestCase):
         assert result is not None
         self.assertEqual(result.CODE, "STD004")
 
+
 if __name__ == "__main__":
     unittest.main()

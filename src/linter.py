@@ -12,8 +12,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
-    NotNamespaceCallValidator,
     IsTestingFunctionCallValidator,
+    NotNamespaceCallValidator,
 )
 
 if TYPE_CHECKING:

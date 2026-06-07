@@ -9,7 +9,6 @@ from errors.std003 import STD003
 from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
-from errors.std008 import STD008
 from linter import Linter
 
 if TYPE_CHECKING:
@@ -104,7 +103,9 @@ class TestLinter(unittest.TestCase):
         self.assertIn("Invalid namespace 'stdlib.unknown'", errors[0].message)
 
     def test_lint__unknown_stdlib_call__returns_std004_error(self) -> "None":
-        self.metadata["namespaces"] = [ns for ns in self.metadata["namespaces"] if ns != "stdlib"]
+        self.metadata["namespaces"] = [
+            ns for ns in self.metadata["namespaces"] if ns != "stdlib"
+        ]
         self.linter = Linter(self.metadata)
         content = "stdlib.completely_unknown arg1"
 
@@ -174,7 +175,11 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             errors = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0, "Errors found: {}".format([(e.CODE, e.message) for e in errors]))
+        self.assertEqual(
+            len(errors),
+            0,
+            "Errors found: {}".format([(e.CODE, e.message) for e in errors]),
+        )
 
     def test_lint__comment_disable_same_line__filters_out_error(self) -> "None":
         content = "stdlib.array.assert.is_array arg1 # stdlib: disable STD005"

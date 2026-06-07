@@ -8,7 +8,11 @@ from validators.argument_count import ArgumentCountValidator
 
 class TestArgumentCountValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions: Set[str] = {"stdlib.foo.bar", "stdlib.baz.qux", "stdlib.variadic"}
+        self.functions: Set[str] = {
+            "stdlib.foo.bar",
+            "stdlib.baz.qux",
+            "stdlib.variadic",
+        }
         self.namespaces: Set[str] = {"stdlib.foo", "stdlib.baz"}
         self.metadata = {
             "stdlib.foo.bar": {"min_args": 1, "max_args": 2},
@@ -74,6 +78,7 @@ class TestArgumentCountValidator(unittest.TestCase):
         assert result is not None
         self.assertEqual(result.CODE, "STD005")
         self.assertIn("expects at least 1 arguments, but 0", result.message)
+
 
 if __name__ == "__main__":
     unittest.main()

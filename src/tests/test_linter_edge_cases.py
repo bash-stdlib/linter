@@ -1,7 +1,6 @@
-import os
 import unittest
 from typing import List
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 from errors.base import LinterErrorBase
 from linter import Linter
@@ -35,7 +34,9 @@ class TestLinterEdgeCases(unittest.TestCase):
             return linter.lint("test.sh")
 
     def test_function_definitions_ignored(self) -> None:
-        content = "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
+        content = (
+            "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
+        )
 
         errors = self.lint_content(content)
 
@@ -75,6 +76,7 @@ class TestLinterEdgeCases(unittest.TestCase):
         errors = self.lint_content(content)
 
         self.assertEqual(len(errors), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

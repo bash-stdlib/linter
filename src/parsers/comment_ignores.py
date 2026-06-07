@@ -7,7 +7,9 @@ from typing import Dict, List, Set, Tuple
 class CommentIgnores:
     """Parses and stores linter error codes ignored via comments."""
 
-    IGNORE_PATTERN = re.compile(r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE)
+    IGNORE_PATTERN = re.compile(
+        r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE
+    )
 
     def __init__(self) -> None:
         # file_ignores: (code, definition_line) -> is_used
@@ -64,7 +66,7 @@ class CommentIgnores:
     def _check_file_ignores(self, code: str) -> bool:
         """Check and mark file-level ignores."""
         ignored = False
-        for (f_code, def_line) in self.file_ignores:
+        for f_code, def_line in self.file_ignores:
             if f_code == code:
                 self.file_ignores[(f_code, def_line)] = True
                 ignored = True
@@ -74,7 +76,7 @@ class CommentIgnores:
         """Check and mark line-level ignores."""
         ignored = False
         if line in self.line_ignores:
-            for (l_code, def_line) in self.line_ignores[line]:
+            for l_code, def_line in self.line_ignores[line]:
                 if l_code == code:
                     self.line_ignores[line][(l_code, def_line)] = True
                     ignored = True
@@ -89,7 +91,9 @@ class CommentIgnores:
 
         for line_defs in self.line_ignores.values():
             for (code, def_line), used in line_defs.items():
-                all_defs[(code, def_line)] = all_defs.get((code, def_line), False) or used
+                all_defs[(code, def_line)] = (
+                    all_defs.get((code, def_line), False) or used
+                )
 
         return sorted([k for k, v in all_defs.items() if not v], key=lambda x: x[1])
 
