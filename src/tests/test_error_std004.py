@@ -1,5 +1,6 @@
 import unittest
 
+from errors.base import Severity
 from errors.std004 import STD004
 
 
@@ -11,6 +12,7 @@ class TestSTD004(unittest.TestCase):
             error.message,
             "Invalid namespace or function 'stdlib.unknown'.",
         )
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
         self.assertEqual(error.CODE, "STD004")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
@@ -18,6 +20,7 @@ class TestSTD004(unittest.TestCase):
 
         result = error.to_dict()
 
+        self.assertEqual(result["severity"], "error")
         self.assertEqual(result["code"], "STD004")
         self.assertEqual(result["title"], "unknown namespace or function")
 

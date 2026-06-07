@@ -1,5 +1,6 @@
 import unittest
 
+from errors.base import Severity
 from errors.std001 import STD001
 
 
@@ -8,6 +9,7 @@ class TestSTD001(unittest.TestCase):
         error = STD001("test.sh", 1, 1, "stdlib.wrong.func", "stdlib.wrong")
 
         self.assertEqual(error.message, "Invalid namespace 'stdlib.wrong'.")
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
         self.assertEqual(error.CODE, "STD001")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
@@ -15,6 +17,7 @@ class TestSTD001(unittest.TestCase):
 
         result = error.to_dict()
 
+        self.assertEqual(result["severity"], "error")
         self.assertEqual(result["code"], "STD001")
         self.assertEqual(result["title"], "invalid namespace")
 

@@ -2,7 +2,7 @@
 
 from typing import List, Type
 
-from .base import LinterErrorBase
+from .base import LinterError, LinterErrorBase, LinterWarning, Severity
 from .std000 import STD000
 from .std001 import STD001
 from .std002 import STD002
@@ -15,11 +15,26 @@ from .std008 import STD008
 
 
 def get_all_errors() -> "List[Type[LinterErrorBase]]":
-    """Retrieve all defined LinterErrorBase subclasses."""
-    return LinterErrorBase.__subclasses__()
+    """Retrieve all defined LinterErrorBase leaf subclasses."""
+
+    def _get_leaf_subclasses(cls: Type[LinterErrorBase]) -> List[Type[LinterErrorBase]]:
+        leaves = []
+        subclasses = cls.__subclasses__()
+        if not subclasses:
+            if cls.CODE:
+                return [cls]
+            return []
+        for subclass in subclasses:
+            leaves.extend(_get_leaf_subclasses(subclass))
+        return leaves
+
+    return _get_leaf_subclasses(LinterErrorBase)
 
 
 __all__ = [
+    "LinterError",
+    "LinterWarning",
+    "Severity",
     "STD000",
     "STD001",
     "STD002",

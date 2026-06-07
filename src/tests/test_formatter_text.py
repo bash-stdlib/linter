@@ -14,7 +14,7 @@ class TestTextFormatterBase(unittest.TestCase):
         result = self.formatter.format([error])
 
         self.assertIn("test.sh:5:10", result)
-        self.assertIn("[STD003]", result)
+        self.assertIn("[error:STD003]", result)
         self.assertIn("'stdlib.ns' is a namespace", result)
 
     def test_format__no_errors__returns_empty_message(self) -> None:

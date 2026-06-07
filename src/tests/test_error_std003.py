@@ -1,5 +1,6 @@
 import unittest
 
+from errors.base import Severity
 from errors.std003 import STD003
 
 
@@ -11,6 +12,7 @@ class TestSTD003(unittest.TestCase):
             error.message,
             "'stdlib.array' is a namespace, not a function.",
         )
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
         self.assertEqual(error.CODE, "STD003")
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
@@ -18,6 +20,7 @@ class TestSTD003(unittest.TestCase):
 
         result = error.to_dict()
 
+        self.assertEqual(result["severity"], "error")
         self.assertEqual(result["code"], "STD003")
         self.assertEqual(result["title"], "namespace called as function")
 

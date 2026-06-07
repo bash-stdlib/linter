@@ -1,9 +1,9 @@
 """Linter error STD000: Failed to read file."""
 
-from .base import LinterErrorBase
+from .base import LinterError
 
 
-class STD000(LinterErrorBase):
+class STD000(LinterError):
     CODE = "STD000"
     TITLE = "system error"
     DESCRIPTION = "An error occurred while accessing the filesystem or network."

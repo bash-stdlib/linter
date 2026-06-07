@@ -1,5 +1,6 @@
 import unittest
 
+from errors.base import Severity
 from errors.std002 import STD002
 
 
@@ -18,6 +19,7 @@ class TestSTD002(unittest.TestCase):
             error.message,
             "Invalid function 'stdlib.a.b' in valid namespace 'stdlib.a'.",
         )
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
         self.assertEqual(error.CODE, "STD002")
 
     def test_format_message__with_suggestion__includes_suggestion(self) -> None:
@@ -37,6 +39,7 @@ class TestSTD002(unittest.TestCase):
 
         result = error.to_dict()
 
+        self.assertEqual(result["severity"], "error")
         self.assertEqual(result["code"], "STD002")
         self.assertEqual(result["title"], "invalid function")
 

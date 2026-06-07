@@ -21,6 +21,7 @@ class TestSTD007(unittest.TestCase):
 
         result = error.to_dict()
 
+        self.assertEqual(result["severity"], "error")
         self.assertEqual(result["code"], "STD007")
         self.assertEqual(result["line"], 10)
         self.assertEqual(result["column"], 5)

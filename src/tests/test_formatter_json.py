@@ -17,6 +17,7 @@ class TestJSONFormatterBase(unittest.TestCase):
         data = json.loads(result)
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["severity"], "error")
         self.assertEqual(data[0]["code"], "STD003")
 
 

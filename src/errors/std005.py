@@ -1,9 +1,9 @@
 """Linter error STD005: Wrong number of arguments."""
 
-from .base import LinterErrorBase
+from .base import LinterError
 
 
-class STD005(LinterErrorBase):
+class STD005(LinterError):
     CODE = "STD005"
     TITLE = "wrong number of arguments"
     DESCRIPTION = "The function was called with an incorrect number of arguments."

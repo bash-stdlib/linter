@@ -16,8 +16,13 @@ class TextFormatterBase(FormatterBase):
         lines = []
         for error in errors:
             lines.append(
-                "{}:{}:{} - [{}] {}".format(
-                    error.file, error.line, error.column, error.CODE, error.message
+                "{}:{}:{} - [{}:{}] {}".format(
+                    error.file,
+                    error.line,
+                    error.column,
+                    error.SEVERITY.value,
+                    error.CODE,
+                    error.message,
                 )
             )
         return "\n".join(lines)
