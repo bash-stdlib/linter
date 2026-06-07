@@ -16,6 +16,7 @@ class ShlexTokenIterator:
     def __init__(self, content: "str") -> None:
         self.content = content
         self.lexer = shlex.shlex(content, posix=True, punctuation_chars=True)
+        self.lexer.commenters = ""
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
         self.parsing_error = False
@@ -47,18 +48,10 @@ class ShlexTokenIterator:
 
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command (only assignments or separators before)."""
-        # We need to detect if there is an unquoted # before the end of the content.
-        # Since is_at_command_position is called on the substring before the match,
-        # if a # is found, the match must be inside a comment.
-        lexer = shlex.shlex(self.content, posix=True, punctuation_chars=True)
-        lexer.commenters = ""
-        lexer.whitespace = self.WHITESPACE_CHARS
-        lexer.wordchars += self.WORDCHARS_APPENDUM
-
         # Track if we are at the beginning of a command
         at_start = True
         try:
-            for token in lexer:
+            for token in self:
                 if token == "#":
                     return False
                 if token in SHELL_COMMAND_SEPARATORS:
