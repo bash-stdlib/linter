@@ -10,6 +10,8 @@ from validators.base import ValidatorBase
 class IsFunctionCallValidator(ValidatorBase):
     """Checks if the call is a valid function or a misnamed one."""
 
+    WHITELIST_PREFIXES = ["assert_"]
+
     def check(
         self,
         call: str,
@@ -21,8 +23,9 @@ class IsFunctionCallValidator(ValidatorBase):
         if call in self.functions:
             return None
 
-        if call.startswith("assert_"):
-            return None
+        for prefix in self.WHITELIST_PREFIXES:
+            if call.startswith(prefix):
+                return None
 
         longest_namespace = self._find_longest_namespace_prefix(call)
 
