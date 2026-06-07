@@ -10,7 +10,7 @@ from validators.base import ValidatorBase
 class IsFunctionCallValidator(ValidatorBase):
     """Checks if the call is a valid function or a misnamed one."""
 
-    WHITELIST_PREFIXES = ["assert_"]
+    WHITELISTED_PREFIXES = ["assert_"]
 
     def check(
         self,
@@ -23,7 +23,7 @@ class IsFunctionCallValidator(ValidatorBase):
         if call in self.functions:
             return None
 
-        for prefix in self.WHITELIST_PREFIXES:
+        for prefix in self.WHITELISTED_PREFIXES:
             if call.startswith(prefix):
                 return None
 
