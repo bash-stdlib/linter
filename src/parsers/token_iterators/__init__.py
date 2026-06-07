@@ -4,12 +4,10 @@ from .commands import CommandsTokenIterator
 from .filter_nested_entities import FilterNestedEntitiesTokenIterator
 from .filter_redirects import FilterRedirectsTokenIterator
 from .shlex import ShlexTokenIterator
-from .comments import CommentsFilterTokenIterator
 
 __all__ = [
     "CommandsTokenIterator",
     "FilterNestedEntitiesTokenIterator",
     "FilterRedirectsTokenIterator",
     "ShlexTokenIterator",
-    "CommentsFilterTokenIterator",
 ]

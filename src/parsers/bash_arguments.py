@@ -8,7 +8,6 @@ from .token_iterators import (
     FilterNestedEntitiesTokenIterator,
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
-    CommentsFilterTokenIterator,
 )
 from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 
@@ -26,8 +25,7 @@ class BashArgumentsParser(ParserBase):
         content = self.expansion_transformer.transform(content)
 
         shlex_iterator = ShlexTokenIterator(content)
-        comments_iterator = CommentsFilterTokenIterator(shlex_iterator)
-        nested_iterator = FilterNestedEntitiesTokenIterator(comments_iterator)
+        nested_iterator = FilterNestedEntitiesTokenIterator(shlex_iterator)
         command_iterator = CommandsTokenIterator(nested_iterator)
         redirect_filter = FilterRedirectsTokenIterator(command_iterator)
 
