@@ -205,5 +205,6 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(result[2], "arg2")
         self.assertEqual(result[4], "arg3")
 
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-"""Enhanced shlex implementation for detecting quoting and unquoted special characters."""
+"""Enhanced shlex implementation for detecting unquoted special characters."""
 
 import io
 import shlex
@@ -15,12 +15,6 @@ class AdvancedToken(str):
         instance.is_fully_quoted = is_fully_quoted
         instance.unquoted_specials = unquoted_specials
         return instance
-
-    def __repr__(self) -> str:
-        status = "Fully Quoted" if self.is_fully_quoted else "Unquoted/Partial"
-        return "AdvancedToken({0}, {1}, Unquoted Specials: {2})".format(
-            super(AdvancedToken, self).__repr__(), status, list(self.unquoted_specials)
-        )
 
 
 class EnhancedShlex(shlex.shlex):
@@ -67,11 +61,10 @@ class EnhancedShlex(shlex.shlex):
                     and self.source_str[self.source_ptr] != "\n"
                 ):
                     self.source_ptr += 1
-                if self.source_ptr < len(self.source_str):
-                    self.source_ptr += 1
+                self.source_ptr += 1
             else:
-                # check if it is part of punctuation_chars and if raw_token starts with it
-                # if so, we don't break yet if we are looking for a token that is JUST that punctuation
+                # if it is part of punctuation_chars and if raw_token starts with it
+                # we don't break yet if we are looking for only punctuation
                 break
 
         start_ptr = self.source_ptr

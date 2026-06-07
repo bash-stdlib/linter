@@ -8,7 +8,7 @@ from typing import Iterable, Iterator, Optional
 class FilterRedirectsTokenIterator:
     """Iterates over Bash tokens and skips those that are part of a redirection."""
 
-    REDIRECT_OPERATORS = {">", ">>", "<", ">&", "<&", "<<<", "<<", ">&"}
+    REDIRECT_OPERATORS = {">", ">>", "<", ">&", "<&", "<<<", "<<"}
     FD_REDIRECT_PATTERN = re.compile(r"^\d+>>?$")
     FD_REDIRECT_WITH_TARGET_PATTERN = re.compile(r"^\d+>&?$")
     SELF_CONTAINED_REDIRECT_PATTERN = re.compile(r"^\d+>&?\d+$|^\d+>/\S+$")

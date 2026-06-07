@@ -6,10 +6,7 @@ from linter import Linter
 
 class TestLinterAppendum(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata = {
-            "functions": {"stdlib.echo": {}},
-            "namespaces": ["stdlib"]
-        }
+        self.metadata = {"functions": {"stdlib.echo": {}}, "namespaces": ["stdlib"]}
 
     def test_lint__appendum_function__returns_no_errors(self) -> None:
         linter = Linter(self.metadata, appendum=["stdlib.__message.get"])
@@ -29,7 +26,9 @@ class TestLinterAppendum(unittest.TestCase):
 
         self.assertEqual(len(errors), 0)
 
-    def test_lint__appendum_partial_namespace__returns_errors_only_for_non_appendum_calls(self) -> None:
+    def test_lint__appendum_partial_namespace__returns_non_appendum_errors(
+        self,
+    ) -> None:
         linter = Linter(self.metadata, appendum=["stdlib.private"])
         content = "stdlib.private.call 'arg'\nstdlib.public.call 'arg'\n"
 
@@ -39,6 +38,7 @@ class TestLinterAppendum(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].CODE, "STD001")
         self.assertIn("stdlib.public", errors[0].message)
+
 
 if __name__ == "__main__":
     unittest.main()

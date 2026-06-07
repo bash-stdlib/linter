@@ -63,5 +63,6 @@ class TestExpansionTransformer(unittest.TestCase):
 
         self.assertEqual(result, "echo $(X)")
 
+
 if __name__ == "__main__":
     unittest.main()

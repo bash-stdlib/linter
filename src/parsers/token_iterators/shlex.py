@@ -1,7 +1,5 @@
 """Iterator for tokenizing Bash code using shlex."""
 
-
-
 from constants import SHELL_COMMAND_SEPARATORS
 from .enhanced_shlex import EnhancedShlex
 
@@ -50,12 +48,18 @@ class ShlexTokenIterator:
         return False
 
     def is_at_command_position(self) -> bool:
-        """Check if current tokens are at the start of a command (only assignments or separators before)."""
+        """Check if current tokens are at the start of a command.
+
+        This means only assignments or separators occur before it.
+        """
         try:
             at_start = True
             for token in self:
                 if hasattr(token, "is_fully_quoted"):
-                    if not getattr(token, "is_fully_quoted") and token in SHELL_COMMAND_SEPARATORS:
+                    if (
+                        not getattr(token, "is_fully_quoted")
+                        and token in SHELL_COMMAND_SEPARATORS
+                    ):
                         at_start = True
                         continue
                 elif token in SHELL_COMMAND_SEPARATORS:

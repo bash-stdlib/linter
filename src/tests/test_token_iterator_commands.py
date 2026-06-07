@@ -78,5 +78,6 @@ class TestCommandsTokenIterator(unittest.TestCase):
 
         self.assertEqual(result, ["arg1", "arg2"])
 
+
 if __name__ == "__main__":
     unittest.main()

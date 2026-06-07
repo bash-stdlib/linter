@@ -90,5 +90,6 @@ class TestShlexTokenIterator(unittest.TestCase):
         iterator = ShlexTokenIterator("| ")
         self.assertTrue(iterator.is_at_command_position())
 
+
 if __name__ == "__main__":
     unittest.main()

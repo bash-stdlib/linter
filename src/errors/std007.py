@@ -6,10 +6,13 @@ from .base import LinterErrorBase
 class STD007(LinterErrorBase):
     CODE = "STD007"
     TITLE = "testing function in production script"
-    DESCRIPTION = "Testing functions should only be used in scripts with 'test' in their path."
+    DESCRIPTION = (
+        "Testing functions should only be used in scripts with 'test' in their path."
+    )
 
     def format_message(self) -> str:
         return (
             "The testing function '{}' is being used in a production script. "
-            "Testing functions are only valid in test scripts or helpers (path containing 'test')."
+            "Testing functions are only valid in test scripts or helpers "
+            "(path containing 'test')."
         ).format(self.match)
