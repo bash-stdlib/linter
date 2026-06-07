@@ -1,5 +1,7 @@
 import unittest
+
 from parsers.transformers.line_continuation import LineContinuationTransformer
+
 
 class TestLineContinuationTransformer(unittest.TestCase):
     def setUp(self) -> None:

@@ -1,29 +1,38 @@
+"""Enhanced shlex implementation for detecting quoting and unquoted special characters."""
+
 import io
 import shlex
 from typing import Iterator, List, Optional, Set, Union
 
 
-class AdvancedToken:
-    def __init__(
-        self, value: str, is_fully_quoted: bool, unquoted_specials: Set[str]
-    ) -> None:
-        self.value: str = value
-        self.is_fully_quoted: bool = is_fully_quoted
-        self.unquoted_specials: Set[str] = unquoted_specials
+class AdvancedToken(str):
+    """A string subclass that tracks quoting status and unquoted special characters."""
+
+    def __new__(
+        cls, value: str, is_fully_quoted: bool, unquoted_specials: Set[str]
+    ) -> "AdvancedToken":
+        instance = super(AdvancedToken, cls).__new__(cls, value)
+        instance.is_fully_quoted = is_fully_quoted
+        instance.unquoted_specials = unquoted_specials
+        return instance
 
     def __repr__(self) -> str:
         status = "Fully Quoted" if self.is_fully_quoted else "Unquoted/Partial"
-        return f"Token({repr(self.value)}, {status}, Unquoted Specials: {list(self.unquoted_specials)})"
+        return "AdvancedToken({0}, {1}, Unquoted Specials: {2})".format(
+            super(AdvancedToken, self).__repr__(), status, list(self.unquoted_specials)
+        )
 
 
 class EnhancedShlex(shlex.shlex):
+    """A shlex subclass that detects quoting and unquoted special characters."""
+
     def __init__(
         self,
         instream: Union[str, io.StringIO],
         posix: bool = True,
         target_chars: Optional[List[str]] = None,
+        punctuation_chars: Union[bool, str] = False,
     ) -> None:
-
         # Save a clean copy of the entire source string for our parallel scanner
         if isinstance(instream, str):
             self.source_str: str = instream
@@ -32,7 +41,9 @@ class EnhancedShlex(shlex.shlex):
             self.source_str = instream.read()
             instream = io.StringIO(self.source_str)
 
-        super().__init__(instream, posix=posix)
+        super(EnhancedShlex, self).__init__(
+            instream, posix=posix, punctuation_chars=punctuation_chars
+        )
         self.target_chars: Set[str] = set(target_chars or [])
         self.source_ptr: int = 0
 
@@ -40,7 +51,8 @@ class EnhancedShlex(shlex.shlex):
             self.commenters = ""
 
     def read_token(self) -> Optional[AdvancedToken]:  # type: ignore[override]
-        raw_token: Optional[str] = super().read_token()
+        """Read a token and determine its quoting status."""
+        raw_token: Optional[str] = super(EnhancedShlex, self).read_token()
         if raw_token is None:
             return None
 
@@ -58,6 +70,8 @@ class EnhancedShlex(shlex.shlex):
                 if self.source_ptr < len(self.source_str):
                     self.source_ptr += 1
             else:
+                # check if it is part of punctuation_chars and if raw_token starts with it
+                # if so, we don't break yet if we are looking for a token that is JUST that punctuation
                 break
 
         start_ptr = self.source_ptr
@@ -69,7 +83,15 @@ class EnhancedShlex(shlex.shlex):
 
         # 2. Reconstruct the literal token representation from the raw source
         while self.source_ptr < len(self.source_str):
-            if match_idx == len(raw_token) and current_quote is None:
+            if (
+                match_idx == len(raw_token)
+                and current_quote is None
+                and not escaped
+                and (
+                    self.source_ptr >= len(self.source_str)
+                    or self.source_str[self.source_ptr] not in self.quotes
+                )
+            ):
                 break
 
             ch = self.source_str[self.source_ptr]

@@ -1,7 +1,6 @@
-import os
 import unittest
 from typing import List
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 from errors.base import LinterErrorBase
 from linter import Linter

@@ -1,7 +1,7 @@
 """Unit tests for the IsTestingFunctionCallValidator."""
 
 import unittest
-from typing import Dict, Set
+from typing import Set
 
 from validators.is_testing_function_call import IsTestingFunctionCallValidator
 

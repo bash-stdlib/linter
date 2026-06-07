@@ -42,8 +42,11 @@ class FilterNestedEntitiesTokenIterator:
 
         nested_start = self._get_nested_start(token)
 
+        # Only start a nested entity if the token is unquoted
         if nested_start:
-            return self._consume_nested_entity(nested_start)
+            is_quoted = getattr(token, "is_fully_quoted", False)
+            if not is_quoted:
+                return self._consume_nested_entity(nested_start)
 
         return self._consume()
 
@@ -99,10 +102,12 @@ class FilterNestedEntitiesTokenIterator:
                     consumed.append(self._consume())
                     continue
             elif token == end_marker:
-                level -= 1
-                if level == 0:
-                    consumed.append(self._consume())
-                    break
+                is_quoted = getattr(token, "is_fully_quoted", False)
+                if not is_quoted:
+                    level -= 1
+                    if level == 0:
+                        consumed.append(self._consume())
+                        break
 
             if token == "))" and end_marker == ")":
                 level -= 2

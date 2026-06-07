@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 from .base import ParserBase
 from .token_iterators import (
     CommandsTokenIterator,
@@ -9,7 +10,6 @@ from .token_iterators import (
     FilterRedirectsTokenIterator,
     ShlexTokenIterator,
 )
-from parsers.transformers import ExpansionTransformer, LineContinuationTransformer
 
 
 class BashArgumentsParser(ParserBase):
@@ -29,7 +29,7 @@ class BashArgumentsParser(ParserBase):
         command_iterator = CommandsTokenIterator(nested_iterator)
         redirect_filter = FilterRedirectsTokenIterator(command_iterator)
 
-        arguments = list(redirect_filter)
+        arguments = [str(arg) for arg in redirect_filter]
 
         if shlex_iterator.parsing_error and not command_iterator.stopped_at_separator:
             return None

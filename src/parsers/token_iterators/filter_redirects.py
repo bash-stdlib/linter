@@ -8,7 +8,7 @@ from typing import Iterable, Iterator, Optional
 class FilterRedirectsTokenIterator:
     """Iterates over Bash tokens and skips those that are part of a redirection."""
 
-    REDIRECT_OPERATORS = {">", ">>", "<", ">&", "<&", "<<<", "<<"}
+    REDIRECT_OPERATORS = {">", ">>", "<", ">&", "<&", "<<<", "<<", ">&"}
     FD_REDIRECT_PATTERN = re.compile(r"^\d+>>?$")
     FD_REDIRECT_WITH_TARGET_PATTERN = re.compile(r"^\d+>&?$")
     SELF_CONTAINED_REDIRECT_PATTERN = re.compile(r"^\d+>&?\d+$|^\d+>/\S+$")
@@ -74,19 +74,28 @@ class FilterRedirectsTokenIterator:
     def _is_prefixed_redirect(self) -> "bool":
         token = self._peek(0)
         next_token = self._peek(1)
+        if token is None or next_token is None:
+            return False
+
+        is_quoted_token = getattr(token, "is_fully_quoted", False)
+        is_quoted_next = getattr(next_token, "is_fully_quoted", False)
+
         return (
-            token is not None
-            and next_token is not None
+            not is_quoted_token
             and token.isdigit()
+            and not is_quoted_next
             and self._is_redirect_operator(next_token)
         )
 
     def _is_redirect_operator(self, token: "str") -> "bool":
-        return token in self.REDIRECT_OPERATORS
+        is_quoted = getattr(token, "is_fully_quoted", False)
+        return not is_quoted and token in self.REDIRECT_OPERATORS
 
     def _is_file_descriptor_redirect(self, token: "str") -> "bool":
-        return bool(self.FD_REDIRECT_PATTERN.match(token)) or bool(
-            self.FD_REDIRECT_WITH_TARGET_PATTERN.match(token)
+        is_quoted = getattr(token, "is_fully_quoted", False)
+        return not is_quoted and (
+            bool(self.FD_REDIRECT_PATTERN.match(token))
+            or bool(self.FD_REDIRECT_WITH_TARGET_PATTERN.match(token))
         )
 
     def _requires_target(self, token: "str") -> "bool":
@@ -96,4 +105,5 @@ class FilterRedirectsTokenIterator:
         return not re.search(r"&\d+$", token) and not re.search(r"[^>]\d+$", token)
 
     def _is_self_contained_redirect(self, token: "str") -> "bool":
-        return bool(self.SELF_CONTAINED_REDIRECT_PATTERN.match(token))
+        is_quoted = getattr(token, "is_fully_quoted", False)
+        return not is_quoted and bool(self.SELF_CONTAINED_REDIRECT_PATTERN.match(token))

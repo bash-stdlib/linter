@@ -1,9 +1,9 @@
 """Iterator for tokenizing Bash code using shlex."""
 
-import shlex
 
 
 from constants import SHELL_COMMAND_SEPARATORS
+from .enhanced_shlex import EnhancedShlex
 
 
 class ShlexTokenIterator:
@@ -14,9 +14,14 @@ class ShlexTokenIterator:
     WORDCHARS_APPENDUM = "./$*?@-_"
 
     def __init__(self, content: "str") -> None:
-        self.lexer = shlex.shlex(content, posix=True, punctuation_chars=True)
+        target_chars = list(SHELL_COMMAND_SEPARATORS) + [">", "<"]
+        self.lexer = EnhancedShlex(
+            content, posix=True, target_chars=target_chars, punctuation_chars=True
+        )
         self.lexer.whitespace = self.WHITESPACE_CHARS
-        self.lexer.wordchars += self.WORDCHARS_APPENDUM
+        # Ensure WORDCHARS_APPENDUM does not include any target_chars
+        wordchars = "".join(c for c in self.WORDCHARS_APPENDUM if c not in target_chars)
+        self.lexer.wordchars += wordchars
         self.parsing_error = False
 
     @classmethod
@@ -49,9 +54,14 @@ class ShlexTokenIterator:
         try:
             at_start = True
             for token in self:
-                if token in SHELL_COMMAND_SEPARATORS:
+                if hasattr(token, "is_fully_quoted"):
+                    if not getattr(token, "is_fully_quoted") and token in SHELL_COMMAND_SEPARATORS:
+                        at_start = True
+                        continue
+                elif token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
+
                 if token == "$":
                     continue
                 if "=" in token and at_start:
