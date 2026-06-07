@@ -14,11 +14,15 @@ class ShlexTokenIterator:
     WORDCHARS_APPENDUM = "./$*?@-_"
 
     def __init__(self, content: "str") -> None:
-        self.content = content
         self.lexer = shlex.shlex(content, posix=True, punctuation_chars=True)
         self.lexer.commenters = ""
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
+
+        self.lexer_normal = shlex.shlex(content, posix=True, punctuation_chars=True)
+        self.lexer_normal.whitespace = self.WHITESPACE_CHARS
+        self.lexer_normal.wordchars += self.WORDCHARS_APPENDUM
+
         self.parsing_error = False
         self.comment_reached = False
 
@@ -53,8 +57,6 @@ class ShlexTokenIterator:
         at_start = True
         try:
             for token in self:
-                if self.comment_reached:
-                    return False
                 if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
@@ -75,9 +77,17 @@ class ShlexTokenIterator:
             raise StopIteration
         try:
             token = next(self.lexer)
-            if token == "#":
+
+            # Detect real comments by comparing with a lexer that has commenters enabled
+            try:
+                token_normal = next(self.lexer_normal)
+            except (StopIteration, ValueError):
+                token_normal = None
+
+            if token == "#" and token_normal != "#":
                 self.comment_reached = True
                 raise StopIteration
+
             return token
         except ValueError:
             self.parsing_error = True

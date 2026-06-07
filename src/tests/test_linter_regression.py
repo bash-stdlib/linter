@@ -93,5 +93,16 @@ class TestIssueReproduction(unittest.TestCase):
         self.assertEqual(errors[0].line, 1)
         self.assertEqual(errors[1].line, 2)
 
+    def test_lint__quoted_hash__is_not_treated_as_comment(self) -> None:
+        content = 'echo "# stdlib.array.assert.is_array"\nstdlib.array.assert.is_array'
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        error_codes = [e.CODE for e in errors]
+        # Line 2 should have STD005 (missing arg)
+        self.assertIn("STD005", error_codes)
+
 if __name__ == "__main__":
     unittest.main()
