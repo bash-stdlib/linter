@@ -87,7 +87,10 @@ class Linter:
     def _build_call_pattern(self) -> "Pattern[str]":
         roots = set()
         for name in self.functions | self.namespaces | self.appendum:
-            if "." in name:
+            if name.startswith("_"):
+                # Handle cases like _testing.func or _testing.example
+                roots.add(name.split(".")[0])
+            elif "." in name:
                 roots.add(name.split(".")[0])
             elif "_" in name:
                 roots.add(name.split("_")[0] + "_")

@@ -14,6 +14,7 @@ class ShlexTokenIterator:
     WORDCHARS_APPENDUM = "./$*?@-_"
 
     def __init__(self, content: "str") -> None:
+        self.content = content
         self.lexer = shlex.shlex(content, posix=True, punctuation_chars=True)
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
@@ -46,9 +47,33 @@ class ShlexTokenIterator:
 
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command (only assignments or separators before)."""
+        # Create two lexers to detect unquoted '#' while still processing other tokens.
+        # This is safe because is_at_command_position is called with only the line content before the match.
+        lexer_show_comments = shlex.shlex(self.content, posix=True, punctuation_chars=True)
+        lexer_show_comments.commenters = ""
+        lexer_show_comments.whitespace = self.WHITESPACE_CHARS
+        lexer_show_comments.wordchars += self.WORDCHARS_APPENDUM
+
+        lexer_normal = shlex.shlex(self.content, posix=True, punctuation_chars=True)
+        lexer_normal.whitespace = self.WHITESPACE_CHARS
+        lexer_normal.wordchars += self.WORDCHARS_APPENDUM
+
         try:
             at_start = True
-            for token in self:
+            while True:
+                try:
+                    token_show = next(lexer_show_comments)
+                except (StopIteration, ValueError):
+                    break
+
+                if token_show == "#":
+                    return False
+
+                try:
+                    token = next(lexer_normal)
+                except (StopIteration, ValueError):
+                    token = token_show
+
                 if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
                     continue
