@@ -10,6 +10,7 @@ class ShlexTokenIterator:
     FUNCTION_KEYWORD = "function"
     WHITESPACE_CHARS = " \t\r\x0b"
     WORDCHARS_APPENDUM = "./$*?@-_"
+    COMMENT_CHAR = "#"
 
     def __init__(self, content: "str") -> None:
         target_chars = list(SHELL_COMMAND_SEPARATORS) + [">", "<"]
@@ -57,8 +58,8 @@ class ShlexTokenIterator:
             for token in self:
                 if (
                     hasattr(token, "unquoted_specials")
-                    and "#" in token.unquoted_specials
-                    and token.startswith("#")
+                    and self.COMMENT_CHAR in token.unquoted_specials
+                    and token.startswith(self.COMMENT_CHAR)
                 ):
                     return False
 

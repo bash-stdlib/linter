@@ -8,6 +8,8 @@ from constants import SHELL_COMMAND_SEPARATORS
 class CommandsTokenIterator:
     """Iterates over tokens unil a command separator or newline is reached."""
 
+    COMMENT_CHAR = "#"
+
     def __init__(self, token_iterator: "Iterable[str]") -> None:
         self.iterator: "Iterator[str]" = iter(token_iterator)
         self.stopped_at_separator = False
@@ -30,8 +32,8 @@ class CommandsTokenIterator:
     def _is_command_end(self, token: "str") -> "bool":
         if (
             hasattr(token, "unquoted_specials")
-            and "#" in token.unquoted_specials
-            and token.startswith("#")
+            and self.COMMENT_CHAR in token.unquoted_specials
+            and token.startswith(self.COMMENT_CHAR)
         ):
             return True
 
