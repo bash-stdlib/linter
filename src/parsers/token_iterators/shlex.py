@@ -15,16 +15,9 @@ class ShlexTokenIterator:
 
     def __init__(self, content: "str") -> None:
         self.lexer = shlex.shlex(content, posix=True, punctuation_chars=True)
-        self.lexer.commenters = ""
         self.lexer.whitespace = self.WHITESPACE_CHARS
         self.lexer.wordchars += self.WORDCHARS_APPENDUM
-
-        self.lexer_normal = shlex.shlex(content, posix=True, punctuation_chars=True)
-        self.lexer_normal.whitespace = self.WHITESPACE_CHARS
-        self.lexer_normal.wordchars += self.WORDCHARS_APPENDUM
-
         self.parsing_error = False
-        self.comment_reached = False
 
     @classmethod
     def is_preceded_by_function_keyword(cls, content_before: str) -> bool:
@@ -53,9 +46,8 @@ class ShlexTokenIterator:
 
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command (only assignments or separators before)."""
-        # Track if we are at the beginning of a command
-        at_start = True
         try:
+            at_start = True
             for token in self:
                 if token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
@@ -65,29 +57,16 @@ class ShlexTokenIterator:
                 if "=" in token and at_start:
                     continue
                 at_start = False
-            return at_start and not self.comment_reached
+            return at_start
         except (StopIteration, ValueError):
-            return True and not self.comment_reached
+            return True
 
     def __iter__(self) -> "ShlexTokenIterator":
         return self
 
     def __next__(self) -> "str":
-        if self.comment_reached:
-            raise StopIteration
         try:
             token = next(self.lexer)
-
-            # Detect real comments by comparing with a lexer that has commenters enabled
-            try:
-                token_normal = next(self.lexer_normal)
-            except (StopIteration, ValueError):
-                token_normal = None
-
-            if token == "#" and token_normal != "#":
-                self.comment_reached = True
-                raise StopIteration
-
             return token
         except ValueError:
             self.parsing_error = True
