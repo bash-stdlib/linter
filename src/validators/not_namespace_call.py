@@ -1,6 +1,6 @@
 """ValidatorBase to prevent calling namespaces directly."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from errors import STD003
 from errors.base import LinterErrorBase

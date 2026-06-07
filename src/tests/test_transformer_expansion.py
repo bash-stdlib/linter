@@ -1,5 +1,7 @@
 import unittest
+
 from parsers.transformers.expansion import ExpansionTransformer
+
 
 class TestExpansionTransformer(unittest.TestCase):
     def setUp(self) -> None:
@@ -55,11 +57,11 @@ class TestExpansionTransformer(unittest.TestCase):
         self.assertEqual(result, 'nested="${X}"')
 
     def test_transform__mixed_nesting__simplifies_fully(self) -> None:
-        content = 'echo $(echo $(( 1 + 2 )))'
+        content = "echo $(echo $(( 1 + 2 )))"
 
         result = self.transformer.transform(content)
 
-        self.assertEqual(result, 'echo $(X)')
+        self.assertEqual(result, "echo $(X)")
 
 if __name__ == "__main__":
     unittest.main()

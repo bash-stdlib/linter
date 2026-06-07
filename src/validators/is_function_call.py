@@ -1,6 +1,6 @@
 """ValidatorBase for valid standard library function calls."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from errors import STD001, STD002, STD004
 from errors.base import LinterErrorBase

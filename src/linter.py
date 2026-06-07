@@ -12,8 +12,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
-    NotNamespaceCallValidator,
     IsTestingFunctionCallValidator,
+    NotNamespaceCallValidator,
 )
 
 if TYPE_CHECKING:
@@ -137,6 +137,9 @@ class Linter:
         line_num: int,
         offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
+        if self._is_in_comment(match, content, offset):
+            return None
+
         if self._is_function_definition(match, content, offset):
             return None
 
@@ -144,6 +147,12 @@ class Linter:
             return None
 
         call_name = self._get_call_name(match)
+
+        if call_name.startswith("@"):
+            if call_name not in self.functions and not any(
+                call_name.startswith(ns + ".") for ns in self.namespaces
+            ):
+                return None
 
         if self._is_appendum(call_name):
             return None
@@ -192,6 +201,16 @@ class Linter:
         after_content = content[offset + match.end() :]
         shlex_iterator = ShlexTokenIterator(after_content)
         return shlex_iterator.is_function_definition()
+
+    def _is_in_comment(
+        self, match: "Match[str]", content: "str", offset: "int"
+    ) -> bool:
+        """Check if the match is within a shell comment."""
+        before = content[: offset + match.start()]
+        last_newline = before.rfind("\n")
+        line_before = before[last_newline + 1 :]
+
+        return ShlexTokenIterator.is_in_comment(line_before)
 
     def _get_call_name(self, match: "Match[str]") -> "str":
         call = str(match.group(1))

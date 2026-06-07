@@ -1,7 +1,6 @@
 """Unit tests for the BashArgumentsParser."""
 
 import unittest
-from typing import List, Optional
 
 from parsers.bash_arguments import BashArgumentsParser
 

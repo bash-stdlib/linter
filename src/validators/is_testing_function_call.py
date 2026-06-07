@@ -7,6 +7,7 @@ from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
     from typing import Set
+
     from errors.base import LinterErrorBase
 
 

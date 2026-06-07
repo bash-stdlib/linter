@@ -28,4 +28,18 @@ class CommandsTokenIterator:
         return token
 
     def _is_command_end(self, token: "str") -> "bool":
-        return token in SHELL_COMMAND_SEPARATORS
+        if token not in SHELL_COMMAND_SEPARATORS:
+            return False
+
+        # If the underlying iterator is a ShlexTokenIterator (or wraps one),
+        # check if the token was quoted.
+        iterator = self.iterator
+        while hasattr(iterator, "iterator"):
+            iterator = getattr(iterator, "iterator")
+
+        if hasattr(iterator, "last_token_was_quoted") and getattr(
+            iterator, "last_token_was_quoted"
+        ):
+            return False
+
+        return True
