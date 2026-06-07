@@ -78,7 +78,9 @@ class HTMLParser(html.parser.HTMLParser):
         name = self._clean_heading(data)
         if name and name not in self.EXCLUDED_HEADINGS:
             name = name.split()[0]
-            self.current_function = FunctionMetadata(name=name, is_testing=self.is_testing)
+            self.current_function = FunctionMetadata(
+                name=name, is_testing=self.is_testing
+            )
             self.functions[name] = self.current_function
             self.current_section = None
         else:

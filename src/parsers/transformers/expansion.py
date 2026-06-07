@@ -1,6 +1,6 @@
 """Transformer for simplifying Bash expansions for easier parsing."""
 
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Tuple
 
 from .base import TransformerBase
 
@@ -50,7 +50,7 @@ class ExpansionTransformer(TransformerBase):
         start_index: "int",
         config: "ExpansionConfig",
     ) -> "Tuple[str, int]":
-        """Finds a matching expansion and returns the placeholder and next index."""
+        """Find a matching expansion and returns the placeholder and next index."""
         count = 1
         j = start_index + len(config.start_token)
         while j <= len(content) - len(config.end_token) and count > 0:

@@ -12,8 +12,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
-    NotNamespaceCallValidator,
     IsTestingFunctionCallValidator,
+    NotNamespaceCallValidator,
 )
 
 if TYPE_CHECKING:
@@ -85,20 +85,48 @@ class Linter:
         return errors
 
     def _build_call_pattern(self) -> "Pattern[str]":
-        roots = set()
-        for name in self.functions | self.namespaces | self.appendum:
-            if "." in name:
-                roots.add(name.split(".")[0])
-            elif "_" in name:
-                roots.add(name.split("_")[0] + "_")
-            elif name.startswith("@"):
-                roots.add("@")
-            else:
-                roots.add(name)
+        dot_roots = set()
+        underscore_roots = set()
 
-        sorted_roots = sorted(list(roots), key=len, reverse=True)
-        pattern = r"(?<!\w)((?:{})[a-z0-9._]*)(?![a-z0-9._])".format(
-            "|".join(re.escape(r) for r in sorted_roots)
+        for name in self.functions | self.namespaces | self.appendum:
+            if name.startswith("_"):
+                # Handle cases like _testing.func or _testing.example
+                dot_roots.add(name.split(".")[0])
+            elif "." in name:
+                dot_roots.add(name.split(".")[0])
+            elif "_" in name:
+                underscore_roots.add(name.split("_")[0] + "_")
+            elif name.startswith("@"):
+                # Always treat names starting with @ as dot-based roots
+                dot_roots.add(name.split(".")[0])
+            else:
+                dot_roots.add(name)
+
+        sorted_dot_roots = sorted(list(dot_roots), key=len, reverse=True)
+        sorted_underscore_roots = sorted(list(underscore_roots), key=len, reverse=True)
+
+        # Combine all roots into a single pattern.
+        # dot_roots are names that should only match if they are either exactly the name
+        # or followed by a dot (to avoid matching things like @parametrize_with_errors).
+        # underscore_roots (like assert_) can be followed by anything.
+
+        dot_pattern = (
+            r"(?:{})(?:\.[a-z0-9._]*)?".format(
+                "|".join(re.escape(r) for r in sorted_dot_roots)
+            )
+            if sorted_dot_roots
+            else r"(?!)"
+        )
+        underscore_pattern = (
+            r"(?:{})[a-z0-9._]*".format(
+                "|".join(re.escape(r) for r in sorted_underscore_roots)
+            )
+            if sorted_underscore_roots
+            else r"(?!)"
+        )
+
+        pattern = r"(?<!\w)({}|{})(?![a-z0-9._])".format(
+            dot_pattern, underscore_pattern
         )
 
         return re.compile(pattern)

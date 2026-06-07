@@ -1,15 +1,15 @@
 """Unit tests for the NotNamespaceCallValidator."""
 
 import unittest
-from typing import Set
 
+from tests.assets.linter_validation_namespace_call import FUNCTIONS, NAMESPACES
 from validators.not_namespace_call import NotNamespaceCallValidator
 
 
 class TestNotNamespaceCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions: Set[str] = {"stdlib.string.join"}
-        self.namespaces: Set[str] = {"stdlib", "stdlib.string"}
+        self.functions = FUNCTIONS
+        self.namespaces = NAMESPACES
         self.validator = NotNamespaceCallValidator(self.functions, self.namespaces)
 
     def test_check__valid_function_call__returns_none(self) -> None:
@@ -34,6 +34,7 @@ class TestNotNamespaceCallValidator(unittest.TestCase):
         result = self.validator.check(call, "test.sh", 1, 1)
 
         self.assertIsNone(result)
+
 
 if __name__ == "__main__":
     unittest.main()

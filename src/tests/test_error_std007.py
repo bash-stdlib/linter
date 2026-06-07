@@ -11,7 +11,9 @@ class TestSTD007(unittest.TestCase):
 
         message = error.format_message()
 
-        self.assertIn("'assert_array_equals' is being used in a production script", message)
+        self.assertIn(
+            "'assert_array_equals' is being used in a production script", message
+        )
         self.assertIn("path containing 'test'", message)
 
     def test_to_dict__valid_metadata__returns_expected_dictionary(self) -> None:

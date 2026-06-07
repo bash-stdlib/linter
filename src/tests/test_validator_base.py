@@ -82,5 +82,6 @@ class TestValidator(unittest.TestCase):
 
         self.assertEqual(result, "stdlib.string.unknown")
 
+
 if __name__ == "__main__":
     unittest.main()
