@@ -28,4 +28,9 @@ class CommandsTokenIterator:
         return token
 
     def _is_command_end(self, token: "str") -> "bool":
+        if hasattr(token, "is_fully_quoted"):
+            if getattr(token, "is_fully_quoted"):
+                return False
+            return token in SHELL_COMMAND_SEPARATORS
+
         return token in SHELL_COMMAND_SEPARATORS

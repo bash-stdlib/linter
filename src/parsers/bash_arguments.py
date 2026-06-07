@@ -29,7 +29,7 @@ class BashArgumentsParser(ParserBase):
         command_iterator = CommandsTokenIterator(nested_iterator)
         redirect_filter = FilterRedirectsTokenIterator(command_iterator)
 
-        arguments = list(redirect_filter)
+        arguments = [str(arg) for arg in redirect_filter]
 
         if shlex_iterator.parsing_error and not command_iterator.stopped_at_separator:
             return None
