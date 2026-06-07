@@ -1,8 +1,10 @@
 """Unit tests for the IsTestingFunctionCallValidator."""
 
 import unittest
+
+from tests.assets.linter_validation_testing_call import FUNCTIONS, METADATA, NAMESPACES
 from validators.is_testing_function_call import IsTestingFunctionCallValidator
-from tests.assets.linter_validation_testing_call import METADATA, FUNCTIONS, NAMESPACES
+
 
 class TestIsTestingFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
@@ -39,6 +41,7 @@ class TestIsTestingFunctionCallValidator(unittest.TestCase):
         result = self.validator.check(call, filepath, 1, 1)
 
         self.assertIsNone(result)
+
 
 if __name__ == "__main__":
     unittest.main()

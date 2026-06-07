@@ -11,7 +11,7 @@ METADATA = {
             "name": "stdlib.some.command",
             "min_args": 2,
             "max_args": 2,
-        }
+        },
     },
     "namespaces": ["stdlib"],
 }

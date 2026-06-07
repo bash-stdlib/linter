@@ -8,6 +8,7 @@ from errors.std005 import STD005
 from linter import Linter
 from tests.assets.linter_reporting.metadata import METADATA
 
+
 class TestLinterReporting(unittest.TestCase):
     def setUp(self) -> None:
         self.metadata = METADATA
@@ -59,6 +60,7 @@ class TestLinterReporting(unittest.TestCase):
         self.assertEqual(errors[0].line, 1)
         self.assertIsInstance(errors[1], STD005)
         self.assertEqual(errors[1].line, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

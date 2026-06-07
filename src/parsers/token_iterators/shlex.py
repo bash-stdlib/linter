@@ -2,7 +2,6 @@
 
 import shlex
 
-
 from constants import SHELL_COMMAND_SEPARATORS
 
 
@@ -45,7 +44,10 @@ class ShlexTokenIterator:
         return False
 
     def is_at_command_position(self) -> bool:
-        """Check if current tokens are at the start of a command (only assignments or separators before)."""
+        """Check if current tokens are at the start of a command.
+
+        This means only assignments or separators occur before it.
+        """
         try:
             at_start = True
             for token in self:

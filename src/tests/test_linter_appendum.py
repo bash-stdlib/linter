@@ -2,8 +2,10 @@
 
 import unittest
 from unittest.mock import mock_open, patch
+
 from linter import Linter
 from tests.assets.linter_appendum.metadata import METADATA
+
 
 class TestLinterAppendum(unittest.TestCase):
     def setUp(self) -> None:
@@ -27,7 +29,9 @@ class TestLinterAppendum(unittest.TestCase):
 
         self.assertEqual(len(errors), 0)
 
-    def test_lint__appendum_partial_namespace__only_flags_non_appendum_calls(self) -> None:
+    def test_lint__appendum_partial_namespace__only_flags_non_appendum_calls(
+        self,
+    ) -> None:
         linter = Linter(self.metadata, appendum=["stdlib.private"])
         content = "stdlib.private.call 'arg'\nstdlib.public.call 'arg'\n"
 
@@ -37,6 +41,7 @@ class TestLinterAppendum(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].CODE, "STD001")
         self.assertIn("stdlib.public", errors[0].message)
+
 
 if __name__ == "__main__":
     unittest.main()

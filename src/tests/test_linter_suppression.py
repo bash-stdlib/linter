@@ -1,10 +1,11 @@
 """Unit tests for the linter suppression logic."""
 
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from linter import Linter
 from tests.assets.linter_suppression.metadata import METADATA
+
 
 class TestLinterSuppression(unittest.TestCase):
     def setUp(self) -> None:
@@ -73,6 +74,7 @@ class TestLinterSuppression(unittest.TestCase):
         self.assertIn("STD008", error_codes)
         unused_error = [e for e in errors if e.CODE == "STD008"][0]
         self.assertEqual(unused_error.match, "STD001")
+
 
 if __name__ == "__main__":
     unittest.main()

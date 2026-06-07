@@ -71,5 +71,6 @@ class TestFilterNestedEntitiesTokenIterator(unittest.TestCase):
         self.assertTrue(result[0].startswith("`"))
         self.assertTrue(result[0].endswith("`"))
 
+
 if __name__ == "__main__":
     unittest.main()

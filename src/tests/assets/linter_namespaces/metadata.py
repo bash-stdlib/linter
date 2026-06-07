@@ -13,22 +13,22 @@ METADATA = {
             "arguments": [],
             "min_args": 0,
             "max_args": 0,
-            "is_testing": True
+            "is_testing": True,
         },
         "@parametrize.compose": {
             "name": "@parametrize.compose",
             "arguments": ["$1", "..."],
             "min_args": 1,
             "max_args": -1,
-            "is_testing": True
+            "is_testing": True,
         },
         "assert_rc": {
             "name": "assert_rc",
             "arguments": ["$1"],
             "min_args": 1,
             "max_args": 1,
-            "is_testing": True
-        }
+            "is_testing": True,
+        },
     },
     "namespaces": [
         "stdlib",
@@ -36,6 +36,6 @@ METADATA = {
         "stdlib.array.assert",
         "_testing",
         "_testing.example",
-        "@parametrize"
+        "@parametrize",
     ],
 }

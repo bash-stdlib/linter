@@ -1,10 +1,11 @@
 """Unit tests for the linter namespaces."""
 
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from linter import Linter
 from tests.assets.linter_namespaces.metadata import METADATA
+
 
 class TestLinterNamespaces(unittest.TestCase):
     def setUp(self) -> None:
@@ -58,6 +59,7 @@ class TestLinterNamespaces(unittest.TestCase):
 
         error_codes = [e.CODE for e in errors]
         self.assertIn("STD005", error_codes)
+
 
 if __name__ == "__main__":
     unittest.main()

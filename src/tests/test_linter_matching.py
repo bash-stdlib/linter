@@ -3,13 +3,10 @@
 import unittest
 from unittest.mock import mock_open, patch
 
-from errors.std001 import STD001
-from errors.std002 import STD002
-from errors.std003 import STD003
-from errors.std004 import STD004
 from errors.std006 import STD006
 from linter import Linter
 from tests.assets.linter_matching.metadata import METADATA
+
 
 class TestLinterMatching(unittest.TestCase):
     def setUp(self) -> None:
@@ -25,7 +22,9 @@ class TestLinterMatching(unittest.TestCase):
         self.assertEqual(len(errors), 0)
 
     def test_lint__function_definitions__are_ignored(self) -> None:
-        content = "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
+        content = (
+            "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
+        )
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
@@ -107,25 +106,19 @@ class TestLinterMatching(unittest.TestCase):
         self.assertIn("STD001", [e.CODE for e in errors])
 
     def test_lint__unknown_stdlib_call__flags_std004_error(self) -> None:
-        # If we have an unknown root but it looks like a stdlib call?
-        # Standard roots are in self.namespaces or self.functions.
-        content = "stdlib.completely_unknown"
-        linter = Linter(self.metadata)
+        # To get STD004, the name must match the root pattern but NOT have a valid
+        # namespace prefix.
+        # This happens if a root is matched but it is not in the namespaces list and
+        # is a function.
+        metadata = {"functions": {"stdlib": {}}, "namespaces": []}
+        linter = Linter(metadata)
+        content = "stdlib.unknown"
 
         with patch("builtins.open", mock_open(read_data=content)):
             errors = linter.lint("test.sh")
 
-        # In this metadata, stdlib IS a namespace. stdlib.completely_unknown
-        # is a misspelled function in valid namespace (STD002) or invalid sub-namespace.
-        # To get STD004, we need an unknown root.
+        self.assertIn("STD004", [e.CODE for e in errors])
 
-        linter = Linter({"functions": {}, "namespaces": []})
-        with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
-
-        # If it is not in metadata and not matched by pattern, it won't even be matched.
-        # So we need it to be matched but not found in functions or namespaces by validators.
-        pass
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,8 +12,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
-    NotNamespaceCallValidator,
     IsTestingFunctionCallValidator,
+    NotNamespaceCallValidator,
 )
 
 if TYPE_CHECKING:
@@ -110,14 +110,24 @@ class Linter:
         # or followed by a dot (to avoid matching things like @parametrize_with_errors).
         # underscore_roots (like assert_) can be followed by anything.
 
-        dot_pattern = r"(?:{})(?:\.[a-z0-9._]*)?".format(
-            "|".join(re.escape(r) for r in sorted_dot_roots)
-        ) if sorted_dot_roots else r"(?!)"
-        underscore_pattern = r"(?:{})[a-z0-9._]*".format(
-            "|".join(re.escape(r) for r in sorted_underscore_roots)
-        ) if sorted_underscore_roots else r"(?!)"
+        dot_pattern = (
+            r"(?:{})(?:\.[a-z0-9._]*)?".format(
+                "|".join(re.escape(r) for r in sorted_dot_roots)
+            )
+            if sorted_dot_roots
+            else r"(?!)"
+        )
+        underscore_pattern = (
+            r"(?:{})[a-z0-9._]*".format(
+                "|".join(re.escape(r) for r in sorted_underscore_roots)
+            )
+            if sorted_underscore_roots
+            else r"(?!)"
+        )
 
-        pattern = r"(?<!\w)({}|{})(?![a-z0-9._])".format(dot_pattern, underscore_pattern)
+        pattern = r"(?<!\w)({}|{})(?![a-z0-9._])".format(
+            dot_pattern, underscore_pattern
+        )
 
         return re.compile(pattern)
 
