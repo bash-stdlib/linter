@@ -28,6 +28,13 @@ class TestNamespaceRegression(unittest.TestCase):
                     "min_args": 1,
                     "max_args": -1,
                     "is_testing": True
+                },
+                "assert_rc": {
+                    "name": "assert_rc",
+                    "arguments": ["$1"],
+                    "min_args": 1,
+                    "max_args": 1,
+                    "is_testing": True
                 }
             },
             "namespaces": [
@@ -61,6 +68,23 @@ class TestNamespaceRegression(unittest.TestCase):
         matches = [e.match for e in errors]
         self.assertNotIn("@parametrize_with_error_messages", matches)
         self.assertIn("@parametrize.with_error_messages", matches)
+
+    def test_lint__unknown_assert_prefix__is_ignored(self) -> None:
+        # Known assert functions like assert_rc should still be linted for arguments.
+        # But unknown ones like assert_custom should NOT be flagged as unknown standard library functions.
+        content = "assert_rc\nassert_custom_func arg1"
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            errors = linter.lint("test.sh")
+
+        error_codes = [e.CODE for e in errors]
+        # Line 1: assert_rc is a function, needs 1 arg. Should have STD005.
+        self.assertIn("STD005", error_codes)
+        # Line 2: assert_custom_func is unknown but starts with assert_. Should have NO error (was STD004/STD002/STD001).
+        # We need to make sure no error matches line 2.
+        line2_errors = [e for e in errors if e.line == 2]
+        self.assertEqual(len(line2_errors), 0, "Errors for unknown assert_: {}".format([e.CODE for e in line2_errors]))
 
 if __name__ == "__main__":
     unittest.main()

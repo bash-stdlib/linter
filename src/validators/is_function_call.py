@@ -21,6 +21,9 @@ class IsFunctionCallValidator(ValidatorBase):
         if call in self.functions:
             return None
 
+        if call.startswith("assert_"):
+            return None
+
         longest_namespace = self._find_longest_namespace_prefix(call)
 
         if longest_namespace:
