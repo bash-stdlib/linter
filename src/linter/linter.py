@@ -5,12 +5,20 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 from errors import STD000, STD002, STD006, STD008
+from functions.scope import FunctionScope
 from linter.state import LinterState
 from mock.manager import MockManager
-from mock_scanner import MockScanner
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
+from parsers.token_iterators.discovery import (
+    DiscoveryTokenIterator,
+    FunctionEndEvent,
+    FunctionStartEvent,
+    MockCreationEvent,
+    MockDeletionEvent,
+    MockResetEvent,
+)
 from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
@@ -40,7 +48,6 @@ class Linter:
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
         self.mock_manager = MockManager(self.state.base_metadata)
-        self.mock_scanner = MockScanner(self.mock_manager)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -58,7 +65,6 @@ class Linter:
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
-        is_test_file = "test" in filepath
 
         try:
             with open(filepath, "r") as f:
@@ -71,65 +77,104 @@ class Linter:
                 errors.append(STD000(filepath, str(e)))
             return errors
 
+        self.state.reset()
+        self.mock_manager.clear()
+        self.stdlib_call_pattern = self._build_call_pattern()
+
         comment_ignores = CommentIgnores()
+        lines = file_content.splitlines(True)
 
-        if is_test_file:
-            # Pre-scan for mock creations and scopes
-            self.mock_scanner.scan_file(file_content)
-            # Rebuild pattern with all discovered mocks
-            self.stdlib_call_pattern = self._build_call_pattern(
-                self.mock_manager.get_all_possible_mock_names()
-            )
-        else:
-            self.stdlib_call_pattern = self._build_call_pattern()
+        # Process comments first to support # stdlib: disable
+        for i, line in enumerate(lines):
+            comment_ignores.process_line(line, i + 1)
 
-        offset = 0
-        for i, line_content in enumerate(file_content.splitlines(True)):
-            line_num = i + 1
-            comment_ignores.process_line(line_content, line_num)
+        # Pre-scan for mock creations and scopes to populate all possible mock names
+        # for pattern building
+        discovery_pre = DiscoveryTokenIterator(file_content)
+        for event in discovery_pre:
+            if isinstance(event, FunctionStartEvent):
+                self.mock_manager.set_function_scopes(
+                    self.mock_manager.function_scopes
+                    + [FunctionScope(event.name, event.offset)]
+                )
+            elif isinstance(event, FunctionEndEvent):
+                for scope in reversed(self.mock_manager.function_scopes):
+                    if scope.name == event.name and scope.end_offset is None:
+                        scope.end_offset = event.offset
+                        break
+            elif isinstance(event, MockCreationEvent):
+                self.mock_manager.record_discovered_name(event.name)
 
-            if is_test_file:
-                # Track deletions and resets sequentially
-                self.mock_scanner.track_mock_lifetimes(line_content, offset)
+        # Build pattern once with all possible mocks for visibility matching
+        self.stdlib_call_pattern = self._build_call_pattern()
 
-            matches = sorted(
-                list(self.stdlib_call_pattern.finditer(line_content)),
-                key=lambda m: m.start(),
-            )
+        # Sequential pass using DiscoveryTokenIterator
+        self.mock_manager.clear_instances()
+        discovery = DiscoveryTokenIterator(file_content)
+        for event in discovery:
+            if isinstance(event, FunctionStartEvent):
+                self.mock_manager.set_function_scopes(
+                    self.mock_manager.function_scopes
+                    + [FunctionScope(event.name, event.offset)]
+                )
+            elif isinstance(event, FunctionEndEvent):
+                for scope in reversed(self.mock_manager.function_scopes):
+                    if scope.name == event.name and scope.end_offset is None:
+                        scope.end_offset = event.offset
+                        break
+            elif isinstance(event, MockCreationEvent):
+                self.mock_manager.create_mock(event.name, event.offset)
+            elif isinstance(event, MockDeletionEvent):
+                self.mock_manager.delete_mock(event.name, event.offset)
+            elif isinstance(event, MockResetEvent):
+                self.mock_manager.reset_all(event.offset)
+            elif isinstance(event, str):  # AdvancedToken
+                token = event
+                absolute_offset = token.start_offset
 
-            for match in matches:
-                absolute_match_start = offset + match.start()
-                if is_test_file:
+                # Sync active mocks BEFORE matching to update the pattern correctly
+                self._sync_active_mocks(absolute_offset)
+
+                # Check if this token matches our stdlib pattern
+                for match in self.stdlib_call_pattern.finditer(token):
+                    # Coordinate of the match within the whole file
+                    absolute_match_start = absolute_offset + match.start()
+                    line_num = self._get_line_number(file_content, absolute_match_start)
+
+                    # Sync active mocks for this match
                     self._sync_active_mocks(absolute_match_start)
 
-                error = self._process_match(
-                    match, file_content, filepath, comment_ignores, line_num, offset
-                )
-                if error:
-                    errors.append(error)
+                    error = self._process_match(
+                        match,
+                        file_content,
+                        filepath,
+                        comment_ignores,
+                        line_num,
+                        token.start_offset,
+                    )
+                    if error:
+                        errors.append(error)
 
-            offset += len(line_content)
-
-        for code, line in comment_ignores.get_unused_ignores():
-            errors.append(STD008(filepath, line, 1, code))
+        for code, line_num_unused in comment_ignores.get_unused_ignores():
+            errors.append(STD008(filepath, line_num_unused, 1, code))
 
         return errors
 
-    def _build_call_pattern(
-        self, extra_names: "Optional[Set[str]]" = None
-    ) -> "Pattern[str]":
+    def _build_call_pattern(self) -> "Pattern[str]":
         dot_roots = set()
         underscore_roots = set()
 
         all_names = (
             self.state.base_functions | self.state.base_namespaces | self.appendum
         )
-        if extra_names:
-            all_names |= extra_names
-            # Include all template methods for these mock names
-            for mock_name in extra_names:
-                for template_name in self.mock_manager.mock_templates.keys():
-                    all_names.add(template_name.replace("object", mock_name))
+
+        # Include all possible mock names and their methods from this file's run
+        # to ensure they are matched for visibility reporting
+        all_possible_mock_names = self.mock_manager.get_all_possible_mock_names()
+        all_names |= all_possible_mock_names
+        for mock_name in all_possible_mock_names:
+            for template_name in self.mock_manager.mock_templates.keys():
+                all_names.add(template_name.replace("object", mock_name))
 
         # Always include _mock.* calls in pattern
         all_names.add("_mock.create")
@@ -149,6 +194,14 @@ class Linter:
                 dot_roots.add(name.split(".")[0])
             else:
                 dot_roots.add(name)
+
+        # Always include mock templates so they are matched even if not created
+        # (allowing us to report STD002 for out-of-scope mock methods)
+        for template_name in self.mock_manager.mock_templates.keys():
+            # Add to dot_roots if it contains a dot, or just add directly
+            parts = template_name.split(".")
+            for i in range(1, len(parts) + 1):
+                dot_roots.add(".".join(parts[:i]))
 
         sorted_dot_roots = sorted(list(dot_roots), key=len, reverse=True)
         sorted_underscore_roots = sorted(list(underscore_roots), key=len, reverse=True)
@@ -174,7 +227,7 @@ class Linter:
             else r"(?!)"
         )
 
-        pattern = r"(?<!\w)({}|{})(?![a-z0-9._])".format(
+        pattern = r"(?<!\w)({}|{}|[a-z0-9._]+\.mock\.[a-z0-9._]+)(?![a-z0-9._])".format(
             dot_pattern, underscore_pattern
         )
 
@@ -226,9 +279,17 @@ class Linter:
         if call_name in ["_mock.create", "_mock.delete", "_mock.reset_all"]:
             return None
 
+        # Column within the line
+        column = self._get_column_number(content, offset + match.start())
+
         # Verify mock visibility if it's a mock method call
         error = self._check_mock_visibility(
-            call_name, filepath, line_num, match.start() + 1, offset, comment_ignores
+            call_name,
+            filepath,
+            line_num,
+            column,
+            offset + match.start(),
+            comment_ignores,
         )
         if error:
             return error
@@ -237,7 +298,6 @@ class Linter:
             return None
 
         absolute_end = offset + match.end()
-        column = match.start() + 1
 
         args = self.argument_parser.parse(content[absolute_end:])
         if args is None:
@@ -300,17 +360,28 @@ class Linter:
         filepath: str,
         line_num: int,
         column: int,
-        offset: int,
+        absolute_offset: int,
         comment_ignores: CommentIgnores,
     ) -> "Optional[LinterErrorBase]":
-        if self.mock_manager.is_mock_method_active(call_name, offset + column - 1):
+        if self.mock_manager.is_mock_method_active(call_name, absolute_offset):
             return None
 
-        if any(
-            call_name == t.replace("object", m)
+        # Check if call_name is a mock name itself or a mock method
+        is_mock_related = any(
+            call_name == m or call_name.startswith(m + ".mock.")
             for m in self.mock_manager.get_all_possible_mock_names()
-            for t in self.mock_manager.mock_templates.keys()
-        ):
+        )
+
+        # Also check if it's a known mock method template being used on SOMETHING
+        if not is_mock_related:
+            for template_name in self.mock_manager.mock_templates.keys():
+                if ".mock." in template_name:
+                    suffix = template_name.replace("object", "")
+                    if call_name.endswith(suffix):
+                        is_mock_related = True
+                        break
+
+        if is_mock_related:
             # It matches a mock template but is NOT active
             if not self._is_ignored(STD002.CODE, line_num, comment_ignores):
                 namespace = ".".join(call_name.split(".")[:-1])

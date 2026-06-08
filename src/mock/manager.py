@@ -15,9 +15,13 @@ class MockManager:
         }
         self.all_mocks: List[MockInstance] = []
         self.function_scopes: List[FunctionScope] = []
+        self.discovered_names: Set[str] = set()
 
     def set_function_scopes(self, scopes: List[FunctionScope]) -> None:
         self.function_scopes = scopes
+
+    def record_discovered_name(self, name: str) -> None:
+        self.discovered_names.add(name)
 
     def create_mock(self, name: str, offset: int) -> None:
         scope = self._get_scope_for_offset(offset)
@@ -42,11 +46,21 @@ class MockManager:
             if mock.deletion_offset is None and mock.creation_offset <= offset:
                 mock.deletion_offset = offset
 
+    def clear(self) -> None:
+        """Completely clear all mocks and scopes (for a new file)."""
+        self.all_mocks = []
+        self.function_scopes = []
+        self.discovered_names = set()
+
+    def clear_instances(self) -> None:
+        """Clear active mock instances but keep discovered names and scopes."""
+        self.all_mocks = []
+
     def get_active_mock_names(self, offset: int) -> Set[str]:
         return {mock.name for mock in self.all_mocks if mock.is_active(offset)}
 
     def get_all_possible_mock_names(self) -> Set[str]:
-        return {mock.name for mock in self.all_mocks}
+        return self.discovered_names
 
     def get_mock_function_metadata(self, mock_name: str) -> Dict[str, Dict[str, Any]]:
         mock_functions: Dict[str, Dict[str, Any]] = {}
@@ -59,16 +73,23 @@ class MockManager:
         return mock_functions
 
     def _get_scope_for_offset(self, offset: int) -> Optional[FunctionScope]:
-        for scope in self.function_scopes:
-            if scope.is_inside(offset):
-                return scope
-        return None
+        # Return the innermost scope (shortest length)
+        matching_scopes = [s for s in self.function_scopes if s.is_inside(offset)]
+        if not matching_scopes:
+            return None
+
+        # Innermost means the one whose START is closest to the current offset
+        # from the left
+        return max(matching_scopes, key=lambda s: s.start_offset)
 
     def is_mock_active(self, name: str, offset: int) -> bool:
         return any(m.name == name and m.is_active(offset) for m in self.all_mocks)
 
     def is_mock_method_active(self, call_name: str, offset: int) -> bool:
-        for mock_name in self.get_active_mock_names(offset):
+        active_names = self.get_active_mock_names(offset)
+        for mock_name in active_names:
+            if call_name == mock_name:
+                return True
             for template_name in self.mock_templates.keys():
                 if call_name == template_name.replace("object", mock_name):
                     return True
