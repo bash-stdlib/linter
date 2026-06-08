@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, List
 from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterIssue
+    from errors.base import LinterIssueBase
 
 
 class JSONFormatterBase(FormatterBase):
-    def format(self, errors: "List[LinterIssue]") -> "str":
-        return json.dumps([error.to_dict() for error in errors], indent=4)
+    def format(self, issues: "List[LinterIssueBase]") -> "str":
+        return json.dumps([issue.to_dict() for issue in issues], indent=4)

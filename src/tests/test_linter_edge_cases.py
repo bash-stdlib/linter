@@ -2,7 +2,7 @@ import unittest
 from typing import List
 from unittest.mock import mock_open, patch
 
-from errors.base import LinterIssue
+from errors.base import LinterIssueBase
 from linter import Linter
 
 
@@ -28,7 +28,7 @@ class TestLinterEdgeCases(unittest.TestCase):
     def tearDown(self) -> None:
         pass
 
-    def lint_content(self, content: str) -> List[LinterIssue]:
+    def lint_content(self, content: str) -> List[LinterIssueBase]:
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")
@@ -38,44 +38,44 @@ class TestLinterEdgeCases(unittest.TestCase):
             "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
         )
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_function_as_argument_ignored(self) -> None:
         content = "echo stdlib.foo"
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_assignment_ignored(self) -> None:
         content = "VAR=stdlib.foo"
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_line_continuation_handled(self) -> None:
         content = "stdlib.bar \\\n  arg1"
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_nested_complex_subshell_handled(self) -> None:
         content = 'nested="${HELLO:-"$(stdlib.foo)"}"'
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_namespace_and_function_ambiguity(self) -> None:
         content = "stdlib.foo"
 
-        errors = self.lint_content(content)
+        issues = self.lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,12 @@
 """Base classes for linter exceptions and reported issues."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 from .enum import Severity
+
+if TYPE_CHECKING:
+    pass
 
 
 class BaseLinterException(Exception):
@@ -12,13 +15,13 @@ class BaseLinterException(Exception):
     pass
 
 
-class LinterIssue(ABC):
+class LinterIssueBase(ABC):
     """Base class for all specific linting errors and warnings."""
 
     CODE: str = ""
     TITLE: str = ""
     DESCRIPTION: str = ""
-    SEVERITY: Severity
+    SEVERITY: "Severity"
 
     def __init__(
         self,
@@ -61,13 +64,13 @@ class LinterIssue(ABC):
         }
 
 
-class LinterError(LinterIssue):
+class LinterErrorBase(LinterIssueBase):
     """Base class for all linting errors."""
 
     SEVERITY = Severity.ERROR
 
 
-class LinterWarning(LinterIssue):
+class LinterWarningBase(LinterIssueBase):
     """Base class for all linting warnings."""
 
     SEVERITY = Severity.WARNING

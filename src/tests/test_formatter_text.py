@@ -20,7 +20,7 @@ class TestTextFormatterBase(unittest.TestCase):
     def test_format__no_errors__returns_empty_message(self) -> None:
         result = self.formatter.format([])
 
-        self.assertEqual(result, "No errors found.")
+        self.assertEqual(result, "No issues found.")
 
 
 if __name__ == "__main__":

@@ -2,10 +2,10 @@
 
 from typing import Optional
 
-from .base import LinterError
+from .base import LinterErrorBase
 
 
-class STD002(LinterError):
+class STD002(LinterErrorBase):
     CODE = "STD002"
     TITLE = "invalid function"
     DESCRIPTION = "The function name is incorrect, but the namespace is valid."

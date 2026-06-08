@@ -8,7 +8,7 @@ from validators.base import ValidatorBase
 if TYPE_CHECKING:
     from typing import Set
 
-    from errors.base import LinterIssue
+    from errors.base import LinterIssueBase
 
 
 class ArgumentCountValidator(ValidatorBase):
@@ -30,7 +30,7 @@ class ArgumentCountValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterIssue]":
+    ) -> "Optional[LinterIssueBase]":
         if call not in self.functions:
             return None
 

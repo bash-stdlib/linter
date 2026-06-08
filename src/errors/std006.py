@@ -1,9 +1,9 @@
 """Linter error STD006: Failed to parse arguments."""
 
-from .base import LinterError
+from .base import LinterErrorBase
 
 
-class STD006(LinterError):
+class STD006(LinterErrorBase):
     CODE = "STD006"
     TITLE = "failed to parse arguments"
     DESCRIPTION = (

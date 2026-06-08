@@ -20,10 +20,10 @@ class TestLinterReporting(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].file, expected_path)
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0].file, expected_path)
 
     def test_get_line_number__content_offset__is_correct(self) -> None:
         content = "line1\nline2\nline3"
@@ -47,19 +47,19 @@ class TestLinterReporting(unittest.TestCase):
         read_data="stdlib.array.assert.is_array\n"
         "stdlib.array.assert.is_array arg1 arg2",
     )
-    def test_lint__errors__have_correct_coordinates(
+    def test_lint__issues__have_correct_coordinates(
         self,
         mock_file: MagicMock,
     ) -> None:
         linter = Linter(self.metadata)
 
-        errors = linter.lint("dummy.sh")
+        issues = linter.lint("dummy.sh")
 
-        self.assertEqual(len(errors), 2)
-        self.assertIsInstance(errors[0], STD005)
-        self.assertEqual(errors[0].line, 1)
-        self.assertIsInstance(errors[1], STD005)
-        self.assertEqual(errors[1].line, 2)
+        self.assertEqual(len(issues), 2)
+        self.assertIsInstance(issues[0], STD005)
+        self.assertEqual(issues[0].line, 1)
+        self.assertIsInstance(issues[1], STD005)
+        self.assertEqual(issues[1].line, 2)
 
 
 if __name__ == "__main__":

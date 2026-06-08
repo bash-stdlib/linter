@@ -1,6 +1,7 @@
 """Unit tests for the ArgumentCountValidator."""
 
 import unittest
+from typing import List
 
 from errors.std005 import STD005
 from tests.assets.linter_validation_argument_count import METADATA
@@ -67,7 +68,6 @@ class TestArgumentCountValidator(unittest.TestCase):
 
     def test_check__variadic_no_args__returns_std005_with_counts(self) -> None:
         call = "stdlib.string.join"
-        from typing import List
         args: List[str] = []
 
         result = self.validator.check(call, "test.sh", 1, 1, args)

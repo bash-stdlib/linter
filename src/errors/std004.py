@@ -1,9 +1,9 @@
 """Linter error STD004: Unknown stdlib call."""
 
-from .base import LinterError
+from .base import LinterErrorBase
 
 
-class STD004(LinterError):
+class STD004(LinterErrorBase):
     CODE = "STD004"
     TITLE = "unknown namespace or function"
     DESCRIPTION = "The call does not match any known stdlib pattern."

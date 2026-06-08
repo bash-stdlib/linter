@@ -17,9 +17,9 @@ class TestLinterNamespaces(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint(filepath)
+            issues = linter.lint(filepath)
 
-        error_codes = [e.CODE for e in errors]
+        error_codes = [e.CODE for e in issues]
         self.assertIn("STD003", error_codes)
 
     def test_lint__parametrize_underscore__is_ignored(self) -> None:
@@ -27,18 +27,18 @@ class TestLinterNamespaces(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_lint__parametrize_dot__flags_error(self) -> None:
         content = "@parametrize.with_error_messages"
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        matches = [e.match for e in errors]
+        matches = [e.match for e in issues]
         self.assertIn("@parametrize.with_error_messages", matches)
 
     def test_lint__unknown_assert_prefix__is_ignored(self) -> None:
@@ -46,18 +46,18 @@ class TestLinterNamespaces(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_lint__known_assert_prefix__is_linted_for_arguments(self) -> None:
         content = "assert_rc"
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        error_codes = [e.CODE for e in errors]
+        error_codes = [e.CODE for e in issues]
         self.assertIn("STD005", error_codes)
 
 

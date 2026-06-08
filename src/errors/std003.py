@@ -1,9 +1,9 @@
 """Linter error STD003: Namespace called as a function."""
 
-from .base import LinterError
+from .base import LinterErrorBase
 
 
-class STD003(LinterError):
+class STD003(LinterErrorBase):
     CODE = "STD003"
     TITLE = "namespace called as function"
     DESCRIPTION = "A namespace was called directly instead of a specific function."

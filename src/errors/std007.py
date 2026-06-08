@@ -1,9 +1,9 @@
 """Linter error STD007: Testing function used in production script."""
 
-from .base import LinterError
+from .base import LinterErrorBase
 
 
-class STD007(LinterError):
+class STD007(LinterErrorBase):
     CODE = "STD007"
     TITLE = "testing function in production script"
     DESCRIPTION = (
