@@ -4,6 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
+from constants import MOCK_LIFETIME_FUNCTIONS
 from errors import STD000, STD006, STD008
 from functions.scope import FunctionScope as FunctionScope
 from linter.state import LinterState
@@ -16,8 +17,8 @@ from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
+    IsMockCallValidator,
     IsTestingFunctionCallValidator,
-    MockVisibilityValidator,
     NotNamespaceCallValidator,
 )
 
@@ -41,11 +42,11 @@ class Linter:
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
-        self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
+        self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern("dummy.sh")
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
         self.validators: "List[ValidatorBase]" = [
-            MockVisibilityValidator(self.state),
+            IsMockCallValidator(self.state),
             NotNamespaceCallValidator(self.state),
             IsFunctionCallValidator(self.state),
             ArgumentCountValidator(self.state),
@@ -68,7 +69,7 @@ class Linter:
             return errors
 
         self.state.clear()
-        self.stdlib_call_pattern = self._build_call_pattern()
+        self.stdlib_call_pattern = self._build_call_pattern(filepath)
 
         comment_ignores = CommentIgnores()
         lines = file_content.splitlines(True)
@@ -85,7 +86,7 @@ class Linter:
                 item.handle_pre_scan(self.state.mock_manager)
 
         # Build pattern once with all possible mocks for visibility matching
-        self.stdlib_call_pattern = self._build_call_pattern()
+        self.stdlib_call_pattern = self._build_call_pattern(filepath)
 
         # Sequential pass using DiscoveryTokenIterator
         self.state.mock_manager.clear_instances()
@@ -128,7 +129,7 @@ class Linter:
 
         return errors
 
-    def _build_call_pattern(self) -> "Pattern[str]":
+    def _build_call_pattern(self, filepath: str) -> "Pattern[str]":
         dot_roots = set()
         underscore_roots = set()
 
@@ -144,10 +145,9 @@ class Linter:
             for template_name in self.state.mock_manager.mock_templates.keys():
                 all_names.add(template_name.replace("object", mock_name))
 
-        # Always include _mock.* calls in pattern
-        from constants import MOCK_LIFETIME_FUNCTIONS
-
-        all_names |= MOCK_LIFETIME_FUNCTIONS
+        # Only include _mock.* calls in pattern if it's a test file
+        if "test" in os.path.basename(filepath).lower():
+            all_names |= MOCK_LIFETIME_FUNCTIONS
 
         for name in all_names:
             if name.startswith("_"):
@@ -243,15 +243,8 @@ class Linter:
 
         call_name = self._get_call_name(match)
 
-        # Ignore _mock calls from validation, they are handled by lifetime tracking
-        from constants import MOCK_LIFETIME_FUNCTIONS
-
-        if call_name in MOCK_LIFETIME_FUNCTIONS:
-            return None
-
         # Column within the line
         column = self._get_column_number(content, offset + match.start())
-
 
         if self._is_appendum(call_name):
             return None

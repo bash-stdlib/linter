@@ -1,6 +1,6 @@
 """Validator for checking the number of arguments in standard library function calls."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from errors import STD005
 from validators.base import ValidatorBase
@@ -11,10 +11,6 @@ if TYPE_CHECKING:
 
 class ArgumentCountValidator(ValidatorBase):
     """Checks if the call has the correct number of arguments."""
-
-    @property
-    def metadata(self) -> "Dict[str, Any]":
-        return self.state.metadata
 
     def check(
         self,
@@ -30,7 +26,7 @@ class ArgumentCountValidator(ValidatorBase):
         if args is None:
             args = []
 
-        func_meta = self.metadata.get(call)
+        func_meta = self.state.metadata.get(call)
         if not func_meta:
             return None
 

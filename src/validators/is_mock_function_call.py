@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from errors.base import LinterErrorBase
 
 
-class MockVisibilityValidator(ValidatorBase):
+class IsMockCallValidator(ValidatorBase):
     """Checks if a mock call is active at the current offset."""
 
     def check(
@@ -18,14 +18,6 @@ class MockVisibilityValidator(ValidatorBase):
         column: int,
         args: Optional[List[str]] = None,
     ) -> "Optional[LinterErrorBase]":
-        # We need an absolute offset here. But check() only gets line/column.
-        # Actually, Linter can pass the offset as part of the context or we can
-        # recalculate it if needed.
-        # But wait, the ValidatorBase has access to self.state.
-        # Maybe we should pass the current absolute offset to check()?
-        # For now, let's assume we can get it from state if we store it there
-        # during the linting pass.
-
         offset = self.state.current_absolute_offset
 
         if self.state.mock_manager.is_mock_method_active(call, offset):

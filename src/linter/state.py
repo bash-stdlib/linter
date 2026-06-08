@@ -1,7 +1,6 @@
 from typing import Any, Dict, Set
 
 from mock.manager import MockManager
-from mock.scanner import MockScanner
 
 
 class LinterState:
@@ -17,7 +16,6 @@ class LinterState:
         self.metadata: Dict[str, Any] = self.base_metadata.copy()
 
         self.mock_manager = MockManager(self.base_metadata)
-        self.mock_scanner = MockScanner(self.mock_manager)
         self.current_absolute_offset: int = 0
 
     def reset(self) -> None:
