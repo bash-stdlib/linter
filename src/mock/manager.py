@@ -1,9 +1,8 @@
 from typing import Any, Dict, List, Optional, Set
 
+from constants import GLOBAL_GRANTING_FUNCTIONS
 from functions.scope import FunctionScope
 from .instance import MockInstance
-
-GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
 
 
 class MockManager:

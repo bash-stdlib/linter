@@ -5,7 +5,7 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 from errors import STD000, STD002, STD006, STD008
-from linter_state import LinterState
+from linter.state import LinterState
 from mock.manager import MockManager
 from mock_scanner import MockScanner
 from parsers import BashArgumentsParser
@@ -74,10 +74,8 @@ class Linter:
         comment_ignores = CommentIgnores()
 
         if is_test_file:
-            # Pre-scan for mock creations
-            scopes = self.mock_scanner.discover_scopes(file_content)
-            self.mock_manager.set_function_scopes(scopes)
-            self.mock_scanner.discover_mock_creations(file_content)
+            # Pre-scan for mock creations and scopes
+            self.mock_scanner.scan_file(file_content)
             # Rebuild pattern with all discovered mocks
             self.stdlib_call_pattern = self._build_call_pattern(
                 self.mock_manager.get_all_possible_mock_names()

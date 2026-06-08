@@ -1,8 +1,6 @@
-from typing import List
-
-from functions.scope import FunctionScope
 from mock.manager import MockManager
-from parsers.token_iterators import ShlexTokenIterator
+from parsers.token_iterators.functions import FunctionDefinitionsTokenIterator
+from parsers.token_iterators.mock_events import MockEventsTokenIterator
 
 
 class MockScanner:
@@ -11,80 +9,22 @@ class MockScanner:
     def __init__(self, mock_manager: MockManager) -> None:
         self.mock_manager = mock_manager
 
-    def discover_scopes(self, content: str) -> List[FunctionScope]:
-        scopes = []
-        iterator = ShlexTokenIterator(content)
-        try:
-            for token in iterator:
-                if (
-                    hasattr(token, "is_fully_quoted")
-                    and not token.is_fully_quoted
-                    and (
-                        token == "function"
-                        or iterator.is_preceded_by_function_keyword(
-                            content[: token.start_offset]
-                        )
-                    )
-                ):
-                    # Potential function definition
-                    name = token
-                    if name == "function":
-                        name = next(iterator)
+    def scan_file(self, content: str) -> None:
+        """Single-pass scan for both scopes and mock creations."""
+        # We still need both for different purposes, but we can combine the
+        # initial discovery
+        scopes = list(FunctionDefinitionsTokenIterator(content))
+        self.mock_manager.set_function_scopes(scopes)
 
-                    # Look for opening brace
-                    found_brace = False
-                    for t in iterator:
-                        if (
-                            hasattr(t, "is_fully_quoted")
-                            and not t.is_fully_quoted
-                            and "{" in t.unquoted_specials
-                        ):
-                            found_brace = True
-                            break
-                        if (
-                            hasattr(t, "is_fully_quoted")
-                            and not t.is_fully_quoted
-                            and t in [";", "\n"]
-                        ):
-                            continue
-                        break
-
-                    if found_brace:
-                        start_offset = t.start_offset
-                        end_offset = iterator.skip_to_balanced_bracket()
-                        if end_offset:
-                            scopes.append(FunctionScope(name, start_offset, end_offset))
-        except (StopIteration, ValueError):
-            pass
-        return scopes
-
-    def discover_mock_creations(self, content: str) -> None:
-        iterator = ShlexTokenIterator(content)
-        try:
-            for token in iterator:
-                if token == "_mock.create":
-                    try:
-                        mock_name = next(iterator)
-                        # Use end_offset to ensure it's created AFTER the token
-                        self.mock_manager.create_mock(mock_name, token.end_offset)
-                    except StopIteration:
-                        pass
-        except (StopIteration, ValueError):
-            pass
+        for event_type, mock_name, offset in MockEventsTokenIterator(content):
+            if event_type == "create":
+                self.mock_manager.create_mock(mock_name, offset)
 
     def track_mock_lifetimes(self, line_content: str, line_offset: int) -> None:
-        iterator = ShlexTokenIterator(line_content)
-        try:
-            for token in iterator:
-                if token == "_mock.delete":
-                    try:
-                        mock_name = next(iterator)
-                        self.mock_manager.delete_mock(
-                            mock_name, line_offset + token.start_offset
-                        )
-                    except StopIteration:
-                        pass
-                elif token == "_mock.reset_all":
-                    self.mock_manager.reset_all(line_offset + token.start_offset)
-        except (StopIteration, ValueError):
-            pass
+        """Sequentially track deletions and resets."""
+        for event_type, mock_name, offset in MockEventsTokenIterator(line_content):
+            absolute_offset = line_offset + offset
+            if event_type == "delete":
+                self.mock_manager.delete_mock(mock_name, absolute_offset)
+            elif event_type == "reset_all":
+                self.mock_manager.reset_all(absolute_offset)

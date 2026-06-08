@@ -1,6 +1,7 @@
 """Central configuration constants for the bash-stdlib linter."""
 
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
+GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
 SHELL_COMMAND_SEPARATORS = {
     ";",
     "|",
