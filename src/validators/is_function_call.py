@@ -6,7 +6,7 @@ from errors import STD001, STD002, STD004
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class IsFunctionCallValidator(ValidatorBase):
@@ -21,7 +21,7 @@ class IsFunctionCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssue]":
         if call in self.functions:
             return None
 

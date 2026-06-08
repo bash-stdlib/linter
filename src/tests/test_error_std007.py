@@ -3,6 +3,7 @@
 import unittest
 
 from errors import STD007
+from errors.enum import Severity
 
 
 class TestSTD007(unittest.TestCase):
@@ -15,6 +16,7 @@ class TestSTD007(unittest.TestCase):
             "'assert_array_equals' is being used in a production script", message
         )
         self.assertIn("path containing 'test'", message)
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
 
     def test_to_dict__valid_metadata__returns_expected_dictionary(self) -> None:
         error = STD007("/path/to/script.sh", 10, 5, "assert_rc")
@@ -25,6 +27,7 @@ class TestSTD007(unittest.TestCase):
         self.assertEqual(result["line"], 10)
         self.assertEqual(result["column"], 5)
         self.assertEqual(result["match"], "assert_rc")
+        self.assertEqual(result["severity"], Severity.ERROR.level)
 
 
 if __name__ == "__main__":

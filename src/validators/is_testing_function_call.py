@@ -8,7 +8,7 @@ from validators.base import ValidatorBase
 if TYPE_CHECKING:
     from typing import Set
 
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class IsTestingFunctionCallValidator(ValidatorBase):
@@ -30,7 +30,7 @@ class IsTestingFunctionCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssue]":
         func_meta = self.metadata.get(call)
         if not func_meta:
             return None

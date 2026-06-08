@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, List
 from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class VSCodeFormatterBase(FormatterBase):
-    def format(self, errors: "List[LinterErrorBase]") -> "str":
+    def format(self, errors: "List[LinterIssue]") -> "str":
         diagnostics = []
         for error in errors:
             # VS Code positions are 0-indexed
@@ -25,7 +25,7 @@ class VSCodeFormatterBase(FormatterBase):
                         "start": {"line": start_line, "character": start_char},
                         "end": {"line": start_line, "character": end_char},
                     },
-                    "severity": 1,  # Error
+                    "severity": error.SEVERITY.vscode_severity,
                     "code": error.CODE,
                     "source": "bash-stdlib-lint",
                     "message": error.message,

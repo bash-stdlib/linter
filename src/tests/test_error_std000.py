@@ -1,5 +1,6 @@
 import unittest
 
+from errors.enum import Severity
 from errors.std000 import STD000
 
 
@@ -9,6 +10,7 @@ class TestSTD000(unittest.TestCase):
 
         self.assertEqual(error.message, "Failed to read file: Permission denied")
         self.assertEqual(error.CODE, "STD000")
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
 
     def test_to_dict__always__contains_expected_metadata(self) -> None:
         error = STD000("test.sh", "Error")
@@ -17,6 +19,7 @@ class TestSTD000(unittest.TestCase):
 
         self.assertEqual(result["code"], "STD000")
         self.assertEqual(result["title"], "system error")
+        self.assertEqual(result["severity"], Severity.ERROR.level)
         self.assertEqual(result["file"], "test.sh")
 
 

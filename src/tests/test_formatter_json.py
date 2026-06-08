@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from errors.enum import Severity
 from errors.std003 import STD003
 from formatters.json_formatter import JSONFormatterBase
 
@@ -18,6 +19,7 @@ class TestJSONFormatterBase(unittest.TestCase):
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["code"], "STD003")
+        self.assertEqual(data[0]["severity"], Severity.ERROR.level)
 
 
 if __name__ == "__main__":

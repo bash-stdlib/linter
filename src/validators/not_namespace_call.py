@@ -6,7 +6,7 @@ from errors import STD003
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class NotNamespaceCallValidator(ValidatorBase):
@@ -19,7 +19,7 @@ class NotNamespaceCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssue]":
         if call in self.namespaces and call not in self.functions:
             return STD003(filepath, line, column, call)
         return None

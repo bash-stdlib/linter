@@ -3,6 +3,7 @@
 import unittest
 
 from errors import STD006
+from errors.enum import Severity
 
 
 class TestSTD006(unittest.TestCase):
@@ -10,6 +11,7 @@ class TestSTD006(unittest.TestCase):
         error = STD006("file.sh", 10, 5, "stdlib.foo")
 
         self.assertEqual(error.message, "Failed to parse arguments for 'stdlib.foo'.")
+        self.assertEqual(error.SEVERITY, Severity.ERROR)
 
     def test_to_dict__contains_all_fields(self) -> None:
         error = STD006("file.sh", 10, 5, "stdlib.foo")
@@ -20,6 +22,7 @@ class TestSTD006(unittest.TestCase):
         self.assertEqual(data["line"], 10)
         self.assertEqual(data["column"], 5)
         self.assertEqual(data["match"], "stdlib.foo")
+        self.assertEqual(data["severity"], Severity.ERROR.level)
         self.assertIn("message", data)
 
 

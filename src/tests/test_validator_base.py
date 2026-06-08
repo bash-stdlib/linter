@@ -1,7 +1,7 @@
 import unittest
 from typing import List, Optional
 
-from errors.base import LinterErrorBase
+from errors.base import LinterIssue
 from validators.base import ValidatorBase
 
 
@@ -13,7 +13,7 @@ class ConcreteValidator(ValidatorBase):
         line: int,
         column: int,
         args: Optional[List[str]] = None,
-    ) -> Optional[LinterErrorBase]:
+    ) -> Optional[LinterIssue]:
         return None
 
 

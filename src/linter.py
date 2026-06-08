@@ -19,7 +19,7 @@ from validators import (
 if TYPE_CHECKING:
     from typing import List, Match, Pattern, Set
 
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
     from validators.base import ValidatorBase
 
 
@@ -49,8 +49,8 @@ class Linter:
             ),
         ]
 
-    def lint(self, filepath: "str") -> "List[LinterErrorBase]":
-        errors: "List[LinterErrorBase]" = []
+    def lint(self, filepath: "str") -> "List[LinterIssue]":
+        errors: "List[LinterIssue]" = []
         filepath = os.path.abspath(filepath)
 
         try:
@@ -164,7 +164,7 @@ class Linter:
         comment_ignores: CommentIgnores,
         line_num: int,
         offset: int = 0,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssue]":
         if self._is_function_definition(match, content, offset):
             return None
 

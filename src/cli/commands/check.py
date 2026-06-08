@@ -11,7 +11,7 @@ from stdlib_html.fetcher import HTMLFetcher
 from .base import CommandBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class LintCommand(CommandBase):
@@ -30,7 +30,7 @@ class LintCommand(CommandBase):
                 raise EmptyCacheError()
 
         linter = Linter(metadata, ignored_codes=args.ignore, appendum=args.appendum)
-        all_errors: "List[LinterErrorBase]" = []
+        all_errors: "List[LinterIssue]" = []
         for filepath in args.files:
             all_errors.extend(linter.lint(filepath))
 

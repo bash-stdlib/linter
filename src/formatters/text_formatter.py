@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, List
 from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class TextFormatterBase(FormatterBase):
-    def format(self, errors: "List[LinterErrorBase]") -> "str":
+    def format(self, errors: "List[LinterIssue]") -> "str":
         if not errors:
             return "No errors found."
 

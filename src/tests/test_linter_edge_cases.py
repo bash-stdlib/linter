@@ -2,7 +2,7 @@ import unittest
 from typing import List
 from unittest.mock import mock_open, patch
 
-from errors.base import LinterErrorBase
+from errors.base import LinterIssue
 from linter import Linter
 
 
@@ -28,7 +28,7 @@ class TestLinterEdgeCases(unittest.TestCase):
     def tearDown(self) -> None:
         pass
 
-    def lint_content(self, content: str) -> List[LinterErrorBase]:
+    def lint_content(self, content: str) -> List[LinterIssue]:
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")

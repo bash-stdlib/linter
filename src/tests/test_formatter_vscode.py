@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from errors.enum import Severity
 from errors.std003 import STD003
 from formatters.vscode_formatter import VSCodeFormatterBase
 
@@ -19,6 +20,7 @@ class TestVSCodeFormatterBase(unittest.TestCase):
         diag = data[0]
         self.assertEqual(diag["range"]["start"]["line"], 4)  # 0-indexed
         self.assertEqual(diag["range"]["start"]["character"], 9)  # 0-indexed
+        self.assertEqual(diag["severity"], Severity.ERROR.vscode_severity)
         self.assertEqual(diag["code"], "STD003")
         self.assertEqual(diag["source"], "bash-stdlib-lint")
         self.assertEqual(diag["file"], "test.sh")

@@ -6,13 +6,14 @@ from unittest.mock import MagicMock, mock_open, patch
 from errors.std001 import STD001
 from errors.std002 import STD002
 from errors.std003 import STD003
+from errors.enum import Severity
 from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
 from linter import Linter
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from errors.base import LinterIssue
 
 
 class TestLinter(unittest.TestCase):
@@ -46,7 +47,7 @@ class TestLinter(unittest.TestCase):
         }
         self.linter = Linter(self.metadata)
 
-    def _lint_content(self, content: "str") -> "List[LinterErrorBase]":
+    def _lint_content(self, content: "str") -> "List[LinterIssue]":
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")
@@ -226,6 +227,7 @@ class TestLinter(unittest.TestCase):
         self.assertIn("STD008", error_codes)
         unused_error = [e for e in errors if e.CODE == "STD008"][0]
         self.assertEqual(unused_error.match, "STD001")
+        self.assertEqual(unused_error.SEVERITY, Severity.WARNING)
 
 
 if __name__ == "__main__":

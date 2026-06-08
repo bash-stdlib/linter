@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import mock_open, patch
 
+from errors.enum import Severity
 from linter import Linter
 from tests.assets.linter_suppression.metadata import METADATA
 
@@ -74,6 +75,7 @@ class TestLinterSuppression(unittest.TestCase):
         self.assertIn("STD008", error_codes)
         unused_error = [e for e in errors if e.CODE == "STD008"][0]
         self.assertEqual(unused_error.match, "STD001")
+        self.assertEqual(unused_error.SEVERITY, Severity.WARNING)
 
 
 if __name__ == "__main__":
