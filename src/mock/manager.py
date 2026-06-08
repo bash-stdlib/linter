@@ -1,33 +1,7 @@
 from typing import Any, Dict, List, Optional, Set
 
-
-class FunctionScope:
-    def __init__(self, name: str, start_offset: int, end_offset: int) -> None:
-        self.name = name
-        self.start_offset = start_offset
-        self.end_offset = end_offset
-
-    def is_inside(self, offset: int) -> bool:
-        return self.start_offset <= offset <= self.end_offset
-
-
-class MockInstance:
-    def __init__(
-        self, name: str, creation_offset: int, scope: Optional[FunctionScope]
-    ) -> None:
-        self.name = name
-        self.creation_offset = creation_offset
-        self.scope = scope
-        self.deletion_offset: Optional[int] = None
-
-    def is_active(self, offset: int) -> bool:
-        if offset < self.creation_offset:
-            return False
-        if self.deletion_offset is not None and offset >= self.deletion_offset:
-            return False
-        if self.scope is None:
-            return True
-        return self.scope.is_inside(offset)
+from .instance import MockInstance
+from .scope import FunctionScope
 
 
 class MockManager:

@@ -53,23 +53,25 @@ class ShlexTokenIterator:
             pass
         return False
 
-    def skip_to_balanced_brace(self) -> "Optional[int]":
-        """Skip tokens until a balanced closing brace is found.
+    def skip_to_balanced_bracket(
+        self, open_bracket: str = "{", close_bracket: str = "}"
+    ) -> "Optional[int]":
+        """Skip tokens until a balanced closing bracket is found.
 
-        Returns the end offset of the closing brace.
+        Returns the end offset of the closing bracket.
         """
-        brace_count = 1
+        bracket_count = 1
         try:
             for token in self:
                 if hasattr(token, "is_fully_quoted") and token.is_fully_quoted:
                     continue
 
-                if "{" in token.unquoted_specials:
-                    brace_count += 1
-                if "}" in token.unquoted_specials:
-                    brace_count -= 1
+                if open_bracket in token.unquoted_specials:
+                    bracket_count += 1
+                if close_bracket in token.unquoted_specials:
+                    bracket_count -= 1
 
-                if brace_count <= 0:
+                if bracket_count <= 0:
                     return token.end_offset
         except (StopIteration, ValueError):
             pass

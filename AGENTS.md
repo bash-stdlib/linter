@@ -24,6 +24,7 @@
         unittest.main()
     ```
 - **Commits**: `feat(COMPONENT): description`. Terse and commitizen-friendly.
+- **Constants**: Always sort constants alphabetically.
 
 ## Testing & Tooling
 - **Run all**: `PYTHONPATH=src python3 -m unittest discover src/tests`

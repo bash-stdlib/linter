@@ -8,10 +8,10 @@ from typing import Iterator, List, Optional, Set, Union
 class AdvancedToken(str):
     """A string subclass that tracks quoting status and unquoted special characters."""
 
-    is_fully_quoted: "bool"
-    unquoted_specials: "Set[str]"
-    start_offset: "int"
     end_offset: "int"
+    is_fully_quoted: "bool"
+    start_offset: "int"
+    unquoted_specials: "Set[str]"
 
     def __new__(
         cls,
