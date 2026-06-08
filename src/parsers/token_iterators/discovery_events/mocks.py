@@ -13,7 +13,7 @@ class MockCreationEvent(DiscoveryEvent):
         self.name = name
 
     def handle(self, linter: "Linter") -> None:
-        linter.mock_manager.create_mock(self.name, self.offset)
+        linter.state.mock_manager.create_mock(self.name, self.offset)
 
     def handle_pre_scan(self, mock_manager: "MockManager") -> None:
         mock_manager.record_discovered_name(self.name)
@@ -25,9 +25,9 @@ class MockDeletionEvent(DiscoveryEvent):
         self.name = name
 
     def handle(self, linter: "Linter") -> None:
-        linter.mock_manager.delete_mock(self.name, self.offset)
+        linter.state.mock_manager.delete_mock(self.name, self.offset)
 
 
 class MockResetEvent(DiscoveryEvent):
     def handle(self, linter: "Linter") -> None:
-        linter.mock_manager.reset_all(self.offset)
+        linter.state.mock_manager.reset_all(self.offset)

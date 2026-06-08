@@ -14,8 +14,8 @@ class FunctionStartEvent(DiscoveryEvent):
         self.name = name
 
     def handle(self, linter: "Linter") -> None:
-        linter.mock_manager.set_function_scopes(
-            linter.mock_manager.function_scopes
+        linter.state.mock_manager.set_function_scopes(
+            linter.state.mock_manager.function_scopes
             + [FunctionScope(self.name, self.offset)]
         )
 
@@ -31,7 +31,7 @@ class FunctionEndEvent(DiscoveryEvent):
         self.name = name
 
     def handle(self, linter: "Linter") -> None:
-        for scope in reversed(linter.mock_manager.function_scopes):
+        for scope in reversed(linter.state.mock_manager.function_scopes):
             if scope.name == self.name and scope.end_offset is None:
                 scope.end_offset = self.offset
                 break

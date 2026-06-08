@@ -2,6 +2,7 @@
 
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
 GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
+MOCK_LIFETIME_FUNCTIONS = {"_mock.create", "_mock.delete", "_mock.reset_all"}
 SHELL_COMMAND_SEPARATORS = {
     ";",
     "|",
