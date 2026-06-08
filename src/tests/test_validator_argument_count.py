@@ -1,6 +1,7 @@
 """Unit tests for the ArgumentCountValidator."""
 
 import unittest
+from typing import Any, List
 
 from tests.assets.linter_validation_argument_count import METADATA
 from validators.argument_count import ArgumentCountValidator
@@ -36,7 +37,7 @@ class TestArgumentCountValidator(unittest.TestCase):
         call = "stdlib.array.push"
         args = ["arg1"]
 
-        result = self.validator.check(call, "test.sh", 1, 1, args)
+        result: Any = self.validator.check(call, "test.sh", 1, 1, args)
 
         assert result is not None
         self.assertEqual(result.CODE, "STD005")
@@ -48,7 +49,7 @@ class TestArgumentCountValidator(unittest.TestCase):
         call = "stdlib.array.push"
         args = ["arg1", "arg2", "arg3"]
 
-        result = self.validator.check(call, "test.sh", 1, 1, args)
+        result: Any = self.validator.check(call, "test.sh", 1, 1, args)
 
         assert result is not None
         self.assertEqual(result.CODE, "STD005")
@@ -66,9 +67,9 @@ class TestArgumentCountValidator(unittest.TestCase):
 
     def test_check__variadic_no_args__returns_std005_with_counts(self) -> None:
         call = "stdlib.string.join"
-        args = []
+        args: List[str] = []
 
-        result = self.validator.check(call, "test.sh", 1, 1, args)
+        result: Any = self.validator.check(call, "test.sh", 1, 1, args)
 
         assert result is not None
         self.assertEqual(result.CODE, "STD005")

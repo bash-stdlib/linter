@@ -15,6 +15,7 @@ class FunctionMetadata:
         min_args: "int" = 0,
         max_args: "int" = 0,
         is_testing: "bool" = False,
+        is_mock_template: "bool" = False,
     ) -> "None":
         self.name = name
         self.arguments = arguments if arguments is not None else []
@@ -23,6 +24,7 @@ class FunctionMetadata:
         self.min_args = min_args
         self.max_args = max_args
         self.is_testing = is_testing
+        self.is_mock_template = is_mock_template
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the metadata to a dictionary for JSON serialization."""
@@ -34,4 +36,5 @@ class FunctionMetadata:
             "min_args": self.min_args,
             "max_args": self.max_args,
             "is_testing": self.is_testing,
+            "is_mock_template": self.is_mock_template,
         }

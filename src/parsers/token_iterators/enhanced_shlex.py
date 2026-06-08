@@ -10,13 +10,22 @@ class AdvancedToken(str):
 
     is_fully_quoted: "bool"
     unquoted_specials: "Set[str]"
+    start_offset: "int"
+    end_offset: "int"
 
     def __new__(
-        cls, value: str, is_fully_quoted: bool, unquoted_specials: Set[str]
+        cls,
+        value: str,
+        is_fully_quoted: bool,
+        unquoted_specials: Set[str],
+        start_offset: int = 0,
+        end_offset: int = 0,
     ) -> "AdvancedToken":
         instance = super(AdvancedToken, cls).__new__(cls, value)
         instance.is_fully_quoted = is_fully_quoted
         instance.unquoted_specials = unquoted_specials
+        instance.start_offset = start_offset
+        instance.end_offset = end_offset
         return instance
 
 
@@ -47,7 +56,7 @@ class EnhancedShlex(shlex.shlex):
         if "#" in self.target_chars:
             self.commenters = ""
 
-    def read_token(self) -> Optional[AdvancedToken]:  # type: ignore[override]
+    def read_token(self) -> Optional[AdvancedToken]:
         """Read a token and determine its quoting status."""
         raw_token: Optional[str] = super(EnhancedShlex, self).read_token()
         if raw_token is None:
@@ -74,7 +83,7 @@ class EnhancedShlex(shlex.shlex):
         unquoted_specials: Set[str] = set()
         current_quote: Optional[str] = None
         escaped: bool = False
-        escape_char: Optional[str] = "\\" if self.posix else None
+        escape_char: Optional[str] = "\\" if getattr(self, "posix", True) else None
         match_idx = 0
 
         # 2. Reconstruct the literal token representation from the raw source
@@ -129,9 +138,15 @@ class EnhancedShlex(shlex.shlex):
             literal_len == len(raw_token) + 2
         )
 
-        return AdvancedToken(raw_token, is_fully_quoted, unquoted_specials)
+        return AdvancedToken(
+            raw_token,
+            is_fully_quoted,
+            unquoted_specials,
+            start_offset=start_ptr,
+            end_offset=self.source_ptr,
+        )
 
-    def __next__(self) -> AdvancedToken:  # type: ignore[override]
+    def __next__(self) -> AdvancedToken:
         token = self.read_token()
         if token is None:
             raise StopIteration

@@ -4,7 +4,8 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
-from errors import STD000, STD006, STD008
+from errors import STD000, STD002, STD006, STD008
+from mock_manager import FunctionScope, MockManager
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
@@ -17,7 +18,7 @@ from validators import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Match, Pattern, Set
+    from typing import Match, Pattern
 
     from errors.base import LinterErrorBase
     from validators.base import ValidatorBase
@@ -30,13 +31,19 @@ class Linter:
         ignored_codes: "Optional[List[str]]" = None,
         appendum: "Optional[List[str]]" = None,
     ) -> "None":
-        self.functions: "Set[str]" = set(metadata["functions"].keys())
-        self.namespaces: "Set[str]" = set(metadata["namespaces"])
-        self.metadata = metadata["functions"]
+        self.base_functions: "Set[str]" = set(metadata["functions"].keys())
+        self.base_namespaces: "Set[str]" = set(metadata["namespaces"])
+        self.base_metadata = metadata["functions"]
+
+        self.functions: "Set[str]" = self.base_functions.copy()
+        self.namespaces: "Set[str]" = self.base_namespaces.copy()
+        self.metadata = self.base_metadata.copy()
+
         self.ignored_codes: "Set[str]" = (
             {c.upper() for c in ignored_codes} if ignored_codes else set()
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
+        self.mock_manager = MockManager(self.base_metadata)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -52,6 +59,7 @@ class Linter:
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
+        is_test_file = "test" in filepath
 
         try:
             with open(filepath, "r") as f:
@@ -65,12 +73,38 @@ class Linter:
             return errors
 
         comment_ignores = CommentIgnores()
+
+        if is_test_file:
+            # Pre-scan for mock creations
+            scopes = self._discover_scopes(file_content)
+            self.mock_manager.set_function_scopes(scopes)
+            self._discover_mock_creations(file_content)
+            # Rebuild pattern with all discovered mocks
+            self.stdlib_call_pattern = self._build_call_pattern(
+                self.mock_manager.get_all_possible_mock_names()
+            )
+        else:
+            self.stdlib_call_pattern = self._build_call_pattern()
+
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
             comment_ignores.process_line(line_content, line_num)
 
-            for match in self.stdlib_call_pattern.finditer(line_content):
+            if is_test_file:
+                # Track deletions and resets sequentially
+                self._track_mock_lifetimes(line_content, offset)
+
+            matches = sorted(
+                list(self.stdlib_call_pattern.finditer(line_content)),
+                key=lambda m: m.start(),
+            )
+
+            for match in matches:
+                absolute_match_start = offset + match.start()
+                if is_test_file:
+                    self._sync_active_mocks(absolute_match_start)
+
                 error = self._process_match(
                     match, file_content, filepath, comment_ignores, line_num, offset
                 )
@@ -84,11 +118,26 @@ class Linter:
 
         return errors
 
-    def _build_call_pattern(self) -> "Pattern[str]":
+    def _build_call_pattern(
+        self, extra_names: "Optional[Set[str]]" = None
+    ) -> "Pattern[str]":
         dot_roots = set()
         underscore_roots = set()
 
-        for name in self.functions | self.namespaces | self.appendum:
+        all_names = self.base_functions | self.base_namespaces | self.appendum
+        if extra_names:
+            all_names |= extra_names
+            # Include all template methods for these mock names
+            for mock_name in extra_names:
+                for template_name in self.mock_manager.mock_templates.keys():
+                    all_names.add(template_name.replace("object", mock_name))
+
+        # Always include _mock.* calls in pattern
+        all_names.add("_mock.create")
+        all_names.add("_mock.delete")
+        all_names.add("_mock.reset_all")
+
+        for name in all_names:
             if name.startswith("_"):
                 # Handle cases like _testing.func or _testing.example
                 dot_roots.add(name.split(".")[0])
@@ -117,6 +166,7 @@ class Linter:
             if sorted_dot_roots
             else r"(?!)"
         )
+        # print("DEBUG: dot_pattern: {}".format(dot_pattern))
         underscore_pattern = (
             r"(?:{})[a-z0-9._]*".format(
                 "|".join(re.escape(r) for r in sorted_underscore_roots)
@@ -172,6 +222,27 @@ class Linter:
             return None
 
         call_name = self._get_call_name(match)
+
+        # Ignore _mock calls from validation, they are handled by lifetime tracking
+        if call_name in ["_mock.create", "_mock.delete", "_mock.reset_all"]:
+            return None
+
+        # Verify mock visibility if it's a mock method call
+        absolute_match_start = offset + match.start()
+        if self.mock_manager.is_mock_method_active(call_name, absolute_match_start):
+            pass  # Valid active mock method
+        elif any(
+            call_name == t.replace("object", m)
+            for m in self.mock_manager.get_all_possible_mock_names()
+            for t in self.mock_manager.mock_templates.keys()
+        ):
+            # It matches a mock template but is NOT active
+            if not self._is_ignored(STD002.CODE, line_num, comment_ignores):
+                namespace = ".".join(call_name.split(".")[:-1])
+                return STD002(
+                    filepath, line_num, match.start() + 1, call_name, namespace
+                )
+            return None
 
         if self._is_appendum(call_name):
             return None
@@ -233,3 +304,109 @@ class Linter:
     def _get_column_number(self, content: "str", offset: "int") -> "int":
         last_newline = content.rfind("\n", 0, offset)
         return offset - last_newline if last_newline != -1 else offset + 1
+
+    def _discover_scopes(self, content: str) -> List[FunctionScope]:
+        # print("DEBUG: Discovering scopes...")
+        scopes = []
+        iterator = ShlexTokenIterator(content)
+        try:
+            for token in iterator:
+                if (
+                    hasattr(token, "is_fully_quoted")
+                    and not token.is_fully_quoted
+                    and (
+                        token == "function"
+                        or iterator.is_preceded_by_function_keyword(
+                            content[: token.start_offset]
+                        )
+                    )
+                ):
+                    # Potential function definition
+                    name = token
+                    if name == "function":
+                        name = next(iterator)
+
+                    # Look for opening brace
+                    found_brace = False
+                    for t in iterator:
+                        if (
+                            hasattr(t, "is_fully_quoted")
+                            and not t.is_fully_quoted
+                            and "{" in t.unquoted_specials
+                        ):
+                            found_brace = True
+                            break
+                        if (
+                            hasattr(t, "is_fully_quoted")
+                            and not t.is_fully_quoted
+                            and t in [";", "\n"]
+                        ):
+                            continue
+                        break
+
+                    if found_brace:
+                        start_offset = t.start_offset
+                        end_offset = iterator.skip_to_balanced_brace()
+                        if end_offset:
+                            scopes.append(FunctionScope(name, start_offset, end_offset))
+        except (StopIteration, ValueError):
+            pass
+        return scopes
+
+    def _discover_mock_creations(self, content: str) -> None:
+        iterator = ShlexTokenIterator(content)
+        try:
+            for token in iterator:
+                if token == "_mock.create":
+                    try:
+                        mock_name = next(iterator)
+                        # Use end_offset to ensure it's created AFTER the token
+                        self.mock_manager.create_mock(mock_name, token.end_offset)
+                    except StopIteration:
+                        pass
+        except (StopIteration, ValueError):
+            pass
+
+    def _track_mock_lifetimes(self, line_content: str, line_offset: int) -> None:
+        iterator = ShlexTokenIterator(line_content)
+        try:
+            for token in iterator:
+                if token == "_mock.delete":
+                    try:
+                        mock_name = next(iterator)
+                        self.mock_manager.delete_mock(
+                            mock_name, line_offset + token.start_offset
+                        )
+                    except StopIteration:
+                        pass
+                elif token == "_mock.reset_all":
+                    self.mock_manager.reset_all(line_offset + token.start_offset)
+        except (StopIteration, ValueError):
+            pass
+
+    def _sync_active_mocks(self, offset: int) -> None:
+        active_names = self.mock_manager.get_active_mock_names(offset)
+
+        self.functions = self.base_functions.copy()
+        self.namespaces = self.base_namespaces.copy()
+        self.metadata = self.base_metadata.copy()
+
+        for name in active_names:
+            mock_meta = self.mock_manager.get_mock_function_metadata(name)
+            self.functions.add(name)
+            self.functions.update(mock_meta.keys())
+            self.metadata.update(mock_meta)
+            # Update namespaces
+            for mock_func in mock_meta.keys():
+                parts = mock_func.split(".")
+                for i in range(1, len(parts)):
+                    self.namespaces.add(".".join(parts[:i]))
+
+        # Update validators with current state
+        for validator in self.validators:
+            if hasattr(validator, "functions"):
+                validator.functions = self.functions
+            if hasattr(validator, "namespaces"):
+                validator.namespaces = self.namespaces
+            if hasattr(validator, "metadata"):
+                validator.metadata = self.metadata

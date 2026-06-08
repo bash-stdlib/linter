@@ -1,7 +1,12 @@
 """Iterator for tokenizing Bash code using shlex."""
 
+from typing import TYPE_CHECKING, Optional
+
 from constants import SHELL_COMMAND_SEPARATORS
 from .enhanced_shlex import EnhancedShlex
+
+if TYPE_CHECKING:
+    from .enhanced_shlex import AdvancedToken
 
 
 class ShlexTokenIterator:
@@ -48,6 +53,28 @@ class ShlexTokenIterator:
             pass
         return False
 
+    def skip_to_balanced_brace(self) -> "Optional[int]":
+        """Skip tokens until a balanced closing brace is found.
+
+        Returns the end offset of the closing brace.
+        """
+        brace_count = 1
+        try:
+            for token in self:
+                if hasattr(token, "is_fully_quoted") and token.is_fully_quoted:
+                    continue
+
+                if "{" in token.unquoted_specials:
+                    brace_count += 1
+                if "}" in token.unquoted_specials:
+                    brace_count -= 1
+
+                if brace_count <= 0:
+                    return token.end_offset
+        except (StopIteration, ValueError):
+            pass
+        return None
+
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command.
 
@@ -85,7 +112,7 @@ class ShlexTokenIterator:
     def __iter__(self) -> "ShlexTokenIterator":
         return self
 
-    def __next__(self) -> "str":
+    def __next__(self) -> "AdvancedToken":
         try:
             token = next(self.lexer)
             return token

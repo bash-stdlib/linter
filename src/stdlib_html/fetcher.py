@@ -4,7 +4,7 @@ import sys
 import urllib.request
 from typing import Any, Dict, Optional, Set
 
-from constants import URL_STANDARD_DOC, URL_TESTING_DOC
+from constants import URL_MOCK_OBJECT_DOC, URL_STANDARD_DOC, URL_TESTING_DOC
 from .parser import HTMLParser
 
 
@@ -37,8 +37,8 @@ class HTMLFetcher:
 
     def _extract_functions(self) -> "Dict[str, Any]":
         functions_metadata = {}
-        for url in [URL_STANDARD_DOC, URL_TESTING_DOC]:
-            is_testing = url == URL_TESTING_DOC
+        for url in [URL_STANDARD_DOC, URL_TESTING_DOC, URL_MOCK_OBJECT_DOC]:
+            is_testing = url in [URL_TESTING_DOC, URL_MOCK_OBJECT_DOC]
             try:
                 req = urllib.request.Request(url, headers=self.headers)
                 with urllib.request.urlopen(req) as response:

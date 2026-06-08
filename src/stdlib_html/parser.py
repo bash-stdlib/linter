@@ -11,7 +11,7 @@ from .metadata import FunctionMetadata
 class HTMLParser(html.parser.HTMLParser):
     """Parses bash-stdlib documentation to extract function metadata."""
 
-    EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
+    EXCLUDED_HEADINGS: "List[str]" = ["Index"]
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
     SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     INDICATORS = enum.Enum("INDICATORS", ["optional"])
@@ -78,8 +78,9 @@ class HTMLParser(html.parser.HTMLParser):
         name = self._clean_heading(data)
         if name and name not in self.EXCLUDED_HEADINGS:
             name = name.split()[0]
+            is_mock_template = name.startswith("object")
             self.current_function = FunctionMetadata(
-                name=name, is_testing=self.is_testing
+                name=name, is_testing=self.is_testing, is_mock_template=is_mock_template
             )
             self.functions[name] = self.current_function
             self.current_section = None
