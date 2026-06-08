@@ -46,14 +46,10 @@ class Linter:
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
         self.validators: "List[ValidatorBase]" = [
-            NotNamespaceCallValidator(self.state.functions, self.state.namespaces),
-            IsFunctionCallValidator(self.state.functions, self.state.namespaces),
-            ArgumentCountValidator(
-                self.state.functions, self.state.namespaces, self.state.metadata
-            ),
-            IsTestingFunctionCallValidator(
-                self.state.functions, self.state.namespaces, self.state.metadata
-            ),
+            NotNamespaceCallValidator(self.state),
+            IsFunctionCallValidator(self.state),
+            ArgumentCountValidator(self.state),
+            IsTestingFunctionCallValidator(self.state),
         ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
@@ -374,12 +370,3 @@ class Linter:
                 parts = mock_func.split(".")
                 for i in range(1, len(parts)):
                     self.state.namespaces.add(".".join(parts[:i]))
-
-        # Update validators with current state
-        for validator in self.validators:
-            if hasattr(validator, "functions"):
-                validator.functions = self.state.functions
-            if hasattr(validator, "namespaces"):
-                validator.namespaces = self.state.namespaces
-            if hasattr(validator, "metadata"):
-                validator.metadata = self.state.metadata

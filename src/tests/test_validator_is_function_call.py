@@ -8,9 +8,16 @@ from validators.is_function_call import IsFunctionCallValidator
 
 class TestIsFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
+        from linter.state import LinterState
+
         self.functions = METADATA["functions"]
         self.namespaces = METADATA["namespaces"]
-        self.validator = IsFunctionCallValidator(self.functions, self.namespaces)
+        metadata = {
+            "functions": {f: {"name": f} for f in self.functions},
+            "namespaces": list(self.namespaces),
+        }
+        self.state = LinterState(metadata)
+        self.validator = IsFunctionCallValidator(self.state)
 
     def test_check__valid_function_call__returns_none(self) -> None:
         call = "stdlib.string.join"

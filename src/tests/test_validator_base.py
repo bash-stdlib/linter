@@ -19,9 +19,16 @@ class ConcreteValidator(ValidatorBase):
 
 class TestValidator(unittest.TestCase):
     def setUp(self) -> None:
+        from linter.state import LinterState
+
         self.functions = {"stdlib.string.join", "stdlib.array.push"}
         self.namespaces = {"stdlib", "stdlib.string", "stdlib.array"}
-        self.validator = ConcreteValidator(self.functions, self.namespaces)
+        metadata = {
+            "functions": {f: {"name": f} for f in self.functions},
+            "namespaces": list(self.namespaces),
+        }
+        self.state = LinterState(metadata)
+        self.validator = ConcreteValidator(self.state)
 
     def test_find_longest_namespace_prefix__valid_prefix__returns_longest(self) -> None:
         call = "stdlib.string.join"

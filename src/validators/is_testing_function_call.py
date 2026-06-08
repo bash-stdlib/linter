@@ -6,22 +6,15 @@ from errors import STD007
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from typing import Set
-
     from errors.base import LinterErrorBase
 
 
 class IsTestingFunctionCallValidator(ValidatorBase):
     """Ensures testing functions are not used outside of test scripts."""
 
-    def __init__(
-        self,
-        functions: "Set[str]",
-        namespaces: "Set[str]",
-        metadata: "Dict[str, Any]",
-    ) -> None:
-        super().__init__(functions, namespaces)
-        self.metadata = metadata
+    @property
+    def metadata(self) -> "Dict[str, Any]":
+        return self.state.metadata
 
     def check(
         self,

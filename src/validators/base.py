@@ -6,14 +6,22 @@ from typing import TYPE_CHECKING, List, Optional, Set
 
 if TYPE_CHECKING:
     from errors.base import LinterErrorBase
+    from linter.state import LinterState
 
 
 class ValidatorBase(abc.ABC):
     """Abstract base class for all linter validators."""
 
-    def __init__(self, functions: "Set[str]", namespaces: "Set[str]") -> None:
-        self.functions = functions
-        self.namespaces = namespaces
+    def __init__(self, state: "LinterState") -> None:
+        self.state = state
+
+    @property
+    def functions(self) -> "Set[str]":
+        return self.state.functions
+
+    @property
+    def namespaces(self) -> "Set[str]":
+        return self.state.namespaces
 
     @abc.abstractmethod
     def check(

@@ -9,13 +9,16 @@ from validators.argument_count import ArgumentCountValidator
 
 class TestArgumentCountValidator(unittest.TestCase):
     def setUp(self) -> None:
+        from linter.state import LinterState
+
         self.functions = set(METADATA.keys())
         self.namespaces = {"stdlib", "stdlib.string", "stdlib.array"}
-        self.validator = ArgumentCountValidator(
-            self.functions,
-            self.namespaces,
-            METADATA,
-        )
+        metadata = {
+            "functions": METADATA,
+            "namespaces": list(self.namespaces),
+        }
+        self.state = LinterState(metadata)
+        self.validator = ArgumentCountValidator(self.state)
 
     def test_check__valid_args__returns_none(self) -> None:
         call = "stdlib.array.push"

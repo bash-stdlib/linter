@@ -8,9 +8,16 @@ from validators.not_namespace_call import NotNamespaceCallValidator
 
 class TestNotNamespaceCallValidator(unittest.TestCase):
     def setUp(self) -> None:
+        from linter.state import LinterState
+
         self.functions = FUNCTIONS
         self.namespaces = NAMESPACES
-        self.validator = NotNamespaceCallValidator(self.functions, self.namespaces)
+        metadata = {
+            "functions": {f: {"name": f} for f in self.functions},
+            "namespaces": list(self.namespaces),
+        }
+        self.state = LinterState(metadata)
+        self.validator = NotNamespaceCallValidator(self.state)
 
     def test_check__valid_function_call__returns_none(self) -> None:
         call = "stdlib.string.join"

@@ -8,14 +8,17 @@ from validators.is_testing_function_call import IsTestingFunctionCallValidator
 
 class TestIsTestingFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
+        from linter.state import LinterState
+
         self.functions = FUNCTIONS
         self.namespaces = NAMESPACES
         self.metadata = METADATA
-        self.validator = IsTestingFunctionCallValidator(
-            self.functions,
-            self.namespaces,
-            self.metadata,
-        )
+        metadata = {
+            "functions": self.metadata,
+            "namespaces": list(self.namespaces),
+        }
+        self.state = LinterState(metadata)
+        self.validator = IsTestingFunctionCallValidator(self.state)
 
     def test_check__testing_func__in_test_file__returns_none(self) -> None:
         call = "stdlib.test.func"
