@@ -1,41 +1,16 @@
-from typing import Iterator, List, NamedTuple, Tuple, Union
+from typing import Iterator, List, Tuple, Union
 
-from .enhanced_shlex import AdvancedToken
-from .shlex import ShlexTokenIterator
-
-
-class FunctionStartEvent(NamedTuple):
-    name: str
-    offset: int
-
-
-class FunctionEndEvent(NamedTuple):
-    name: str
-    offset: int
-
-
-class MockCreationEvent(NamedTuple):
-    name: str
-    offset: int
-
-
-class MockDeletionEvent(NamedTuple):
-    name: str
-    offset: int
-
-
-class MockResetEvent(NamedTuple):
-    offset: int
-
-
-DiscoveryEvent = Union[
-    FunctionStartEvent,
-    FunctionEndEvent,
+from .discovery_events.base import DiscoveryEvent
+from .discovery_events.functions import FunctionEndEvent, FunctionStartEvent
+from .discovery_events.mocks import (
     MockCreationEvent,
     MockDeletionEvent,
     MockResetEvent,
-    AdvancedToken,
-]
+)
+from .enhanced_shlex import AdvancedToken
+from .shlex import ShlexTokenIterator
+
+DiscoveryItem = Union[DiscoveryEvent, AdvancedToken]
 
 
 class DiscoveryTokenIterator:
@@ -47,7 +22,7 @@ class DiscoveryTokenIterator:
         self.brace_depth = 0
         self.function_stack: List[Tuple[str, int]] = []
 
-    def __iter__(self) -> Iterator[DiscoveryEvent]:
+    def __iter__(self) -> Iterator[DiscoveryItem]:
         name: str
         try:
             for token in self.iterator:
