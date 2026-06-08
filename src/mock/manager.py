@@ -1,12 +1,12 @@
 from typing import Any, Dict, List, Optional, Set
 
+from functions.scope import FunctionScope
 from .instance import MockInstance
-from .scope import FunctionScope
+
+GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
 
 
 class MockManager:
-    GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
-
     def __init__(self, functions_metadata: Dict[str, Dict[str, Any]]) -> None:
         self.functions_metadata = functions_metadata
         self.mock_templates = {
@@ -22,7 +22,7 @@ class MockManager:
 
     def create_mock(self, name: str, offset: int) -> None:
         scope = self._get_scope_for_offset(offset)
-        if scope and scope.name in self.GLOBAL_GRANTING_FUNCTIONS:
+        if scope and scope.name in GLOBAL_GRANTING_FUNCTIONS:
             scope = None
         self.all_mocks.append(MockInstance(name, offset, scope))
 

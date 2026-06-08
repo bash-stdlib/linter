@@ -2,11 +2,12 @@
 
 import os
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 from errors import STD000, STD002, STD006, STD008
+from linter_state import LinterState
 from mock.manager import MockManager
-from mock.scope import FunctionScope
+from mock_scanner import MockScanner
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
@@ -17,26 +18,6 @@ from validators import (
     IsTestingFunctionCallValidator,
     NotNamespaceCallValidator,
 )
-
-
-class LinterState:
-    """Encapsulates the current state of the linter during a run."""
-
-    def __init__(self, metadata: Any) -> None:
-        self.base_functions: Set[str] = set(metadata["functions"].keys())
-        self.base_namespaces: Set[str] = set(metadata["namespaces"])
-        self.base_metadata: Dict[str, Any] = metadata["functions"]
-
-        self.functions: Set[str] = self.base_functions.copy()
-        self.namespaces: Set[str] = self.base_namespaces.copy()
-        self.metadata: Dict[str, Any] = self.base_metadata.copy()
-
-    def reset(self) -> None:
-        """Reset state to base metadata."""
-        self.functions = self.base_functions.copy()
-        self.namespaces = self.base_namespaces.copy()
-        self.metadata = self.base_metadata.copy()
-
 
 if TYPE_CHECKING:
     from typing import Match, Pattern
@@ -59,6 +40,7 @@ class Linter:
         )
         self.appendum: "Set[str]" = set(appendum) if appendum else set()
         self.mock_manager = MockManager(self.state.base_metadata)
+        self.mock_scanner = MockScanner(self.mock_manager)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -93,9 +75,9 @@ class Linter:
 
         if is_test_file:
             # Pre-scan for mock creations
-            scopes = self._discover_scopes(file_content)
+            scopes = self.mock_scanner.discover_scopes(file_content)
             self.mock_manager.set_function_scopes(scopes)
-            self._discover_mock_creations(file_content)
+            self.mock_scanner.discover_mock_creations(file_content)
             # Rebuild pattern with all discovered mocks
             self.stdlib_call_pattern = self._build_call_pattern(
                 self.mock_manager.get_all_possible_mock_names()
@@ -110,7 +92,7 @@ class Linter:
 
             if is_test_file:
                 # Track deletions and resets sequentially
-                self._track_mock_lifetimes(line_content, offset)
+                self.mock_scanner.track_mock_lifetimes(line_content, offset)
 
             matches = sorted(
                 list(self.stdlib_call_pattern.finditer(line_content)),
@@ -313,85 +295,6 @@ class Linter:
     def _get_column_number(self, content: "str", offset: "int") -> "int":
         last_newline = content.rfind("\n", 0, offset)
         return offset - last_newline if last_newline != -1 else offset + 1
-
-    def _discover_scopes(self, content: str) -> List[FunctionScope]:
-        # print("DEBUG: Discovering scopes...")
-        scopes = []
-        iterator = ShlexTokenIterator(content)
-        try:
-            for token in iterator:
-                if (
-                    hasattr(token, "is_fully_quoted")
-                    and not token.is_fully_quoted
-                    and (
-                        token == "function"
-                        or iterator.is_preceded_by_function_keyword(
-                            content[: token.start_offset]
-                        )
-                    )
-                ):
-                    # Potential function definition
-                    name = token
-                    if name == "function":
-                        name = next(iterator)
-
-                    # Look for opening brace
-                    found_brace = False
-                    for t in iterator:
-                        if (
-                            hasattr(t, "is_fully_quoted")
-                            and not t.is_fully_quoted
-                            and "{" in t.unquoted_specials
-                        ):
-                            found_brace = True
-                            break
-                        if (
-                            hasattr(t, "is_fully_quoted")
-                            and not t.is_fully_quoted
-                            and t in [";", "\n"]
-                        ):
-                            continue
-                        break
-
-                    if found_brace:
-                        start_offset = t.start_offset
-                        end_offset = iterator.skip_to_balanced_bracket()
-                        if end_offset:
-                            scopes.append(FunctionScope(name, start_offset, end_offset))
-        except (StopIteration, ValueError):
-            pass
-        return scopes
-
-    def _discover_mock_creations(self, content: str) -> None:
-        iterator = ShlexTokenIterator(content)
-        try:
-            for token in iterator:
-                if token == "_mock.create":
-                    try:
-                        mock_name = next(iterator)
-                        # Use end_offset to ensure it's created AFTER the token
-                        self.mock_manager.create_mock(mock_name, token.end_offset)
-                    except StopIteration:
-                        pass
-        except (StopIteration, ValueError):
-            pass
-
-    def _track_mock_lifetimes(self, line_content: str, line_offset: int) -> None:
-        iterator = ShlexTokenIterator(line_content)
-        try:
-            for token in iterator:
-                if token == "_mock.delete":
-                    try:
-                        mock_name = next(iterator)
-                        self.mock_manager.delete_mock(
-                            mock_name, line_offset + token.start_offset
-                        )
-                    except StopIteration:
-                        pass
-                elif token == "_mock.reset_all":
-                    self.mock_manager.reset_all(line_offset + token.start_offset)
-        except (StopIteration, ValueError):
-            pass
 
     def _check_mock_visibility(
         self,

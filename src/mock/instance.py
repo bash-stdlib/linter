@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .scope import FunctionScope
+from functions.scope import FunctionScope
 
 
 class MockInstance:
