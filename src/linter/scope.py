@@ -1,7 +1,5 @@
 """Module for tracking function scopes in Bash scripts."""
 
-from typing import Optional
-
 
 class FunctionScope:
     """Represents the scope of a Bash function."""

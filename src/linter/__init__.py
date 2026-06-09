@@ -4,8 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from errors import STD000, STD006, STD008
-from linter.line_iterators.base import LineIteratorBase
+from errors import STD000, STD006, STD008, STD009
 from linter.line_iterators.comment_ignores import CommentIgnores
 from linter.line_iterators.events_iterator import EventsIterator
 from linter.state.file_state import FileLinterState
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
     from typing import List, Match, Pattern
 
     from errors.base import LinterErrorBase
+    from linter.line_iterators.base import LineIteratorBase
     from validators.base import ValidatorBase
 
 
@@ -83,9 +83,9 @@ class Linter:
 
         for scope in self.file_state.function_scopes:
             if scope.end_line == -1:
-                raise RuntimeError(
-                    f"Unclosed function scope detected for '{scope.name}' starting at line {scope.start_line}"
-                )
+                if not self._is_ignored(STD009.CODE, scope.start_line):
+                    # For STD009, we don't have a column, but let's use 1
+                    errors.append(STD009(filepath, scope.start_line, 1, scope.name))
 
         for code, line in self.file_state.get_unused_ignores():
             errors.append(STD008(filepath, line, 1, code))

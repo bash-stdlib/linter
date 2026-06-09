@@ -1,14 +1,14 @@
 """Line iterator that manages and dispatches code events."""
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from linter.line_iterators.base import LineIteratorBase
 from linter.line_iterators.events.function import FunctionEvent
 
 if TYPE_CHECKING:
+    from linter.line_iterators.events.base import EventBase
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
-    from linter.line_iterators.events.base import EventBase
 
 
 class EventsIterator(LineIteratorBase):
