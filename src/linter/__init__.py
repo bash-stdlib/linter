@@ -75,9 +75,8 @@ class Linter:
 
             offset += len(line_content)
 
-        if self.state.comment_ignores:
-            for code, line in self.state.comment_ignores.get_unused_ignores():
-                errors.append(STD008(filepath, line, 1, code))
+        for code, line in self.state.get_unused_ignores():
+            errors.append(STD008(filepath, line, 1, code))
 
         return errors
 
@@ -136,9 +135,7 @@ class Linter:
         code = code.upper()
         if code in self.state.ignored_codes:
             return True
-        if self.state.comment_ignores and self.state.comment_ignores.is_ignored(
-            code, line
-        ):
+        if self.state.is_ignored(code, line):
             return True
         return False
 
