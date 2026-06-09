@@ -2,7 +2,8 @@ import unittest
 from typing import List, Optional
 
 from errors.base import LinterErrorBase
-from linter.state import LinterState
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
 from tests.assets.validator.base.metadata import METADATA
 from validators.base import ValidatorBase
 
@@ -21,8 +22,9 @@ class ConcreteValidator(ValidatorBase):
 
 class TestValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.state = LinterState(METADATA)
-        self.validator = ConcreteValidator(self.state)
+        self.global_state = GlobalLinterState(METADATA)
+        self.file_state = FileLinterState()
+        self.validator = ConcreteValidator(self.global_state, self.file_state)
 
     def test_find_longest_namespace_prefix__valid_prefix__returns_longest(self) -> None:
         call = "stdlib.string.join"

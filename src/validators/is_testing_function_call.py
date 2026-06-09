@@ -20,7 +20,7 @@ class IsTestingFunctionCallValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
-        func_meta = self.state.metadata.get(call)
+        func_meta = self.global_state.metadata.get(call)
         if not func_meta:
             return None
 

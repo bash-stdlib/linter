@@ -20,13 +20,13 @@ class ArgumentCountValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
-        if call not in self.state.functions:
+        if call not in self.global_state.functions:
             return None
 
         if args is None:
             args = []
 
-        func_meta = self.state.metadata.get(call)
+        func_meta = self.global_state.metadata.get(call)
         if not func_meta:
             return None
 

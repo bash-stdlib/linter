@@ -4,7 +4,8 @@ import unittest
 from typing import List
 
 from errors.std005 import STD005
-from linter.state import LinterState
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
 from tests.assets.validator.argument_count.metadata import METADATA
 from validators.argument_count import ArgumentCountValidator
 
@@ -15,8 +16,9 @@ class TestArgumentCountValidator(unittest.TestCase):
             "functions": METADATA,
             "namespaces": ["stdlib", "stdlib.string", "stdlib.array"],
         }
-        self.state = LinterState(metadata)
-        self.validator = ArgumentCountValidator(self.state)
+        self.global_state = GlobalLinterState(metadata)
+        self.file_state = FileLinterState()
+        self.validator = ArgumentCountValidator(self.global_state, self.file_state)
 
     def test_check__valid_args__returns_none(self) -> None:
         call = "stdlib.array.push"

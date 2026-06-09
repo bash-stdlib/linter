@@ -22,7 +22,7 @@ class IsFunctionCallValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
-        if call in self.state.functions:
+        if call in self.global_state.functions:
             return None
 
         for prefix in self.WHITELISTED_PREFIXES:

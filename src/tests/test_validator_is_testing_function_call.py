@@ -2,15 +2,19 @@
 
 import unittest
 
-from linter.state import LinterState
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
 from tests.assets.validator.is_testing_function_call.metadata import METADATA_FULL
 from validators.is_testing_function_call import IsTestingFunctionCallValidator
 
 
 class TestIsTestingFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.state = LinterState(METADATA_FULL)
-        self.validator = IsTestingFunctionCallValidator(self.state)
+        self.global_state = GlobalLinterState(METADATA_FULL)
+        self.file_state = FileLinterState()
+        self.validator = IsTestingFunctionCallValidator(
+            self.global_state, self.file_state
+        )
 
     def test_check__testing_func__in_test_file__returns_none(self) -> None:
         call = "stdlib.test.func"

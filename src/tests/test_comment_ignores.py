@@ -2,19 +2,21 @@ import unittest
 from typing import Any, Dict
 
 from linter.line_iterators.comment_ignores import CommentIgnores
-from linter.state import LinterState
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
 
 
 class TestCommentIgnores(unittest.TestCase):
-    def _create_state(self, content: str) -> LinterState:
+    def _create_state(self, content: str) -> FileLinterState:
         metadata: Dict[str, Any] = {"functions": {}, "namespaces": []}
-        state = LinterState(metadata)
-        iterator = CommentIgnores(state)
+        global_state = GlobalLinterState(metadata)
+        file_state = FileLinterState()
+        iterator = CommentIgnores(global_state, file_state)
 
         for i, line in enumerate(content.splitlines(True)):
             iterator.process_line(line, i + 1)
 
-        return state
+        return file_state
 
     def test_is_ignored__file_level_after_shebang__returns_true(self) -> None:
         content = "#!/bin/bash\n# stdlib: disable STD001, STD002\nstdlib.namespace"

@@ -1,30 +1,17 @@
-"""State object for the linter."""
+"""File-specific state object for the linter."""
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Tuple
 
 
-class LinterState:
-    """Holds the configuration and metadata for the linter."""
+class FileLinterState:
+    """Holds the state for a single file being linted."""
 
-    def __init__(
-        self,
-        metadata: Any,
-        ignored_codes: Optional[List[str]] = None,
-        appendum: Optional[List[str]] = None,
-    ) -> None:
+    def __init__(self) -> None:
         # file_ignores: (code, definition_line) -> is_used
         self.file_ignores: Dict[Tuple[str, int], bool] = {}
 
         # line_ignores: line_to_check -> (code, definition_line) -> is_used
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
-
-        self.functions: Set[str] = set(metadata["functions"].keys())
-        self.namespaces: Set[str] = set(metadata["namespaces"])
-        self.metadata: Dict[str, Any] = metadata["functions"]
-        self.ignored_codes: Set[str] = (
-            {c.upper() for c in ignored_codes} if ignored_codes else set()
-        )
-        self.appendum: Set[str] = set(appendum) if appendum else set()
 
     def is_ignored(self, code: str, line: int) -> bool:
         """Check if a specific error code is ignored for a given line."""
