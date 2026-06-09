@@ -1,17 +1,23 @@
 """Parser for inline linter disable comments in shell scripts."""
 
 import re
-from typing import Dict, List, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Set, Tuple
+
+from linter.line_iterators.base import LineIteratorBase
+
+if TYPE_CHECKING:
+    from linter.state import LinterState
 
 
-class CommentIgnores:
+class CommentIgnores(LineIteratorBase):
     """Parses and stores linter error codes ignored via comments."""
 
     IGNORE_PATTERN = re.compile(
         r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE
     )
 
-    def __init__(self) -> None:
+    def __init__(self, state: "LinterState") -> None:
+        super().__init__(state)
         # file_ignores: (code, definition_line) -> is_used
         self.file_ignores: Dict[Tuple[str, int], bool] = {}
 
@@ -19,6 +25,7 @@ class CommentIgnores:
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
 
         self._in_header = True
+        self.state.comment_ignores = self
 
     def process_line(self, line_content: str, line_num: int) -> None:
         """Process a single line to extract ignore directives."""

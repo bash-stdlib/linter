@@ -1,6 +1,9 @@
 """State object for the linter."""
 
-from typing import Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+
+if TYPE_CHECKING:
+    from linter.line_iterators.comment_ignores import CommentIgnores
 
 
 class LinterState:
@@ -12,6 +15,7 @@ class LinterState:
         ignored_codes: Optional[List[str]] = None,
         appendum: Optional[List[str]] = None,
     ) -> None:
+        self.comment_ignores: "Optional[CommentIgnores]" = None
         self.functions: Set[str] = set(metadata["functions"].keys())
         self.namespaces: Set[str] = set(metadata["namespaces"])
         self.metadata: Dict[str, Any] = metadata["functions"]

@@ -1,11 +1,15 @@
 import unittest
+from typing import Any, Dict
 
-from parsers.comment_ignores import CommentIgnores
+from linter.line_iterators.comment_ignores import CommentIgnores
+from linter.state import LinterState
 
 
 class TestCommentIgnores(unittest.TestCase):
     def _create_ignores(self, content: str) -> CommentIgnores:
-        ignores = CommentIgnores()
+        metadata: Dict[str, Any] = {"functions": {}, "namespaces": []}
+        state = LinterState(metadata)
+        ignores = CommentIgnores(state)
 
         for i, line in enumerate(content.splitlines(True)):
             ignores.process_line(line, i + 1)

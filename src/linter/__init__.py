@@ -5,9 +5,9 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008
+from linter.line_iterators.comment_ignores import CommentIgnores
 from linter.state import LinterState
 from parsers import BashArgumentsParser
-from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
 from parsers.transformers import LineContinuationTransformer
 from validators import (
@@ -41,6 +41,9 @@ class Linter:
             ArgumentCountValidator(self.state),
             IsTestingFunctionCallValidator(self.state),
         ]
+        self.line_iterators = [
+            CommentIgnores(self.state),
+        ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
         errors: "List[LinterErrorBase]" = []
@@ -53,27 +56,28 @@ class Linter:
                     raw_content, preserve_lines=True
                 )
         except Exception as e:
-            if not self._is_ignored("STD000", 1, None):
+            if not self._is_ignored("STD000", 1):
                 errors.append(STD000(filepath, str(e)))
             return errors
 
-        comment_ignores = CommentIgnores()
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
-            comment_ignores.process_line(line_content, line_num)
+            for iterator in self.line_iterators:
+                iterator.process_line(line_content, line_num)
 
             for match in self.stdlib_call_pattern.finditer(line_content):
                 error = self._process_match(
-                    match, file_content, filepath, comment_ignores, line_num, offset
+                    match, file_content, filepath, line_num, offset
                 )
                 if error:
                     errors.append(error)
 
             offset += len(line_content)
 
-        for code, line in comment_ignores.get_unused_ignores():
-            errors.append(STD008(filepath, line, 1, code))
+        if self.state.comment_ignores:
+            for code, line in self.state.comment_ignores.get_unused_ignores():
+                errors.append(STD008(filepath, line, 1, code))
 
         return errors
 
@@ -128,12 +132,13 @@ class Linter:
         self,
         code: str,
         line: int,
-        comment_ignores: Optional[CommentIgnores],
     ) -> bool:
         code = code.upper()
         if code in self.state.ignored_codes:
             return True
-        if comment_ignores and comment_ignores.is_ignored(code, line):
+        if self.state.comment_ignores and self.state.comment_ignores.is_ignored(
+            code, line
+        ):
             return True
         return False
 
@@ -154,7 +159,6 @@ class Linter:
         match: "Match[str]",
         content: "str",
         filepath: "str",
-        comment_ignores: CommentIgnores,
         line_num: int,
         offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
@@ -174,14 +178,14 @@ class Linter:
 
         args = self.argument_parser.parse(content[absolute_end:])
         if args is None:
-            if not self._is_ignored(STD006.CODE, line_num, comment_ignores):
+            if not self._is_ignored(STD006.CODE, line_num):
                 return STD006(filepath, line_num, column, call_name)
             return None
 
         for validator in self.validators:
             error = validator.check(call_name, filepath, line_num, column, args)
             if error:
-                if not self._is_ignored(error.CODE, line_num, comment_ignores):
+                if not self._is_ignored(error.CODE, line_num):
                     return error
                 # Continue checking other validators if this error was ignored
 
