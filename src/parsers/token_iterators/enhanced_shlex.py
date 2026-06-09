@@ -12,6 +12,7 @@ class AdvancedToken(str):
     unquoted_specials: "Set[str]"
     start_offset: "int"
     end_offset: "int"
+    line_num: "int"
 
     def __new__(
         cls,
@@ -20,12 +21,14 @@ class AdvancedToken(str):
         unquoted_specials: Set[str],
         start_offset: int,
         end_offset: int,
+        line_num: int,
     ) -> "AdvancedToken":
         instance = super(AdvancedToken, cls).__new__(cls, value)
         instance.is_fully_quoted = is_fully_quoted
         instance.unquoted_specials = unquoted_specials
         instance.start_offset = start_offset
         instance.end_offset = end_offset
+        instance.line_num = line_num
         return instance
 
 
@@ -139,7 +142,12 @@ class EnhancedShlex(shlex.shlex):
         )
 
         return AdvancedToken(
-            raw_token, is_fully_quoted, unquoted_specials, start_ptr, self.source_ptr
+            raw_token,
+            is_fully_quoted,
+            unquoted_specials,
+            start_ptr,
+            self.source_ptr,
+            self.lineno,
         )
 
     def __next__(self) -> AdvancedToken:

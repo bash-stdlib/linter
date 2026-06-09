@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008, STD009
 from linter.line_iterators.comment_ignores import CommentIgnores
-from linter.line_iterators.events_iterator import EventsIterator
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 from parsers import BashArgumentsParser
 from parsers.token_iterators import ShlexTokenIterator
+from parsers.token_iterators.discovery import DiscoveryTokenIterator
 from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
@@ -20,7 +20,7 @@ from validators import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Match, Pattern
+    from typing import Match, Pattern
 
     from errors.base import LinterErrorBase
     from linter.line_iterators.base import LineIteratorBase
@@ -49,7 +49,6 @@ class Linter:
         ]
         line_iterators: "List[LineIteratorBase]" = [
             CommentIgnores(self.global_state, self.file_state),
-            EventsIterator(self.global_state, self.file_state),
         ]
 
         errors: "List[LinterErrorBase]" = []
@@ -65,6 +64,12 @@ class Linter:
             if not self._is_ignored("STD000", 1):
                 errors.append(STD000(filepath, str(e)))
             return errors
+
+        # Discovery Pass
+        discovery = DiscoveryTokenIterator(
+            file_content, self.global_state, self.file_state
+        )
+        discovery.run()
 
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
