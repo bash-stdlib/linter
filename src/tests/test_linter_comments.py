@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
-from tests.assets.linter_comments.metadata import METADATA
+from tests.assets.linter.comments.metadata import METADATA
 
 
 class TestLinterComments(unittest.TestCase):

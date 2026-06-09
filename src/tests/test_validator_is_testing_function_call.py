@@ -3,7 +3,7 @@
 import unittest
 
 from linter.state import LinterState
-from tests.assets.validator_is_testing_function_call.metadata import METADATA_FULL
+from tests.assets.validator.is_testing_function_call.metadata import METADATA_FULL
 from validators.is_testing_function_call import IsTestingFunctionCallValidator
 
 

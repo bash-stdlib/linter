@@ -3,7 +3,7 @@
 import unittest
 
 from linter.state import LinterState
-from tests.assets.validator_not_namespace_call.metadata import METADATA
+from tests.assets.validator.not_namespace_call.metadata import METADATA
 from validators.not_namespace_call import NotNamespaceCallValidator
 
 

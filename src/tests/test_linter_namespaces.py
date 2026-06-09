@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
-from tests.assets.linter_namespaces.metadata import METADATA
+from tests.assets.linter.namespaces.metadata import METADATA
 
 
 class TestLinterNamespaces(unittest.TestCase):

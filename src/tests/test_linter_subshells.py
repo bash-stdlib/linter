@@ -5,7 +5,7 @@ from unittest.mock import mock_open, patch
 
 from errors.std001 import STD001
 from linter import Linter
-from tests.assets.linter_subshells.metadata import METADATA, SCRIPTS
+from tests.assets.linter.subshells.metadata import METADATA, SCRIPTS
 
 
 class TestLinterSubshells(unittest.TestCase):

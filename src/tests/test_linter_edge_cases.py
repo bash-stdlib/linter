@@ -4,7 +4,7 @@ from unittest.mock import mock_open, patch
 
 from errors.base import LinterErrorBase
 from linter import Linter
-from tests.assets.linter_edge_cases.metadata import METADATA, SCRIPTS
+from tests.assets.linter.edge_cases.metadata import METADATA, SCRIPTS
 
 
 class TestLinterEdgeCases(unittest.TestCase):

@@ -5,7 +5,7 @@ from typing import List
 
 from errors.std005 import STD005
 from linter.state import LinterState
-from tests.assets.validator_argument_count.metadata import METADATA
+from tests.assets.validator.argument_count.metadata import METADATA
 from validators.argument_count import ArgumentCountValidator
 
 

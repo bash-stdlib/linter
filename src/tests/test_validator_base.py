@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from errors.base import LinterErrorBase
 from linter.state import LinterState
-from tests.assets.validator_base.metadata import METADATA
+from tests.assets.validator.base.metadata import METADATA
 from validators.base import ValidatorBase
 
 

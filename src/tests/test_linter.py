@@ -10,7 +10,7 @@ from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
 from linter import Linter
-from tests.assets.linter.metadata import METADATA
+from tests.assets.linter.core.metadata import METADATA
 
 if TYPE_CHECKING:
     from errors.base import LinterErrorBase
