@@ -10,6 +10,7 @@ from errors.std004 import STD004
 from errors.std005 import STD005
 from errors.std006 import STD006
 from linter import Linter
+from tests.assets.linter.metadata import METADATA
 
 if TYPE_CHECKING:
     from errors.base import LinterErrorBase
@@ -17,33 +18,7 @@ if TYPE_CHECKING:
 
 class TestLinter(unittest.TestCase):
     def setUp(self) -> "None":
-        self.metadata = {
-            "functions": {
-                "stdlib.array.assert.is_array": {
-                    "name": "stdlib.array.assert.is_array",
-                    "arguments": ["$1"],
-                    "keywords": [],
-                    "globals": [],
-                    "min_args": 1,
-                    "max_args": 1,
-                },
-                "stdlib.string.args.join": {
-                    "name": "stdlib.string.args.join",
-                    "arguments": ["$1", "..."],
-                    "keywords": [],
-                    "globals": [],
-                    "min_args": 1,
-                    "max_args": -1,
-                },
-            },
-            "namespaces": [
-                "stdlib",
-                "stdlib.array",
-                "stdlib.array.assert",
-                "stdlib.string",
-                "stdlib.string.args",
-            ],
-        }
+        self.metadata = METADATA
         self.linter = Linter(self.metadata)
 
     def _lint_content(self, content: "str") -> "List[LinterErrorBase]":

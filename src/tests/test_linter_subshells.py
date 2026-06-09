@@ -5,7 +5,7 @@ from unittest.mock import mock_open, patch
 
 from errors.std001 import STD001
 from linter import Linter
-from tests.assets.linter_subshells.metadata import METADATA
+from tests.assets.linter_subshells.metadata import METADATA, SCRIPTS
 
 
 class TestLinterSubshells(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestLinterSubshells(unittest.TestCase):
         self.metadata = METADATA
 
     def test_lint__command_in_nested_parameter_subshell__is_detected(self) -> None:
-        content = 'nested="${HELLO:-"$(stdlib.invalid.call hello)"}"'
+        content = SCRIPTS["nested_parameter_subshell"]
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
@@ -28,7 +28,7 @@ class TestLinterSubshells(unittest.TestCase):
         )
 
     def test_lint__command_in_unassigned_parameter_backticks__is_detected(self) -> None:
-        content = "${HELLO:-`stdlib.invalid.call hello`}"
+        content = SCRIPTS["unassigned_parameter_backticks"]
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
@@ -43,7 +43,7 @@ class TestLinterSubshells(unittest.TestCase):
         )
 
     def test_lint__command_in_complex_nested_expansion__is_detected(self) -> None:
-        content = 'nested="${HELLO:-"$(stdlib.some.command arg1 arg2)"}"'
+        content = SCRIPTS["complex_nested_expansion"]
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
