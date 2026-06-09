@@ -18,7 +18,9 @@ class CommentIgnores(LineIteratorBase):
     )
 
     def __init__(
-        self, global_state: "GlobalLinterState", file_state: "FileLinterState"
+        self,
+        global_state: "GlobalLinterState",
+        file_state: "FileLinterState",
     ) -> None:
         super().__init__(global_state, file_state)
         self._in_header = True
