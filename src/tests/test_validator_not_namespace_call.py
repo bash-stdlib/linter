@@ -3,17 +3,13 @@
 import unittest
 
 from linter.state import LinterState
-from tests.assets.linter_validation_namespace_call import FUNCTIONS, NAMESPACES
+from tests.assets.validator_not_namespace_call.metadata import METADATA
 from validators.not_namespace_call import NotNamespaceCallValidator
 
 
 class TestNotNamespaceCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        metadata = {
-            "functions": {f: {} for f in FUNCTIONS},
-            "namespaces": NAMESPACES,
-        }
-        self.state = LinterState(metadata)
+        self.state = LinterState(METADATA)
         self.validator = NotNamespaceCallValidator(self.state)
 
     def test_check__valid_function_call__returns_none(self) -> None:
