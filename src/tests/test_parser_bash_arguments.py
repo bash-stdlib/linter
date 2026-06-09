@@ -88,8 +88,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("$("))
-        self.assertTrue(result[1].endswith(")"))
+        self.assertTrue(result[1].strip().startswith("$("))
+        self.assertTrue(result[1].strip().endswith(")"))
 
     def test_parse__nested_subshell__counts_as_one_argument(self) -> None:
         content = "arg1 $(echo $(nested)) arg2"
@@ -100,8 +100,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("$("))
-        self.assertTrue(result[1].endswith(")"))
+        self.assertTrue(result[1].strip().startswith("$("))
+        self.assertTrue(result[1].strip().endswith(")"))
 
     def test_parse__parameter_expansion__counts_as_one_argument(self) -> None:
         content = "arg1 ${VAR:-default} arg2"
@@ -112,8 +112,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("${"))
-        self.assertTrue(result[1].endswith("}"))
+        self.assertTrue(result[1].strip().startswith("${"))
+        self.assertTrue(result[1].strip().endswith("}"))
 
     def test_parse__quoted_subshell__counts_as_one_argument(self) -> None:
         content = 'arg1 "$(echo foo bar)" arg2'
@@ -124,8 +124,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("$("))
-        self.assertTrue(result[1].endswith(")"))
+        self.assertTrue(result[1].strip().startswith("$("))
+        self.assertTrue(result[1].strip().endswith(")"))
 
     def test_parse__backticks__counts_as_one_argument(self) -> None:
         content = "arg1 `echo foo` arg2"
@@ -136,8 +136,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("`"))
-        self.assertTrue(result[1].endswith("`"))
+        self.assertTrue(result[1].strip().startswith("`"))
+        self.assertTrue(result[1].strip().endswith("`"))
 
     def test_parse__nested_backticks__counts_as_one_argument(self) -> None:
         content = "arg1 `echo \\`echo nested\\`` arg2"
@@ -148,8 +148,8 @@ class TestBashArgumentsParser(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg1")
         self.assertEqual(result[2], "arg2")
-        self.assertTrue(result[1].startswith("`"))
-        self.assertTrue(result[1].endswith("`"))
+        self.assertTrue(result[1].strip().startswith("`"))
+        self.assertTrue(result[1].strip().endswith("`"))
 
     def test_parse__command_separator_semicolon__stops_at_separator(self) -> None:
         content = "arg1 arg2 ; next_cmd"

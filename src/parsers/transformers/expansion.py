@@ -76,6 +76,11 @@ class ExpansionTransformer(TransformerBase):
                 j += 1
 
         if count == 0:
-            return config.placeholder, j
+            original_len = j - start_index
+            placeholder = config.placeholder
+            if len(placeholder) < original_len:
+                # Pad with spaces to preserve length
+                placeholder = placeholder + " " * (original_len - len(placeholder))
+            return placeholder, j
 
         return content[start_index], start_index + 1

@@ -4,7 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Set
 
-from constants import MOCK_LIFETIME_FUNCTIONS
+from constants import MOCK_LIFETIME_FUNCTIONS, SHELL_COMMAND_SEPARATORS
 from errors import STD000, STD006, STD008
 from functions.scope import FunctionScope as FunctionScope
 from linter.state import LinterState
@@ -91,38 +91,70 @@ class Linter:
         # Sequential pass using DiscoveryTokenIterator
         self.state.mock_manager.clear_instances()
         discovery = DiscoveryTokenIterator(file_content)
+        at_command_position = True
+        in_comment = False
+
         for item in discovery:
             if isinstance(item, DiscoveryEvent):
                 item.handle(self)
+                # After a function start/end or mock creation, we are generally at a command position
+                # or it doesn't hurt to assume so for the next token.
+                at_command_position = True
             elif isinstance(item, str):  # AdvancedToken
                 token = item
                 absolute_offset = token.start_offset
 
-                # Sync active mocks BEFORE matching to update the pattern correctly
-                self._sync_active_mocks(absolute_offset)
+                if (
+                    not token.is_fully_quoted
+                    and "#" in token.unquoted_specials
+                    and token.startswith("#")
+                ):
+                    in_comment = True
 
-                # Check if this token matches our stdlib pattern
-                for match in self.stdlib_call_pattern.finditer(token):
-                    # Coordinate of the match within the whole file
-                    absolute_match_start = absolute_offset + match.start()
-                    line_num = self._get_line_number(file_content, absolute_match_start)
+                if not in_comment:
+                    # Sync active mocks BEFORE matching to update the pattern correctly
+                    self._sync_active_mocks(absolute_offset)
 
-                    # Update state for validators
-                    self.state.current_absolute_offset = absolute_match_start
+                    # Check if this token matches our stdlib pattern
+                    for match in self.stdlib_call_pattern.finditer(token):
+                        # Coordinate of the match within the whole file
+                        absolute_match_start = absolute_offset + match.start()
+                        line_num = self._get_line_number(file_content, absolute_match_start)
 
-                    # Sync active mocks for this match
-                    self._sync_active_mocks(absolute_match_start)
+                        # Update state for validators
+                        self.state.current_absolute_offset = absolute_match_start
 
-                    error = self._process_match(
-                        match,
-                        file_content,
-                        filepath,
-                        comment_ignores,
-                        line_num,
-                        token.start_offset,
-                    )
-                    if error:
-                        errors.append(error)
+                        # Sync active mocks for this match
+                        self._sync_active_mocks(absolute_match_start)
+
+                        error = self._process_match(
+                            match,
+                            file_content,
+                            filepath,
+                            comment_ignores,
+                            line_num,
+                            token,
+                            at_command_position,
+                        )
+                        if error:
+                            errors.append(error)
+
+                # Update at_command_position for the NEXT token
+                if (
+                    not token.is_fully_quoted
+                    and token in SHELL_COMMAND_SEPARATORS
+                ):
+                    at_command_position = True
+                    if token == "\n":
+                        in_comment = False
+                elif token == "$":
+                    # Keep at_command_position same, it might be $( or ${
+                    pass
+                elif "=" in token and at_command_position:
+                    # Assignments at start of command don't change at_command_position
+                    at_command_position = True
+                else:
+                    at_command_position = False
 
         for code, line_num_unused in comment_ignores.get_unused_ignores():
             errors.append(STD008(filepath, line_num_unused, 1, code))
@@ -233,12 +265,19 @@ class Linter:
         filepath: "str",
         comment_ignores: CommentIgnores,
         line_num: int,
-        offset: int = 0,
+        token: "AdvancedToken",
+        at_command_position: bool,
     ) -> "Optional[LinterErrorBase]":
+        offset = token.start_offset
         if self._is_function_definition(match, content, offset):
             return None
 
-        if not self._is_at_command_position(match, content, offset):
+        if not at_command_position:
+            # Special case: match might be inside token but still at start of token
+            # but usually stdlib calls ARE the whole token or start of it.
+            if match.start() > 0:
+                return None
+            # If it's the start of token, but at_command_position is false, it's not a command.
             return None
 
         call_name = self._get_call_name(match)
@@ -266,21 +305,6 @@ class Linter:
 
         return None
 
-    def _is_at_command_position(
-        self, match: "Match[str]", content: "str", offset: "int"
-    ) -> bool:
-        """Check if the match is at the start of a command."""
-        before = content[: offset + match.start()]
-
-        if before.endswith("$") or before.endswith("${"):
-            return False
-
-        last_newline = before.rfind("\n")
-        line_before = before[last_newline + 1 :]
-
-        shlex_iterator = ShlexTokenIterator(line_before)
-        return shlex_iterator.is_at_command_position()
-
     def _is_function_definition(
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
@@ -300,10 +324,12 @@ class Linter:
         return call
 
     def _get_line_number(self, content: "str", offset: "int") -> "int":
-        return content.count("\n", 0, offset) + 1
+        return content.count("\n", 0, offset) + content.count("\x0b", 0, offset) + 1
 
     def _get_column_number(self, content: "str", offset: "int") -> "int":
-        last_newline = content.rfind("\n", 0, offset)
+        last_newline = max(
+            content.rfind("\n", 0, offset), content.rfind("\x0b", 0, offset)
+        )
         return offset - last_newline if last_newline != -1 else offset + 1
 
 
