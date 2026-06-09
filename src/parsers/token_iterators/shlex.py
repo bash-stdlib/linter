@@ -17,10 +17,10 @@ class ShlexTokenIterator:
     WORDCHARS_APPENDUM = "./$*?@-_"
     COMMENT_CHAR = "#"
 
-    def __init__(self, content: "str") -> None:
+    def __init__(self, content: "str", posix: bool = True) -> None:
         target_chars = list(SHELL_COMMAND_SEPARATORS) + [">", "<"]
         self.lexer = EnhancedShlex(
-            content, posix=True, target_chars=target_chars, punctuation_chars=True
+            content, posix=posix, target_chars=target_chars, punctuation_chars=True
         )
         self.lexer.whitespace = self.WHITESPACE_CHARS
         # Ensure WORDCHARS_APPENDUM does not include any target_chars

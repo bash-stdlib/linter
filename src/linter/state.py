@@ -1,6 +1,9 @@
-from typing import Any, Dict, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Set
 
 from mock.manager import MockManager
+
+if TYPE_CHECKING:
+    from parsers.token_iterators.discovery_events.base import DiscoveryEvent
 
 
 class LinterState:
@@ -17,6 +20,7 @@ class LinterState:
 
         self.mock_manager = MockManager(self.base_metadata)
         self.current_absolute_offset: int = 0
+        self.event_log: List["DiscoveryEvent"] = []
 
     def reset(self) -> None:
         """Reset state to base metadata."""
@@ -28,3 +32,4 @@ class LinterState:
         """Completely clear state for a new file."""
         self.reset()
         self.mock_manager.clear()
+        self.event_log = []

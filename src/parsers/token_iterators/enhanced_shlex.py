@@ -39,30 +39,30 @@ class EnhancedShlex(shlex.shlex):
         target_chars: Optional[List[str]] = None,
         punctuation_chars: Union[bool, str] = False,
     ) -> None:
-        # Save a clean copy of the entire source string for our parallel scanner
         if isinstance(instream, str):
             self.source_str: str = instream
-            instream = io.StringIO(instream)
         else:
             self.source_str = instream.read()
-            instream = io.StringIO(self.source_str)
 
         super(EnhancedShlex, self).__init__(
-            instream, posix=posix, punctuation_chars=punctuation_chars
+            io.StringIO(self.source_str),
+            posix=posix,
+            punctuation_chars=punctuation_chars,
         )
         self.target_chars: Set[str] = set(target_chars or [])
         self.source_ptr: int = 0
+        self.is_posix: bool = posix
 
         if "#" in self.target_chars:
             self.commenters = ""
 
     def read_token(self) -> Optional[AdvancedToken]:
-        """Read a token and determine its quoting status."""
+        """Read a token and determine its quoting status and source offsets."""
         raw_token: Optional[str] = super(EnhancedShlex, self).read_token()
         if raw_token is None:
             return None
 
-        # 1. Advance our parallel pointer past leading whitespace or comments
+        # 1. Skip leading whitespace/comments to find the start of the token
         while self.source_ptr < len(self.source_str):
             ch = self.source_str[self.source_ptr]
             if ch in self.whitespace:
@@ -73,66 +73,85 @@ class EnhancedShlex(shlex.shlex):
                     and self.source_str[self.source_ptr] != "\n"
                 ):
                     self.source_ptr += 1
-                self.source_ptr += 1
+                if self.source_ptr < len(self.source_str):
+                    self.source_ptr += 1
             else:
-                # if it is part of punctuation_chars and if raw_token starts with it
-                # we don't break yet if we are looking for only punctuation
                 break
 
         start_ptr = self.source_ptr
         unquoted_specials: Set[str] = set()
+
+        # 2. Reconstruction loop to find the end of the token and unquoted specials.
+        end_ptr = start_ptr
         current_quote: Optional[str] = None
         escaped: bool = False
-        escape_char: Optional[str] = "\\" if getattr(self, "posix", True) else None
+        escape_char: Optional[str] = "\\" if self.is_posix else None
+
         match_idx = 0
+        if not self.is_posix:
+            end_ptr += len(raw_token)
+            for ch in raw_token:
+                if ch in self.target_chars:
+                    unquoted_specials.add(ch)
+            is_fully_quoted = (
+                len(raw_token) >= 2
+                and raw_token[0] in self.quotes
+                and raw_token[-1] == raw_token[0]
+            )
+        else:
+            while end_ptr < len(self.source_str):
+                if (
+                    match_idx >= len(raw_token)
+                    and current_quote is None
+                    and not escaped
+                ):
+                    if (
+                        end_ptr < len(self.source_str)
+                        and self.source_str[end_ptr] in self.quotes
+                    ):
+                        pass
+                    else:
+                        break
 
-        # 2. Reconstruct the literal token representation from the raw source
-        while self.source_ptr < len(self.source_str):
-            if (
-                match_idx == len(raw_token)
-                and current_quote is None
-                and not escaped
-                and (
-                    self.source_ptr >= len(self.source_str)
-                    or self.source_str[self.source_ptr] not in self.quotes
-                )
-            ):
-                break
+                ch = self.source_str[end_ptr]
 
-            ch = self.source_str[self.source_ptr]
-
-            if escaped:
-                escaped = False
-                if match_idx < len(raw_token) and ch == raw_token[match_idx]:
-                    match_idx += 1
-                self.source_ptr += 1
-                continue
-
-            if escape_char and ch == escape_char:
-                escaped = True
-                self.source_ptr += 1
-                continue
-
-            if current_quote:
-                if ch == current_quote:
-                    current_quote = None
-                else:
+                if escaped:
+                    escaped = False
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
-                self.source_ptr += 1
-            else:
-                if ch in self.quotes:
-                    current_quote = ch
-                    self.source_ptr += 1
-                else:
-                    if ch in self.target_chars:
-                        unquoted_specials.add(ch)
-                    if match_idx < len(raw_token) and ch == raw_token[match_idx]:
-                        match_idx += 1
-                    self.source_ptr += 1
+                    end_ptr += 1
+                    continue
 
-        # 3. Explicitly verify if the original text was fully wrapped in quotes
-        literal_len = self.source_ptr - start_ptr
+                if escape_char and ch == escape_char:
+                    if current_quote == "'":
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                    else:
+                        escaped = True
+                    end_ptr += 1
+                    continue
+
+                if current_quote:
+                    if ch == current_quote:
+                        current_quote = None
+                    else:
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                    end_ptr += 1
+                else:
+                    if ch in self.quotes:
+                        current_quote = ch
+                        end_ptr += 1
+                    else:
+                        if ch in self.target_chars:
+                            unquoted_specials.add(ch)
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                        end_ptr += 1
+
+        self.source_ptr = end_ptr
+
+        literal_len = end_ptr - start_ptr
         first_char = self.source_str[start_ptr] if literal_len > 0 else ""
         is_fully_quoted = (first_char in self.quotes) and (
             literal_len == len(raw_token) + 2
@@ -143,7 +162,7 @@ class EnhancedShlex(shlex.shlex):
             is_fully_quoted,
             unquoted_specials,
             start_offset=start_ptr,
-            end_offset=self.source_ptr,
+            end_offset=end_ptr,
         )
 
     def __next__(self) -> AdvancedToken:

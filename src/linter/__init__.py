@@ -69,7 +69,18 @@ class Linter:
             return errors
 
         self.state.clear()
-        self.stdlib_call_pattern = self._build_call_pattern(filepath)
+
+        # Pass 1: Discovery
+        discovery = DiscoveryTokenIterator(file_content, posix=True)
+        for item in discovery:
+            if isinstance(item, DiscoveryEvent):
+                self.state.event_log.append(item)
+                item.handle_pre_scan(self.state.mock_manager)
+
+        all_possible_mock_names = self.state.mock_manager.get_all_possible_mock_names()
+        self.stdlib_call_pattern = self._build_call_pattern(
+            filepath, all_possible_mock_names
+        )
 
         comment_ignores = CommentIgnores()
         lines = file_content.splitlines(True)
@@ -78,58 +89,47 @@ class Linter:
         for i, line in enumerate(lines):
             comment_ignores.process_line(line, i + 1)
 
-        # Pre-scan for mock creations and scopes to populate all possible mock names
-        # for pattern building
-        discovery_pre = DiscoveryTokenIterator(file_content)
-        for item in discovery_pre:
-            if isinstance(item, DiscoveryEvent):
-                item.handle_pre_scan(self.state.mock_manager)
-
-        # Build pattern once with all possible mocks for visibility matching
-        self.stdlib_call_pattern = self._build_call_pattern(filepath)
-
-        # Sequential pass using DiscoveryTokenIterator
+        # Pass 2: Validation (Global regex search)
         self.state.mock_manager.clear_instances()
-        discovery = DiscoveryTokenIterator(file_content)
-        for item in discovery:
-            if isinstance(item, DiscoveryEvent):
-                item.handle(self)
-            elif isinstance(item, str):  # AdvancedToken
-                token = item
-                absolute_offset = token.start_offset
+        last_event_idx = 0
 
-                # Sync active mocks BEFORE matching to update the pattern correctly
-                self._sync_active_mocks(absolute_offset)
+        for match in self.stdlib_call_pattern.finditer(file_content):
+            absolute_match_start = match.start()
 
-                # Check if this token matches our stdlib pattern
-                for match in self.stdlib_call_pattern.finditer(token):
-                    # Coordinate of the match within the whole file
-                    absolute_match_start = absolute_offset + match.start()
-                    line_num = self._get_line_number(file_content, absolute_match_start)
+            # Replay events up to this offset
+            while last_event_idx < len(self.state.event_log):
+                event = self.state.event_log[last_event_idx]
+                if event.offset <= absolute_match_start:
+                    event.handle(self)
+                    last_event_idx += 1
+                else:
+                    break
 
-                    # Update state for validators
-                    self.state.current_absolute_offset = absolute_match_start
+            line_num = self._get_line_number(file_content, absolute_match_start)
+            self.state.current_absolute_offset = absolute_match_start
 
-                    # Sync active mocks for this match
-                    self._sync_active_mocks(absolute_match_start)
+            # Sync active mocks for this match
+            self._sync_active_mocks(absolute_match_start)
 
-                    error = self._process_match(
-                        match,
-                        file_content,
-                        filepath,
-                        comment_ignores,
-                        line_num,
-                        token.start_offset,
-                    )
-                    if error:
-                        errors.append(error)
+            error = self._process_match(
+                match,
+                file_content,
+                filepath,
+                comment_ignores,
+                line_num,
+                0,
+            )
+            if error:
+                errors.append(error)
 
         for code, line_num_unused in comment_ignores.get_unused_ignores():
             errors.append(STD008(filepath, line_num_unused, 1, code))
 
         return errors
 
-    def _build_call_pattern(self, filepath: str) -> "Pattern[str]":
+    def _build_call_pattern(
+        self, filepath: str, all_possible_mock_names: Optional[Set[str]] = None
+    ) -> "Pattern[str]":
         dot_roots = set()
         underscore_roots = set()
 
@@ -137,13 +137,11 @@ class Linter:
             self.state.base_functions | self.state.base_namespaces | self.appendum
         )
 
-        # Include all possible mock names and their methods from this file's run
-        # to ensure they are matched for visibility reporting
-        all_possible_mock_names = self.state.mock_manager.get_all_possible_mock_names()
-        all_names |= all_possible_mock_names
-        for mock_name in all_possible_mock_names:
-            for template_name in self.state.mock_manager.mock_templates.keys():
-                all_names.add(template_name.replace("object", mock_name))
+        if all_possible_mock_names:
+            all_names |= all_possible_mock_names
+            for mock_name in all_possible_mock_names:
+                for template_name in self.state.mock_manager.mock_templates.keys():
+                    all_names.add(template_name.replace("object", mock_name))
 
         # Only include _mock.* calls in pattern if it's a test file
         if "test" in os.path.basename(filepath).lower():
@@ -174,11 +172,6 @@ class Linter:
         sorted_dot_roots = sorted(list(dot_roots), key=len, reverse=True)
         sorted_underscore_roots = sorted(list(underscore_roots), key=len, reverse=True)
 
-        # Combine all roots into a single pattern.
-        # dot_roots are names that should only match if they are either exactly the name
-        # or followed by a dot (to avoid matching things like @parametrize_with_errors).
-        # underscore_roots (like assert_) can be followed by anything.
-
         dot_pattern = (
             r"(?:{})(?:\.[a-z0-9._]*)?".format(
                 "|".join(re.escape(r) for r in sorted_dot_roots)
@@ -186,7 +179,6 @@ class Linter:
             if sorted_dot_roots
             else r"(?!)"
         )
-        # print("DEBUG: dot_pattern: {}".format(dot_pattern))
         underscore_pattern = (
             r"(?:{})[a-z0-9._]*".format(
                 "|".join(re.escape(r) for r in sorted_underscore_roots)
@@ -305,7 +297,6 @@ class Linter:
     def _get_column_number(self, content: "str", offset: "int") -> "int":
         last_newline = content.rfind("\n", 0, offset)
         return offset - last_newline if last_newline != -1 else offset + 1
-
 
     def _sync_active_mocks(self, offset: int) -> None:
         active_names = self.state.mock_manager.get_active_mock_names(offset)
