@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class PendingFunction(NamedTuple):
     """Temporary storage for a potential function definition."""
 
-    name: str
+    name: Optional[str]
     line: int
     offset: int
 
@@ -48,7 +48,7 @@ class FunctionEvent(EventBase):
     def handle(self, line_content: str, line_num: int, offset: int) -> None:
         try:
             tokens = list(ShlexTokenIterator(line_content))
-        except Exception:
+        except ValueError:
             return
 
         for token_str in tokens:
@@ -57,79 +57,83 @@ class FunctionEvent(EventBase):
             token: AdvancedToken = token_str
 
             if not token.is_fully_quoted:
-                # Handle braces for body scoping
                 if (
                     token == self.OPEN_BRACE
                     and self.OPEN_BRACE in token.unquoted_specials
                 ):
-                    self.current_balance += 1
-                    if self.pending:
-                        scope = FunctionScope(
-                            name=self.pending.name,
-                            start_line=self.pending.line,
-                            start_offset=self.pending.offset,
-                        )
-                        self.file_state.function_scopes.append(scope)
-                        self.open_scopes.append(scope)
-                        self.brace_stack.append(self.current_balance)
-                        self.pending = None
-                    self.in_function_keyword = False
+                    self._handle_open_brace()
                     continue
 
                 if (
                     token == self.CLOSE_BRACE
                     and self.CLOSE_BRACE in token.unquoted_specials
                 ):
-                    if (
-                        self.brace_stack
-                        and self.current_balance == self.brace_stack[-1]
-                    ):
-                        scope = self.open_scopes.pop()
-                        scope.end_line = line_num
-                        scope.end_offset = offset + token.end_offset
-                        self.brace_stack.pop()
-                    self.current_balance -= 1
+                    self._handle_close_brace(line_num, offset + token.end_offset)
                     continue
 
-                # Check for function definition signatures
                 if token == self.FUNCTION_KEYWORD:
-                    self.in_function_keyword = True
-                    self.pending = None
-                    # We don't have the name yet, but we have the start offset
-                    # of 'function'. Actually, the requirement might be the
-                    # name's offset or keyword's. Let's keep the keyword's
-                    # for now as a reference point.
-                    self._mark_potential_function(
-                        None, line_num, offset + token.start_offset
-                    )
+                    self._handle_function_keyword(line_num, offset + token.start_offset)
                     continue
 
                 if token in self.PARENS:
-                    if not self.in_function_keyword and self.last_token:
-                        self.pending = PendingFunction(
-                            name=self.last_token,
-                            line=line_num,
-                            offset=offset + self.last_token.start_offset,
-                        )
+                    self._handle_parentheses(line_num, offset)
                     continue
 
-                # It's a word
-                if self.in_function_keyword and (
-                    not self.pending or self.pending.name is None
-                ):
-                    self._mark_potential_function(
-                        token,
-                        line_num,
-                        self.pending.offset
-                        if self.pending
-                        else offset + token.start_offset,
-                    )
-
+                self._handle_word(token, line_num, offset)
                 self.last_token = token
             else:
                 self.last_token = None
 
+    def _handle_open_brace(self) -> None:
+        self.current_balance += 1
+        if self.pending and self.pending.name:
+            scope = FunctionScope(
+                name=self.pending.name,
+                start_line=self.pending.line,
+                start_offset=self.pending.offset,
+            )
+            self.file_state.function_scopes.append(scope)
+            self.open_scopes.append(scope)
+            self.brace_stack.append(self.current_balance)
+            self.pending = None
+        self.in_function_keyword = False
+
+    def _handle_close_brace(self, line_num: int, absolute_end_offset: int) -> None:
+        if self.brace_stack and self.current_balance == self.brace_stack[-1]:
+            scope = self.open_scopes.pop()
+            scope.end_line = line_num
+            scope.end_offset = absolute_end_offset
+            self.brace_stack.pop()
+        self.current_balance -= 1
+
+    def _handle_function_keyword(
+        self, line_num: int, absolute_start_offset: int
+    ) -> None:
+        self.in_function_keyword = True
+        self.pending = None
+        self._mark_potential_function(None, line_num, absolute_start_offset)
+
+    def _handle_parentheses(self, line_num: int, line_offset: int) -> None:
+        if not self.in_function_keyword and self.last_token:
+            self.pending = PendingFunction(
+                name=str(self.last_token),
+                line=line_num,
+                offset=line_offset + self.last_token.start_offset,
+            )
+
+    def _handle_word(
+        self, token: AdvancedToken, line_num: int, line_offset: int
+    ) -> None:
+        if self.in_function_keyword and (not self.pending or self.pending.name is None):
+            self._mark_potential_function(
+                str(token),
+                line_num,
+                self.pending.offset
+                if self.pending
+                else line_offset + token.start_offset,
+            )
+
     def _mark_potential_function(
         self, name: Optional[str], line: int, offset: int
     ) -> None:
-        self.pending = PendingFunction(name=name, line=line, offset=offset)  # type: ignore
+        self.pending = PendingFunction(name=name, line=line, offset=offset)
