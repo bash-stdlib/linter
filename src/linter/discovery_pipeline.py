@@ -35,6 +35,17 @@ class DiscoveryPipeline:
 
                 # Check for comments - ShlexTokenIterator marks them with #
                 if "#" in token.unquoted_specials and token.startswith("#"):
+                    # Consume tokens until we reach a newline
+                    try:
+                        while True:
+                            next_token = next(tokens)
+                            if (
+                                isinstance(next_token, AdvancedToken)
+                                and "\n" in next_token.unquoted_specials
+                            ):
+                                break
+                    except StopIteration:
+                        break
                     continue
 
                 for iterator in self.iterators:
