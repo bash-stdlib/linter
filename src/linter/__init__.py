@@ -5,12 +5,12 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008, STD009
+from linter.discovery_pipeline import DiscoveryPipeline
 from linter.line_iterators.comment_ignores import CommentIgnores
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 from parsers import BashArgumentsParser
 from parsers.token_iterators import ShlexTokenIterator
-from parsers.token_iterators.discovery import DiscoveryTokenIterator
 from parsers.transformers import LineContinuationTransformer
 from validators import (
     ArgumentCountValidator,
@@ -66,10 +66,8 @@ class Linter:
             return errors
 
         # Discovery Pass
-        discovery = DiscoveryTokenIterator(
-            file_content, self.global_state, self.file_state
-        )
-        discovery.run()
+        discovery = DiscoveryPipeline(self.global_state, self.file_state)
+        discovery.run(file_content)
 
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
