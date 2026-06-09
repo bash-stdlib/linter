@@ -1,6 +1,9 @@
 """File-specific state object for the linter."""
 
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
+
+if TYPE_CHECKING:
+    from linter.scope import FunctionScope
 
 
 class FileLinterState:
@@ -12,6 +15,8 @@ class FileLinterState:
 
         # line_ignores: line_to_check -> (code, definition_line) -> is_used
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
+
+        self.function_scopes: List["FunctionScope"] = []
 
     def is_ignored(self, code: str, line: int) -> bool:
         """Check if a specific error code is ignored for a given line."""

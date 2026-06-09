@@ -13,8 +13,10 @@ class TestCommentIgnores(unittest.TestCase):
         file_state = FileLinterState()
         iterator = CommentIgnores(global_state, file_state)
 
+        offset = 0
         for i, line in enumerate(content.splitlines(True)):
-            iterator.process_line(line, i + 1)
+            iterator.process_line(line, i + 1, offset)
+            offset += len(line)
 
         return file_state
 

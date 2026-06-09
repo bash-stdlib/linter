@@ -41,10 +41,11 @@ class TestShlexTokenIterator(unittest.TestCase):
         self.assertEqual(result, ["file-with.ext", "path/to/file", "$VAR"])
 
     def test_iterator__quoted_special_chars__marks_as_quoted(self) -> None:
+        from parsers.token_iterators.enhanced_shlex import AdvancedToken
         content = 'arg "|" "#"'
         iterator = ShlexTokenIterator(content)
 
-        result = list(iterator)
+        result = [t for t in iterator if isinstance(t, AdvancedToken)]
 
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg")
@@ -57,10 +58,11 @@ class TestShlexTokenIterator(unittest.TestCase):
         self.assertTrue(result[2].is_fully_quoted)
 
     def test_iterator__unquoted_special_chars__marks_as_unquoted_specials(self) -> None:
+        from parsers.token_iterators.enhanced_shlex import AdvancedToken
         content = "arg1 | arg2 # comment"
         iterator = ShlexTokenIterator(content)
 
-        result = list(iterator)
+        result = [t for t in iterator if isinstance(t, AdvancedToken)]
 
         # shlex with punctuation_chars=True and EnhancedShlex handling of #
         # result should be ['arg1', '|', 'arg2', '#', 'comment']

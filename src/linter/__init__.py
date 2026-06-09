@@ -5,7 +5,9 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008
+from linter.line_iterators.base import LineIteratorBase
 from linter.line_iterators.comment_ignores import CommentIgnores
+from linter.line_iterators.events_iterator import EventsIterator
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 from parsers import BashArgumentsParser
@@ -45,8 +47,9 @@ class Linter:
             ArgumentCountValidator(self.global_state, self.file_state),
             IsTestingFunctionCallValidator(self.global_state, self.file_state),
         ]
-        line_iterators = [
+        line_iterators: "List[LineIteratorBase]" = [
             CommentIgnores(self.global_state, self.file_state),
+            EventsIterator(self.global_state, self.file_state),
         ]
 
         errors: "List[LinterErrorBase]" = []
@@ -67,7 +70,7 @@ class Linter:
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
             for iterator in line_iterators:
-                iterator.process_line(line_content, line_num)
+                iterator.process_line(line_content, line_num, offset)
 
             for match in self.stdlib_call_pattern.finditer(line_content):
                 error = self._process_match(
@@ -77,6 +80,12 @@ class Linter:
                     errors.append(error)
 
             offset += len(line_content)
+
+        for scope in self.file_state.function_scopes:
+            if scope.end_line == -1:
+                raise RuntimeError(
+                    f"Unclosed function scope detected for '{scope.name}' starting at line {scope.start_line}"
+                )
 
         for code, line in self.file_state.get_unused_ignores():
             errors.append(STD008(filepath, line, 1, code))

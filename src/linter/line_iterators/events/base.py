@@ -1,4 +1,4 @@
-"""Base class for linter line iterators."""
+"""Base class for linter events."""
 
 import abc
 from typing import TYPE_CHECKING
@@ -8,8 +8,8 @@ if TYPE_CHECKING:
     from linter.state.global_state import GlobalLinterState
 
 
-class LineIteratorBase(abc.ABC):
-    """Abstract base class for iterators that process script lines."""
+class EventBase(abc.ABC):
+    """Abstract base class for code events."""
 
     def __init__(
         self, global_state: "GlobalLinterState", file_state: "FileLinterState"
@@ -18,6 +18,11 @@ class LineIteratorBase(abc.ABC):
         self.file_state = file_state
 
     @abc.abstractmethod
-    def process_line(self, line_content: str, line_num: int, offset: int) -> None:
-        """Process a single line and update the linter state."""
+    def match(self, line_content: str) -> bool:
+        """Check if the line content matches the event."""
+        pass
+
+    @abc.abstractmethod
+    def handle(self, line_content: str, line_num: int, offset: int) -> None:
+        """Handle the event and update the linter state."""
         pass
