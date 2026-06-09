@@ -128,7 +128,7 @@ class Linter:
         return errors
 
     def _build_call_pattern(
-        self, filepath: str, all_possible_mock_names: Optional[Set[str]] = None
+        self, filepath: str, all_possible_mock_names: "Optional[Set[str]]" = None
     ) -> "Pattern[str]":
         dot_roots = set()
         underscore_roots = set()
@@ -292,11 +292,15 @@ class Linter:
         return call
 
     def _get_line_number(self, content: "str", offset: "int") -> "int":
-        return content.count("\n", 0, offset) + 1
+        # Count both newline and vertical tab (used for line continuation preservation)
+        return content.count("\n", 0, offset) + content.count("\v", 0, offset) + 1
 
     def _get_column_number(self, content: "str", offset: "int") -> "int":
+        # Find the last occurrence of either \n or \v
         last_newline = content.rfind("\n", 0, offset)
-        return offset - last_newline if last_newline != -1 else offset + 1
+        last_vtab = content.rfind("\v", 0, offset)
+        last_boundary = max(last_newline, last_vtab)
+        return offset - last_boundary if last_boundary != -1 else offset + 1
 
     def _sync_active_mocks(self, offset: int) -> None:
         active_names = self.state.mock_manager.get_active_mock_names(offset)
