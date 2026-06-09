@@ -26,6 +26,7 @@ class DiscoveryTokenIterator:
         self.pending_function_name: Union[str, None] = None
         self.pending_mock_op: Union[str, None] = None
         self.last_token: Union[AdvancedToken, None] = None
+        self.prev_to_last_token: Union[AdvancedToken, None] = None
 
     def __iter__(self) -> Iterator[DiscoveryItem]:
         for token in self.iterator:
@@ -55,41 +56,45 @@ class DiscoveryTokenIterator:
 
             # 2. Check for 'function' keyword
             if not token.is_fully_quoted and token == "function":
+                # Mark that we saw 'function'. The next token will be the name.
                 self.pending_function_name = "PENDING_KEYWORD"
                 yield token
+                self.prev_to_last_token = self.last_token
                 self.last_token = token
                 continue
 
             if self.pending_function_name == "PENDING_KEYWORD":
                 self.pending_function_name = str(token)
                 yield token
+                self.prev_to_last_token = self.last_token
                 self.last_token = token
                 continue
 
-            # 3. Check for name followed by ()
-            if (
-                not token.is_fully_quoted
-                and token == "()"
-                and self.last_token
-                and not self.last_token.is_fully_quoted
-            ):
-                self.pending_function_name = str(self.last_token)
+            # 3. Check for name followed by () or ( )
+            if not token.is_fully_quoted:
+                if token == "()":
+                    self.pending_function_name = str(self.last_token)
+                elif token == ")" and self.last_token == "(":
+                    self.pending_function_name = str(self.prev_to_last_token)
 
             # 4. Check for mock events
             if not token.is_fully_quoted:
                 if token == "_mock.create":
                     self.pending_mock_op = "create"
                     yield token
+                    self.prev_to_last_token = self.last_token
                     self.last_token = token
                     continue
                 elif token == "_mock.delete":
                     self.pending_mock_op = "delete"
                     yield token
+                    self.prev_to_last_token = self.last_token
                     self.last_token = token
                     continue
                 elif token == "_mock.reset_all":
                     yield token
                     yield MockResetEvent(token.start_offset)
+                    self.prev_to_last_token = self.last_token
                     self.last_token = token
                     continue
 
@@ -101,9 +106,11 @@ class DiscoveryTokenIterator:
                     yield MockDeletionEvent(str(token), token.start_offset)
                 self.pending_mock_op = None
                 yield token
+                self.prev_to_last_token = self.last_token
                 self.last_token = token
                 continue
 
             # 5. Default: yield the token itself
             yield token
+            self.prev_to_last_token = self.last_token
             self.last_token = token

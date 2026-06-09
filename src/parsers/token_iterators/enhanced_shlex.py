@@ -100,11 +100,13 @@ class EnhancedShlex(shlex.shlex):
             )
         else:
             while end_ptr < len(self.source_str):
+                # Boundary check: if we matched enough chars and quotes are closed
                 if (
                     match_idx >= len(raw_token)
                     and current_quote is None
                     and not escaped
                 ):
+                    # Lookahead: if next char is a quote, POSIX shlex likely consumed it
                     if (
                         end_ptr < len(self.source_str)
                         and self.source_str[end_ptr] in self.quotes
