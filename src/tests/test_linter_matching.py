@@ -5,7 +5,7 @@ from unittest.mock import mock_open, patch
 
 from errors.std006 import STD006
 from linter import Linter
-from tests.assets.linter_matching.metadata import METADATA
+from tests.assets.linter.matching.metadata import METADATA
 
 
 class TestLinterMatching(unittest.TestCase):

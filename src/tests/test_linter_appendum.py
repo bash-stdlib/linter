@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
-from tests.assets.linter_appendum.metadata import METADATA
+from tests.assets.linter.appendum.metadata import METADATA
 
 
 class TestLinterAppendum(unittest.TestCase):

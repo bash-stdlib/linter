@@ -2,17 +2,12 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
+from tests.assets.linter.comments.metadata import METADATA
 
 
 class TestLinterComments(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata = {
-            "functions": {
-                "stdlib.echo": {"min_args": 1, "max_args": 1},
-                "stdlib.something": {"min_args": 0, "max_args": 0},
-            },
-            "namespaces": ["stdlib"],
-        }
+        self.metadata = METADATA
         self.linter = Linter(self.metadata)
 
     def test_lint__line_starting_with_comment__returns_no_errors(self) -> None:

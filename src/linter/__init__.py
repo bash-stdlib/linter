@@ -2,11 +2,13 @@
 
 import os
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Set
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008
+from linter.line_iterators.comment_ignores import CommentIgnores
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
 from parsers import BashArgumentsParser
-from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
 from parsers.transformers import LineContinuationTransformer
 from validators import (
@@ -17,7 +19,7 @@ from validators import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Match, Pattern, Set
+    from typing import List, Match, Pattern
 
     from errors.base import LinterErrorBase
     from validators.base import ValidatorBase
@@ -30,26 +32,23 @@ class Linter:
         ignored_codes: "Optional[List[str]]" = None,
         appendum: "Optional[List[str]]" = None,
     ) -> "None":
-        self.functions: "Set[str]" = set(metadata["functions"].keys())
-        self.namespaces: "Set[str]" = set(metadata["namespaces"])
-        self.metadata = metadata["functions"]
-        self.ignored_codes: "Set[str]" = (
-            {c.upper() for c in ignored_codes} if ignored_codes else set()
-        )
-        self.appendum: "Set[str]" = set(appendum) if appendum else set()
+        self.global_state = GlobalLinterState(metadata, ignored_codes, appendum)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
-        self.validators: "List[ValidatorBase]" = [
-            NotNamespaceCallValidator(self.functions, self.namespaces),
-            IsFunctionCallValidator(self.functions, self.namespaces),
-            ArgumentCountValidator(self.functions, self.namespaces, self.metadata),
-            IsTestingFunctionCallValidator(
-                self.functions, self.namespaces, self.metadata
-            ),
-        ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
+        self.file_state = FileLinterState()
+        validators: "List[ValidatorBase]" = [
+            NotNamespaceCallValidator(self.global_state, self.file_state),
+            IsFunctionCallValidator(self.global_state, self.file_state),
+            ArgumentCountValidator(self.global_state, self.file_state),
+            IsTestingFunctionCallValidator(self.global_state, self.file_state),
+        ]
+        line_iterators = [
+            CommentIgnores(self.global_state, self.file_state),
+        ]
+
         errors: "List[LinterErrorBase]" = []
         filepath = os.path.abspath(filepath)
 
@@ -60,26 +59,26 @@ class Linter:
                     raw_content, preserve_lines=True
                 )
         except Exception as e:
-            if not self._is_ignored("STD000", 1, None):
+            if not self._is_ignored("STD000", 1):
                 errors.append(STD000(filepath, str(e)))
             return errors
 
-        comment_ignores = CommentIgnores()
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
-            comment_ignores.process_line(line_content, line_num)
+            for iterator in line_iterators:
+                iterator.process_line(line_content, line_num)
 
             for match in self.stdlib_call_pattern.finditer(line_content):
                 error = self._process_match(
-                    match, file_content, filepath, comment_ignores, line_num, offset
+                    match, file_content, filepath, validators, line_num, offset
                 )
                 if error:
                     errors.append(error)
 
             offset += len(line_content)
 
-        for code, line in comment_ignores.get_unused_ignores():
+        for code, line in self.file_state.get_unused_ignores():
             errors.append(STD008(filepath, line, 1, code))
 
         return errors
@@ -88,7 +87,11 @@ class Linter:
         dot_roots = set()
         underscore_roots = set()
 
-        for name in self.functions | self.namespaces | self.appendum:
+        for name in (
+            self.global_state.functions
+            | self.global_state.namespaces
+            | self.global_state.appendum
+        ):
             if name.startswith("_"):
                 # Handle cases like _testing.func or _testing.example
                 dot_roots.add(name.split(".")[0])
@@ -135,24 +138,23 @@ class Linter:
         self,
         code: str,
         line: int,
-        comment_ignores: Optional[CommentIgnores],
     ) -> bool:
         code = code.upper()
-        if code in self.ignored_codes:
+        if code in self.global_state.ignored_codes:
             return True
-        if comment_ignores and comment_ignores.is_ignored(code, line):
+        if self.file_state.is_ignored(code, line):
             return True
         return False
 
     def _is_appendum(self, call_name: str) -> bool:
         """Check if the call name or any of its parent namespaces are in appendum."""
-        if call_name in self.appendum:
+        if call_name in self.global_state.appendum:
             return True
 
         parts = call_name.split(".")
         for i in range(1, len(parts)):
             prefix = ".".join(parts[:i])
-            if prefix in self.appendum:
+            if prefix in self.global_state.appendum:
                 return True
         return False
 
@@ -161,7 +163,7 @@ class Linter:
         match: "Match[str]",
         content: "str",
         filepath: "str",
-        comment_ignores: CommentIgnores,
+        validators: "List[ValidatorBase]",
         line_num: int,
         offset: int = 0,
     ) -> "Optional[LinterErrorBase]":
@@ -181,14 +183,14 @@ class Linter:
 
         args = self.argument_parser.parse(content[absolute_end:])
         if args is None:
-            if not self._is_ignored(STD006.CODE, line_num, comment_ignores):
+            if not self._is_ignored(STD006.CODE, line_num):
                 return STD006(filepath, line_num, column, call_name)
             return None
 
-        for validator in self.validators:
+        for validator in validators:
             error = validator.check(call_name, filepath, line_num, column, args)
             if error:
-                if not self._is_ignored(error.CODE, line_num, comment_ignores):
+                if not self._is_ignored(error.CODE, line_num):
                     return error
                 # Continue checking other validators if this error was ignored
 

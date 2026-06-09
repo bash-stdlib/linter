@@ -2,15 +2,17 @@
 
 import unittest
 
-from tests.assets.linter_validation_function_call import METADATA
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
+from tests.assets.validator.is_function_call.metadata import METADATA
 from validators.is_function_call import IsFunctionCallValidator
 
 
 class TestIsFunctionCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions = METADATA["functions"]
-        self.namespaces = METADATA["namespaces"]
-        self.validator = IsFunctionCallValidator(self.functions, self.namespaces)
+        self.global_state = GlobalLinterState(METADATA)
+        self.file_state = FileLinterState()
+        self.validator = IsFunctionCallValidator(self.global_state, self.file_state)
 
     def test_check__valid_function_call__returns_none(self) -> None:
         call = "stdlib.string.join"

@@ -2,15 +2,17 @@
 
 import unittest
 
-from tests.assets.linter_validation_namespace_call import FUNCTIONS, NAMESPACES
+from linter.state.file_state import FileLinterState
+from linter.state.global_state import GlobalLinterState
+from tests.assets.validator.not_namespace_call.metadata import METADATA
 from validators.not_namespace_call import NotNamespaceCallValidator
 
 
 class TestNotNamespaceCallValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions = FUNCTIONS
-        self.namespaces = NAMESPACES
-        self.validator = NotNamespaceCallValidator(self.functions, self.namespaces)
+        self.global_state = GlobalLinterState(METADATA)
+        self.file_state = FileLinterState()
+        self.validator = NotNamespaceCallValidator(self.global_state, self.file_state)
 
     def test_check__valid_function_call__returns_none(self) -> None:
         call = "stdlib.string.join"

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 from errors.std005 import STD005
 from linter import Linter
-from tests.assets.linter_reporting.metadata import METADATA
+from tests.assets.linter.reporting.metadata import METADATA
 
 
 class TestLinterReporting(unittest.TestCase):

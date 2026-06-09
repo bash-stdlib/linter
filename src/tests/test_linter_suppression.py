@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
-from tests.assets.linter_suppression.metadata import METADATA
+from tests.assets.linter.suppression.metadata import METADATA
 
 
 class TestLinterSuppression(unittest.TestCase):

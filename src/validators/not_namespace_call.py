@@ -20,6 +20,9 @@ class NotNamespaceCallValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
-        if call in self.namespaces and call not in self.functions:
+        if (
+            call in self.global_state.namespaces
+            and call not in self.global_state.functions
+        ):
             return STD003(filepath, line, column, call)
         return None

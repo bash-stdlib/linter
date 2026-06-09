@@ -15,3 +15,9 @@ METADATA = {
     },
     "namespaces": ["stdlib"],
 }
+
+SCRIPTS = {
+    "nested_parameter_subshell": 'nested="${HELLO:-"$(stdlib.invalid.call hello)"}"',
+    "unassigned_parameter_backticks": "${HELLO:-`stdlib.invalid.call hello`}",
+    "complex_nested_expansion": 'nested="${HELLO:-"$(stdlib.some.command arg1 arg2)"}"',
+}
