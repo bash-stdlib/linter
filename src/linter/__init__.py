@@ -2,9 +2,10 @@
 
 import os
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Set
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000, STD006, STD008
+from linter.state import LinterState
 from parsers import BashArgumentsParser
 from parsers.comment_ignores import CommentIgnores
 from parsers.token_iterators import ShlexTokenIterator
@@ -17,7 +18,7 @@ from validators import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Match, Pattern, Set
+    from typing import List, Match, Pattern
 
     from errors.base import LinterErrorBase
     from validators.base import ValidatorBase
@@ -30,23 +31,15 @@ class Linter:
         ignored_codes: "Optional[List[str]]" = None,
         appendum: "Optional[List[str]]" = None,
     ) -> "None":
-        self.functions: "Set[str]" = set(metadata["functions"].keys())
-        self.namespaces: "Set[str]" = set(metadata["namespaces"])
-        self.metadata = metadata["functions"]
-        self.ignored_codes: "Set[str]" = (
-            {c.upper() for c in ignored_codes} if ignored_codes else set()
-        )
-        self.appendum: "Set[str]" = set(appendum) if appendum else set()
+        self.state = LinterState(metadata, ignored_codes, appendum)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_parser = BashArgumentsParser()
         self.line_continuation_transformer = LineContinuationTransformer()
         self.validators: "List[ValidatorBase]" = [
-            NotNamespaceCallValidator(self.functions, self.namespaces),
-            IsFunctionCallValidator(self.functions, self.namespaces),
-            ArgumentCountValidator(self.functions, self.namespaces, self.metadata),
-            IsTestingFunctionCallValidator(
-                self.functions, self.namespaces, self.metadata
-            ),
+            NotNamespaceCallValidator(self.state),
+            IsFunctionCallValidator(self.state),
+            ArgumentCountValidator(self.state),
+            IsTestingFunctionCallValidator(self.state),
         ]
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
@@ -88,7 +81,7 @@ class Linter:
         dot_roots = set()
         underscore_roots = set()
 
-        for name in self.functions | self.namespaces | self.appendum:
+        for name in self.state.functions | self.state.namespaces | self.state.appendum:
             if name.startswith("_"):
                 # Handle cases like _testing.func or _testing.example
                 dot_roots.add(name.split(".")[0])
@@ -138,7 +131,7 @@ class Linter:
         comment_ignores: Optional[CommentIgnores],
     ) -> bool:
         code = code.upper()
-        if code in self.ignored_codes:
+        if code in self.state.ignored_codes:
             return True
         if comment_ignores and comment_ignores.is_ignored(code, line):
             return True
@@ -146,13 +139,13 @@ class Linter:
 
     def _is_appendum(self, call_name: str) -> bool:
         """Check if the call name or any of its parent namespaces are in appendum."""
-        if call_name in self.appendum:
+        if call_name in self.state.appendum:
             return True
 
         parts = call_name.split(".")
         for i in range(1, len(parts)):
             prefix = ".".join(parts[:i])
-            if prefix in self.appendum:
+            if prefix in self.state.appendum:
                 return True
         return False
 

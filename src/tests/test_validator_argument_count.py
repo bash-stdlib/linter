@@ -1,20 +1,22 @@
 """Unit tests for the ArgumentCountValidator."""
 
 import unittest
+from typing import List
 
+from errors.std005 import STD005
+from linter.state import LinterState
 from tests.assets.linter_validation_argument_count import METADATA
 from validators.argument_count import ArgumentCountValidator
 
 
 class TestArgumentCountValidator(unittest.TestCase):
     def setUp(self) -> None:
-        self.functions = set(METADATA.keys())
-        self.namespaces = {"stdlib", "stdlib.string", "stdlib.array"}
-        self.validator = ArgumentCountValidator(
-            self.functions,
-            self.namespaces,
-            METADATA,
-        )
+        metadata = {
+            "functions": METADATA,
+            "namespaces": ["stdlib", "stdlib.string", "stdlib.array"],
+        }
+        self.state = LinterState(metadata)
+        self.validator = ArgumentCountValidator(self.state)
 
     def test_check__valid_args__returns_none(self) -> None:
         call = "stdlib.array.push"
@@ -38,7 +40,7 @@ class TestArgumentCountValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        assert result is not None
+        assert isinstance(result, STD005)
         self.assertEqual(result.CODE, "STD005")
         self.assertEqual(result.actual_args, 1)
         self.assertEqual(result.min_args, 2)
@@ -50,7 +52,7 @@ class TestArgumentCountValidator(unittest.TestCase):
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        assert result is not None
+        assert isinstance(result, STD005)
         self.assertEqual(result.CODE, "STD005")
         self.assertEqual(result.actual_args, 3)
         self.assertEqual(result.min_args, 2)
@@ -66,11 +68,11 @@ class TestArgumentCountValidator(unittest.TestCase):
 
     def test_check__variadic_no_args__returns_std005_with_counts(self) -> None:
         call = "stdlib.string.join"
-        args = []
+        args: List[str] = []
 
         result = self.validator.check(call, "test.sh", 1, 1, args)
 
-        assert result is not None
+        assert isinstance(result, STD005)
         self.assertEqual(result.CODE, "STD005")
         self.assertEqual(result.actual_args, 0)
         self.assertEqual(result.min_args, 1)

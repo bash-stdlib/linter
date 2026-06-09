@@ -1,27 +1,16 @@
 """Validator for checking the number of arguments in standard library function calls."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from errors import STD005
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from typing import Set
-
     from errors.base import LinterErrorBase
 
 
 class ArgumentCountValidator(ValidatorBase):
     """Checks if the call has the correct number of arguments."""
-
-    def __init__(
-        self,
-        functions: "Set[str]",
-        namespaces: "Set[str]",
-        metadata: "Dict[str, Any]",
-    ) -> None:
-        super().__init__(functions, namespaces)
-        self.metadata = metadata
 
     def check(
         self,
@@ -31,13 +20,13 @@ class ArgumentCountValidator(ValidatorBase):
         column: int,
         args: "Optional[List[str]]" = None,
     ) -> "Optional[LinterErrorBase]":
-        if call not in self.functions:
+        if call not in self.state.functions:
             return None
 
         if args is None:
             args = []
 
-        func_meta = self.metadata.get(call)
+        func_meta = self.state.metadata.get(call)
         if not func_meta:
             return None
 

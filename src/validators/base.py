@@ -2,18 +2,18 @@
 
 import abc
 import difflib
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from errors.base import LinterErrorBase
+    from linter.state import LinterState
 
 
 class ValidatorBase(abc.ABC):
     """Abstract base class for all linter validators."""
 
-    def __init__(self, functions: "Set[str]", namespaces: "Set[str]") -> None:
-        self.functions = functions
-        self.namespaces = namespaces
+    def __init__(self, state: "LinterState") -> None:
+        self.state = state
 
     @abc.abstractmethod
     def check(
@@ -31,7 +31,7 @@ class ValidatorBase(abc.ABC):
         parts = call.split(".")
         for i in range(len(parts) - 1, 0, -1):
             prefix = ".".join(parts[:i])
-            if prefix in self.namespaces:
+            if prefix in self.state.namespaces:
                 return prefix
         return None
 
@@ -41,7 +41,7 @@ class ValidatorBase(abc.ABC):
 
     def _get_suggestion(self, call: str, namespace: str) -> "Optional[str]":
         possible_functions = [
-            f for f in self.functions if f.startswith(namespace + ".")
+            f for f in self.state.functions if f.startswith(namespace + ".")
         ]
         suggestions = difflib.get_close_matches(call, possible_functions, n=1)
         return str(suggestions[0]) if suggestions else None

@@ -7,3 +7,8 @@ METADATA = {
 
 FUNCTIONS = {"stdlib.test.func", "stdlib.prod.func"}
 NAMESPACES = {"stdlib.test", "stdlib.prod"}
+
+METADATA_FULL = {
+    "functions": METADATA,
+    "namespaces": NAMESPACES,
+}
