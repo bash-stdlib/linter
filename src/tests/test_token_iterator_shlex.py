@@ -2,6 +2,7 @@
 
 import unittest
 
+from parsers.token_iterators.enhanced_shlex import AdvancedToken
 from parsers.token_iterators.shlex import ShlexTokenIterator
 
 
@@ -41,8 +42,6 @@ class TestShlexTokenIterator(unittest.TestCase):
         self.assertEqual(result, ["file-with.ext", "path/to/file", "$VAR"])
 
     def test_iterator__quoted_special_chars__marks_as_quoted(self) -> None:
-        from parsers.token_iterators.enhanced_shlex import AdvancedToken
-
         content = 'arg "|" "#"'
         iterator = ShlexTokenIterator(content)
 
@@ -59,8 +58,6 @@ class TestShlexTokenIterator(unittest.TestCase):
         self.assertTrue(result[2].is_fully_quoted)
 
     def test_iterator__unquoted_special_chars__marks_as_unquoted_specials(self) -> None:
-        from parsers.token_iterators.enhanced_shlex import AdvancedToken
-
         content = "arg1 | arg2 # comment"
         iterator = ShlexTokenIterator(content)
 
