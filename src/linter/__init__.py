@@ -29,7 +29,7 @@ class Linter:
         extra_functions: "Optional[List[str]]" = None,
     ) -> "None":
         self.global_state = GlobalLinterState(
-            metadata, ignored_codes, extra_namespaces, extra_functions
+            metadata, ignored_codes, extra_namespaces, extra_functions,
         )
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_pipeline = ArgumentPipeline()
