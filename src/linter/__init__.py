@@ -25,9 +25,12 @@ class Linter:
         self,
         metadata: "Any",
         ignored_codes: "Optional[List[str]]" = None,
-        appendum: "Optional[List[str]]" = None,
+        extra_namespaces: "Optional[List[str]]" = None,
+        extra_functions: "Optional[List[str]]" = None,
     ) -> "None":
-        self.global_state = GlobalLinterState(metadata, ignored_codes, appendum)
+        self.global_state = GlobalLinterState(
+            metadata, ignored_codes, extra_namespaces, extra_functions,
+        )
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
         self.argument_pipeline = ArgumentPipeline()
         self.line_continuation_transformer = LineContinuationTransformer()
@@ -67,7 +70,8 @@ class Linter:
         for name in (
             self.global_state.functions
             | self.global_state.namespaces
-            | self.global_state.appendum
+            | self.global_state.extra_namespaces
+            | self.global_state.extra_functions
         ):
             if name.startswith("_"):
                 # Handle cases like _testing.func or _testing.example
