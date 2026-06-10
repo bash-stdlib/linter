@@ -11,7 +11,7 @@ class TestLinterNamespaces(unittest.TestCase):
     def setUp(self) -> None:
         self.metadata = METADATA
 
-    def test_lint__testing_namespace__in_test_file__flags_error(self) -> None:
+    def test_lint__testing_namespace_in_test_file__flags_std003(self) -> None:
         content = "_testing.example"
         filepath = "/path/to/test_script.sh"
         linter = Linter(self.metadata)

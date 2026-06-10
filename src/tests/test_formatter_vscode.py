@@ -17,8 +17,8 @@ class TestVSCodeFormatterBase(unittest.TestCase):
         data = json.loads(result)
         self.assertEqual(len(data), 1)
         diag = data[0]
-        self.assertEqual(diag["range"]["start"]["line"], 4)  # 0-indexed
-        self.assertEqual(diag["range"]["start"]["character"], 9)  # 0-indexed
+        self.assertEqual(diag["range"]["start"]["line"], 4)
+        self.assertEqual(diag["range"]["start"]["character"], 9)
         self.assertEqual(diag["code"], "STD003")
         self.assertEqual(diag["source"], "bash-stdlib-lint")
         self.assertEqual(diag["file"], "test.sh")

@@ -16,7 +16,7 @@ class TestIsTestingFunctionCallValidator(unittest.TestCase):
             self.global_state, self.file_state
         )
 
-    def test_check__testing_func__in_test_file__returns_none(self) -> None:
+    def test_check__testing_func_in_test_file__returns_none(self) -> None:
         call = "stdlib.test.func"
         filepath = "/path/to/test_script.sh"
 
@@ -24,7 +24,7 @@ class TestIsTestingFunctionCallValidator(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_check__testing_func__in_prod_file__returns_std007(self) -> None:
+    def test_check__testing_func_in_prod_file__returns_std007(self) -> None:
         call = "stdlib.test.func"
         filepath = "/path/to/prod_script.sh"
 
@@ -33,7 +33,7 @@ class TestIsTestingFunctionCallValidator(unittest.TestCase):
         assert result is not None
         self.assertEqual(result.CODE, "STD007")
 
-    def test_check__prod_func__in_prod_file__returns_none(self) -> None:
+    def test_check__prod_func_in_prod_file__returns_none(self) -> None:
         call = "stdlib.prod.func"
         filepath = "/path/to/prod_script.sh"
 

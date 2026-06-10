@@ -13,7 +13,7 @@ class TestFunctionScopes(unittest.TestCase):
             os.path.dirname(__file__), "assets/linter/function_scopes"
         )
 
-    def test_basic_function_scope(self) -> None:
+    def test_lint__basic_function__populates_scope(self) -> None:
         filepath = os.path.join(self.asset_dir, "basic.sh")
 
         self.linter.lint(filepath)
@@ -27,7 +27,7 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertFalse(scope.contains(0, 0))
         self.assertFalse(scope.contains(4, 0))
 
-    def test_function_keyword_scope(self) -> None:
+    def test_lint__function_keyword__populates_scope(self) -> None:
         filepath = os.path.join(self.asset_dir, "keyword.sh")
 
         self.linter.lint(filepath)
@@ -38,7 +38,7 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertEqual(scope.name, "func")
         self.assertEqual(scope.start_line, 1)
 
-    def test_nested_functions(self) -> None:
+    def test_lint__nested_functions__populates_nested_scopes(self) -> None:
         filepath = os.path.join(self.asset_dir, "nested.sh")
 
         self.linter.lint(filepath)
@@ -47,12 +47,12 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertEqual(len(scopes), 2)
         outer = next(s for s in scopes if s.name == "outer")
         inner = next(s for s in scopes if s.name == "inner")
-        self.assertTrue(outer.contains(3, 5))  # inside inner
+        self.assertTrue(outer.contains(3, 5))
         self.assertTrue(inner.contains(3, 5))
-        self.assertTrue(outer.contains(6, 5))  # inside outer, but after inner
+        self.assertTrue(outer.contains(6, 5))
         self.assertFalse(inner.contains(6, 5))
 
-    def test_unclosed_function_reports_error(self) -> None:
+    def test_lint__unclosed_function__reports_std009_error(self) -> None:
         filepath = os.path.join(self.asset_dir, "unclosed.sh")
 
         errors = self.linter.lint(filepath)
@@ -60,7 +60,7 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].CODE, "STD009")
 
-    def test_quoted_braces_ignored(self) -> None:
+    def test_lint__quoted_braces__ignores_braces(self) -> None:
         filepath = os.path.join(self.asset_dir, "quoted_braces.sh")
 
         self.linter.lint(filepath)
@@ -69,7 +69,7 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertEqual(len(scopes), 1)
         self.assertEqual(scopes[0].end_line, 3)
 
-    def test_shadowing_functions(self) -> None:
+    def test_lint__shadowing_functions__populates_correct_scopes(self) -> None:
         filepath = os.path.join(self.asset_dir, "shadowing.sh")
 
         self.linter.lint(filepath)
