@@ -1,12 +1,26 @@
 """Base class for linter discovery iterators."""
 
 import abc
+from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
     from parsers.token_iterators.enhanced_shlex import AdvancedToken
+
+
+class DiscoveryAction(Enum):
+    """Actions returned by discovery iterators to control the pipeline."""
+
+    CONTINUE = auto()
+    """Continue processing this token with the next iterator."""
+
+    STOP_TOKEN = auto()
+    """Stop processing this token and move to the next one."""
+
+    STOP_LINE = auto()
+    """Stop processing this line and skip to the next newline."""
 
 
 class DiscoveryIteratorBase(abc.ABC):

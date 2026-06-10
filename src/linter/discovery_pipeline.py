@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, List
 
+from linter.discovery_iterators.base import DiscoveryAction
 from linter.discovery_iterators.comment import CommentDiscoveryIterator
 from linter.discovery_iterators.function_scope import FunctionScopeDiscoveryIterator
 from parsers.token_iterators.shlex import ShlexTokenIterator
@@ -31,10 +32,11 @@ class DiscoveryPipeline:
         try:
             for token in tokens:
                 for iterator in self.iterators:
-                    if not iterator.handle_token(token):
-                        # Signal to skip remainder of the line (e.g. comment)
-                        if isinstance(iterator, CommentDiscoveryIterator):
-                            tokens.skip_to_newline()
+                    action = iterator.handle_token(token)
+                    if action == DiscoveryAction.STOP_TOKEN:
+                        break
+                    if action == DiscoveryAction.STOP_LINE:
+                        tokens.skip_to_newline()
                         break
         except ValueError:
             pass

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, List, NamedTuple, Optional
 
-from linter.discovery_iterators.base import DiscoveryIteratorBase
+from linter.discovery_iterators.base import DiscoveryAction, DiscoveryIteratorBase
 from linter.scope import FunctionScope
 
 if TYPE_CHECKING:
@@ -40,11 +40,11 @@ class FunctionScopeDiscoveryIterator(DiscoveryIteratorBase):
         self.in_function_keyword = False
         self.last_token: Optional["AdvancedToken"] = None
 
-    def handle_token(self, token: "AdvancedToken") -> bool:
+    def handle_token(self, token: "AdvancedToken") -> DiscoveryAction:
         """Process a single token to find function boundaries."""
         if token.is_fully_quoted:
             self.last_token = None
-            return True
+            return DiscoveryAction.CONTINUE
 
         if token == self.OPEN_BRACE and self.OPEN_BRACE in token.unquoted_specials:
             self._handle_open_brace(token)
@@ -58,7 +58,7 @@ class FunctionScopeDiscoveryIterator(DiscoveryIteratorBase):
             self._handle_word(token)
 
         self.last_token = token
-        return True
+        return DiscoveryAction.CONTINUE
 
     def _handle_open_brace(self, token: "AdvancedToken") -> None:
         self.current_balance += 1

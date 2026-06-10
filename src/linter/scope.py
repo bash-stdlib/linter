@@ -1,7 +1,6 @@
 """Module for tracking function scopes in Bash scripts."""
 
 
-
 class FunctionScope:
     """Represents the scope of a Bash function."""
 
