@@ -25,7 +25,7 @@ class DiscoveryPipeline:
             FunctionScopeDiscoveryIterator(global_state, file_state),
         ]
 
-    def run(self, content: str) -> None:
+    def process(self, content: str) -> None:
         """Stream tokens through all discovery iterators."""
         tokens = ShlexTokenIterator(content)
         try:

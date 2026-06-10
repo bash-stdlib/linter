@@ -141,13 +141,21 @@ class EnhancedShlex(shlex.shlex):
             literal_len == len(raw_token) + 2
         )
 
+        # 4. Calculate line number manually for accuracy
+        # We count \n and \v (which acts as a line terminator in our linter)
+        line_num = (
+            self.source_str.count("\n", 0, start_ptr)
+            + self.source_str.count("\x0b", 0, start_ptr)
+            + 1
+        )
+
         return AdvancedToken(
             raw_token,
             is_fully_quoted,
             unquoted_specials,
             start_ptr,
             self.source_ptr,
-            self.lineno,
+            line_num,
         )
 
     def __next__(self) -> AdvancedToken:

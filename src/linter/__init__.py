@@ -47,7 +47,7 @@ class Linter:
 
         # Discovery Pass
         discovery = DiscoveryPipeline(self.global_state, self.file_state)
-        discovery.run(file_content)
+        discovery.process(file_content)
 
         # Validation Pass
         validation = ValidationPipeline(
