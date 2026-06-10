@@ -10,13 +10,25 @@ class AdvancedToken(str):
 
     is_fully_quoted: "bool"
     unquoted_specials: "Set[str]"
+    start_offset: "int"
+    end_offset: "int"
+    line_num: "int"
 
     def __new__(
-        cls, value: str, is_fully_quoted: bool, unquoted_specials: Set[str]
+        cls,
+        value: str,
+        is_fully_quoted: bool,
+        unquoted_specials: Set[str],
+        start_offset: int,
+        end_offset: int,
+        line_num: int,
     ) -> "AdvancedToken":
         instance = super(AdvancedToken, cls).__new__(cls, value)
         instance.is_fully_quoted = is_fully_quoted
         instance.unquoted_specials = unquoted_specials
+        instance.start_offset = start_offset
+        instance.end_offset = end_offset
+        instance.line_num = line_num
         return instance
 
 
@@ -47,7 +59,7 @@ class EnhancedShlex(shlex.shlex):
         if "#" in self.target_chars:
             self.commenters = ""
 
-    def read_token(self) -> Optional[AdvancedToken]:  # type: ignore[override]
+    def read_token(self) -> Optional[AdvancedToken]:
         """Read a token and determine its quoting status."""
         raw_token: Optional[str] = super(EnhancedShlex, self).read_token()
         if raw_token is None:
@@ -74,21 +86,25 @@ class EnhancedShlex(shlex.shlex):
         unquoted_specials: Set[str] = set()
         current_quote: Optional[str] = None
         escaped: bool = False
-        escape_char: Optional[str] = "\\" if self.posix else None
+        escape_char: Optional[str] = "\\" if getattr(self, "posix", True) else None
         match_idx = 0
+        is_ansi_c_quote: bool = False
 
         # 2. Reconstruct the literal token representation from the raw source
         while self.source_ptr < len(self.source_str):
-            if (
-                match_idx == len(raw_token)
-                and current_quote is None
-                and not escaped
-                and (
+            if match_idx == len(raw_token) and current_quote is None and not escaped:
+                # We've matched all characters. Should we stop?
+                # Punctuation tokens are always single-entity in our target_chars.
+                if raw_token in self.target_chars:
+                    break
+
+                # For words, we only continue if the very next character is a quote
+                # (to handle adjacent quoted strings like "abc"'def').
+                if (
                     self.source_ptr >= len(self.source_str)
                     or self.source_str[self.source_ptr] not in self.quotes
-                )
-            ):
-                break
+                ):
+                    break
 
             ch = self.source_str[self.source_ptr]
 
@@ -99,7 +115,26 @@ class EnhancedShlex(shlex.shlex):
                 self.source_ptr += 1
                 continue
 
-            if escape_char and ch == escape_char:
+            # Check for ANSI-C quoting: $'...'
+            if (
+                not current_quote
+                and match_idx > 0
+                and raw_token[match_idx - 1] == "$"
+                and ch == "'"
+            ):
+                is_ansi_c_quote = True
+                current_quote = ch
+                self.source_ptr += 1
+                continue
+
+            # Only treat backslash as escape when NOT inside regular single quotes
+            # (inside regular single quotes, backslash is always literal in shell)
+            # However, inside ANSI-C quotes ($'...'), backslash IS an escape char
+            if (
+                escape_char
+                and ch == escape_char
+                and (current_quote != "'" or is_ansi_c_quote)
+            ):
                 escaped = True
                 self.source_ptr += 1
                 continue
@@ -107,6 +142,7 @@ class EnhancedShlex(shlex.shlex):
             if current_quote:
                 if ch == current_quote:
                     current_quote = None
+                    is_ansi_c_quote = False
                 else:
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
@@ -117,6 +153,8 @@ class EnhancedShlex(shlex.shlex):
                     self.source_ptr += 1
                 else:
                     if ch in self.target_chars:
+                        if match_idx == 0 and ch != raw_token[0]:
+                            break
                         unquoted_specials.add(ch)
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
@@ -129,9 +167,24 @@ class EnhancedShlex(shlex.shlex):
             literal_len == len(raw_token) + 2
         )
 
-        return AdvancedToken(raw_token, is_fully_quoted, unquoted_specials)
+        # 4. Calculate line number manually for accuracy
+        # We count \n and \v (which acts as a line terminator in our linter)
+        line_num = (
+            self.source_str.count("\n", 0, start_ptr)
+            + self.source_str.count("\x0b", 0, start_ptr)
+            + 1
+        )
 
-    def __next__(self) -> AdvancedToken:  # type: ignore[override]
+        return AdvancedToken(
+            raw_token,
+            is_fully_quoted,
+            unquoted_specials,
+            start_ptr,
+            self.source_ptr,
+            line_num,
+        )
+
+    def __next__(self) -> AdvancedToken:
         token = self.read_token()
         if token is None:
             raise StopIteration
@@ -139,3 +192,14 @@ class EnhancedShlex(shlex.shlex):
 
     def __iter__(self) -> Iterator[AdvancedToken]:  # type: ignore[override]
         return self
+
+    def skip_to_newline(self) -> None:
+        """Advance the lexer to the next newline character."""
+        while self.source_ptr < len(self.source_str):
+            ch = self.source_str[self.source_ptr]
+            self.source_ptr += 1
+            if ch == "\n":
+                break
+        # Synchronize shlex internal state
+        if hasattr(self.instream, "seek"):
+            self.instream.seek(self.source_ptr)

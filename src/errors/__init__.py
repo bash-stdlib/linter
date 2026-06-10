@@ -12,12 +12,7 @@ from .std005 import STD005
 from .std006 import STD006
 from .std007 import STD007
 from .std008 import STD008
-
-
-def get_all_errors() -> "List[Type[LinterErrorBase]]":
-    """Retrieve all defined LinterErrorBase subclasses."""
-    return LinterErrorBase.__subclasses__()
-
+from .std009 import STD009
 
 __all__ = [
     "STD000",
@@ -29,5 +24,14 @@ __all__ = [
     "STD006",
     "STD007",
     "STD008",
+    "STD009",
     "get_all_errors",
 ]
+
+
+def get_all_errors() -> "List[Type[LinterErrorBase]]":
+    """Retrieve all defined LinterErrorBase subclasses."""
+    # This automatically finds all leaf subclasses in the hierarchy.
+    # However, since they are all direct children of LinterErrorBase
+    # in this repo, __subclasses__() is sufficient.
+    return LinterErrorBase.__subclasses__()

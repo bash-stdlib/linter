@@ -25,7 +25,7 @@ class CommentIgnores(LineIteratorBase):
         super().__init__(global_state, file_state)
         self._in_header = True
 
-    def process_line(self, line_content: str, line_num: int) -> None:
+    def process_line(self, line_content: str, line_num: int, offset: int) -> None:
         """Process a single line to extract ignore directives."""
         if self._in_header:
             if line_num == 1 and line_content.startswith("#!"):

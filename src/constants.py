@@ -21,3 +21,6 @@ URL_STANDARD_DOC: "str" = (
     "https://bash-stdlib.readthedocs.io/en/latest/reference/src/REFERENCE_COMPLETE.html"
 )
 URL_TESTING_DOC: "str" = "https://bash-stdlib.readthedocs.io/en/latest/reference_testing/src/testing/REFERENCE_COMPLETE.html"
+
+GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
+"""Functions that grant mocks global visibility within a test file."""

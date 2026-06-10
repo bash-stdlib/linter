@@ -18,6 +18,6 @@ class LineIteratorBase(abc.ABC):
         self.file_state = file_state
 
     @abc.abstractmethod
-    def process_line(self, line_content: str, line_num: int) -> None:
+    def process_line(self, line_content: str, line_num: int, offset: int) -> None:
         """Process a single line and update the linter state."""
         pass

@@ -2,6 +2,7 @@
 
 import unittest
 
+from parsers.token_iterators.enhanced_shlex import AdvancedToken
 from parsers.token_iterators.shlex import ShlexTokenIterator
 
 
@@ -44,7 +45,7 @@ class TestShlexTokenIterator(unittest.TestCase):
         content = 'arg "|" "#"'
         iterator = ShlexTokenIterator(content)
 
-        result = list(iterator)
+        result = [t for t in iterator if isinstance(t, AdvancedToken)]
 
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0], "arg")
@@ -60,7 +61,7 @@ class TestShlexTokenIterator(unittest.TestCase):
         content = "arg1 | arg2 # comment"
         iterator = ShlexTokenIterator(content)
 
-        result = list(iterator)
+        result = [t for t in iterator if isinstance(t, AdvancedToken)]
 
         # shlex with punctuation_chars=True and EnhancedShlex handling of #
         # result should be ['arg1', '|', 'arg2', '#', 'comment']

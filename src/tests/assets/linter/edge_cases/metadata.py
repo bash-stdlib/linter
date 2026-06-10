@@ -17,7 +17,9 @@ METADATA = {
 }
 
 SCRIPTS = {
-    "function_definitions": "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}",
+    "function_definitions": (
+        "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
+    ),
     "function_as_argument": "echo stdlib.foo",
     "assignment": "VAR=stdlib.foo",
     "line_continuation": "stdlib.bar \\\n  arg1",
