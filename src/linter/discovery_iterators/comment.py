@@ -11,18 +11,14 @@ if TYPE_CHECKING:
 class CommentDiscoveryIterator(DiscoveryIteratorBase):
     """Filters out tokens that are within Bash comments."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.in_comment = False
-
     def handle_token(self, token: "AdvancedToken") -> bool:
         """Track comment state and mark tokens for skipping."""
         if not token.is_fully_quoted:
             if "#" in token.unquoted_specials and token.startswith("#"):
-                self.in_comment = True
+                # Returning False here will signal DiscoveryPipeline to stop
+                # processing this token. However, shlex itself needs to skip
+                # to the newline to avoid quote-splitting issues.
+                # We handle the actual skip in the Pipeline loop for now.
                 return False
-            elif "\n" in token.unquoted_specials:
-                self.in_comment = False
-                return True
 
-        return not self.in_comment
+        return True

@@ -32,6 +32,11 @@ class DiscoveryPipeline:
             for token in tokens:
                 for iterator in self.iterators:
                     if not iterator.handle_token(token):
+                        # Special case: If an iterator returns False, it might
+                        # be because it's a comment and wants us to skip the
+                        # line.
+                        if isinstance(iterator, CommentDiscoveryIterator):
+                            tokens.skip_to_newline()
                         break
         except ValueError:
             pass

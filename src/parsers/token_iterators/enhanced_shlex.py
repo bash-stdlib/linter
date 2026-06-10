@@ -166,3 +166,13 @@ class EnhancedShlex(shlex.shlex):
 
     def __iter__(self) -> Iterator[AdvancedToken]:  # type: ignore[override]
         return self
+
+    def skip_to_newline(self) -> None:
+        """Advance the lexer to the next newline character."""
+        while self.source_ptr < len(self.source_str):
+            ch = self.source_str[self.source_ptr]
+            self.source_ptr += 1
+            if ch == "\n":
+                break
+        # Synchronize shlex internal state
+        self.instream.seek(self.source_ptr)
