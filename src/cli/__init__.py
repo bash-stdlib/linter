@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .commands import CommandBase as CommandBase
 
 
-def run_cli() -> None:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="BASH stdlib linter")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -40,14 +40,14 @@ def run_cli() -> None:
     check_parser.add_argument(
         "--ignore",
         "-i",
-        nargs="+",
+        action="append",
         default=[],
         help="Error codes to ignore",
     )
     check_parser.add_argument(
         "--appendum",
         "-a",
-        nargs="+",
+        action="append",
         default=[],
         help="Additional namespaces or functions to ignore",
     )
@@ -55,6 +55,11 @@ def run_cli() -> None:
     # List command
     subparsers.add_parser("list", help="List all linter error codes and explanations")
 
+    return parser
+
+
+def run_cli() -> None:
+    parser = get_parser()
     args = parser.parse_args()
     command_map = get_command_map()
 
