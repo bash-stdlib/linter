@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from linter.discovery_iterators.base import DiscoveryAction, DiscoveryIteratorBase
 
 if TYPE_CHECKING:
-    from parsers.token_iterators.enhanced_shlex import AdvancedToken
+    from linter.enhanced_shlex import AdvancedToken
 
 
 class CommentDiscoveryIterator(DiscoveryIteratorBase):

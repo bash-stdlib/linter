@@ -2,18 +2,21 @@
 
 from typing import TYPE_CHECKING, List
 
-from linter.discovery_iterators.base import DiscoveryAction
-from linter.discovery_iterators.comment import CommentDiscoveryIterator
-from linter.discovery_iterators.function_scope import FunctionScopeDiscoveryIterator
-from parsers.token_iterators.shlex import ShlexTokenIterator
+from linter.discovery_iterators import (
+    CommentDiscoveryIterator,
+    DiscoveryAction,
+    DiscoveryIteratorBase,
+    FunctionScopeDiscoveryIterator,
+)
+from linter.pipelines.base import BasePipeline
+from linter.token_iterators.shlex import ShlexTokenIterator
 
 if TYPE_CHECKING:
-    from linter.discovery_iterators.base import DiscoveryIteratorBase
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
 
 
-class DiscoveryPipeline:
+class DiscoveryPipeline(BasePipeline):
     """Manages a chain of discovery iterators."""
 
     def __init__(
@@ -21,10 +24,15 @@ class DiscoveryPipeline:
         global_state: "GlobalLinterState",
         file_state: "FileLinterState",
     ) -> None:
+        super().__init__(global_state, file_state)
         self.iterators: List["DiscoveryIteratorBase"] = [
             CommentDiscoveryIterator(global_state, file_state),
             FunctionScopeDiscoveryIterator(global_state, file_state),
         ]
+
+    def execute(self) -> None:
+        """Execute the pipeline (abstract method from BasePipeline)."""
+        pass
 
     def process(self, content: str) -> None:
         """Stream tokens through all discovery iterators."""

@@ -2,7 +2,7 @@
 
 import unittest
 
-from parsers.token_iterators.filter_redirects import FilterRedirectsTokenIterator
+from linter.token_iterators.filter_redirects import FilterRedirectsTokenIterator
 
 
 class TestFilterRedirectsTokenIterator(unittest.TestCase):

@@ -5,9 +5,9 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from linter.enhanced_shlex import AdvancedToken
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
-    from parsers.token_iterators.enhanced_shlex import AdvancedToken
 
 
 class DiscoveryAction(Enum):

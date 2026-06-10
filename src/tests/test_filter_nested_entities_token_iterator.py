@@ -2,7 +2,7 @@
 
 import unittest
 
-from parsers.token_iterators.filter_nested_entities import (
+from linter.token_iterators.filter_nested_entities import (
     FilterNestedEntitiesTokenIterator,
 )
 

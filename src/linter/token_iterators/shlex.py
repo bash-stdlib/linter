@@ -3,10 +3,10 @@
 from typing import TYPE_CHECKING
 
 from constants import SHELL_COMMAND_SEPARATORS
-from .enhanced_shlex import EnhancedShlex
+from ..enhanced_shlex import EnhancedShlex
 
 if TYPE_CHECKING:
-    from .enhanced_shlex import AdvancedToken
+    from ..enhanced_shlex import AdvancedToken
 
 
 class ShlexTokenIterator:
