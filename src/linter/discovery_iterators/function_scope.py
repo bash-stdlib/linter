@@ -47,20 +47,20 @@ class FunctionScopeDiscoveryIterator(DiscoveryIteratorBase):
             return True
 
         if token == self.OPEN_BRACE and self.OPEN_BRACE in token.unquoted_specials:
-            self._handle_open_brace()
+            self._handle_open_brace(token)
         elif token == self.CLOSE_BRACE and self.CLOSE_BRACE in token.unquoted_specials:
             self._handle_close_brace(token)
         elif token == self.FUNCTION_KEYWORD:
             self._handle_function_keyword(token)
         elif token in self.PARENS:
-            self._handle_parentheses()
+            self._handle_parentheses(token)
         else:
             self._handle_word(token)
 
         self.last_token = token
         return True
 
-    def _handle_open_brace(self) -> None:
+    def _handle_open_brace(self, token: "AdvancedToken") -> None:
         self.current_balance += 1
         if self.pending and self.pending.name:
             scope = FunctionScope(
@@ -88,7 +88,7 @@ class FunctionScopeDiscoveryIterator(DiscoveryIteratorBase):
             name=None, line=token.line_num, offset=token.start_offset
         )
 
-    def _handle_parentheses(self) -> None:
+    def _handle_parentheses(self, token: "AdvancedToken") -> None:
         if not self.in_function_keyword and self.last_token:
             self.pending = PendingFunction(
                 name=str(self.last_token),
