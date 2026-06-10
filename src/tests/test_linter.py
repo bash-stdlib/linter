@@ -26,7 +26,7 @@ class TestLinter(unittest.TestCase):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")
 
-    def test_lint__returns_absolute_path(self) -> "None":
+    def test_lint__script_path__returns_absolute_path(self) -> "None":
         content = "stdlib.array.assert"
         expected_path = os.path.abspath("test.sh")
 
