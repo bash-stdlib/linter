@@ -88,6 +88,7 @@ class EnhancedShlex(shlex.shlex):
         escaped: bool = False
         escape_char: Optional[str] = "\\" if getattr(self, "posix", True) else None
         match_idx = 0
+        is_ansi_c_quote: bool = False
 
         # 2. Reconstruct the literal token representation from the raw source
         while self.source_ptr < len(self.source_str):
@@ -114,7 +115,26 @@ class EnhancedShlex(shlex.shlex):
                 self.source_ptr += 1
                 continue
 
-            if escape_char and ch == escape_char:
+            # Check for ANSI-C quoting: $'...'
+            if (
+                not current_quote
+                and match_idx > 0
+                and raw_token[match_idx - 1] == "$"
+                and ch == "'"
+            ):
+                is_ansi_c_quote = True
+                current_quote = ch
+                self.source_ptr += 1
+                continue
+
+            # Only treat backslash as escape when NOT inside regular single quotes
+            # (inside regular single quotes, backslash is always literal in shell)
+            # However, inside ANSI-C quotes ($'...'), backslash IS an escape char
+            if (
+                escape_char
+                and ch == escape_char
+                and (current_quote != "'" or is_ansi_c_quote)
+            ):
                 escaped = True
                 self.source_ptr += 1
                 continue
@@ -122,6 +142,7 @@ class EnhancedShlex(shlex.shlex):
             if current_quote:
                 if ch == current_quote:
                     current_quote = None
+                    is_ansi_c_quote = False
                 else:
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
@@ -132,6 +153,8 @@ class EnhancedShlex(shlex.shlex):
                     self.source_ptr += 1
                 else:
                     if ch in self.target_chars:
+                        if match_idx == 0 and ch != raw_token[0]:
+                            break
                         unquoted_specials.add(ch)
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
