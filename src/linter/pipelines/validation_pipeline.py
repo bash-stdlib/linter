@@ -91,7 +91,7 @@ class ValidationPipeline(BasePipeline):
 
         call_name = self._get_call_name(match)
 
-        if self._is_appendum(call_name):
+        if self._is_extra_ignore(call_name):
             return None
 
         absolute_end = offset + match.end()
@@ -140,14 +140,18 @@ class ValidationPipeline(BasePipeline):
             return call[:-1]
         return call
 
-    def _is_appendum(self, call_name: str) -> bool:
-        """Check if the call name is in the appendum list."""
-        if call_name in self.global_state.appendum:
+    def _is_extra_ignore(self, call_name: str) -> bool:
+        """Check if the call name is in the extra namespaces or functions list."""
+        if call_name in self.global_state.extra_functions:
             return True
+
+        if call_name in self.global_state.extra_namespaces:
+            return True
+
         parts = call_name.split(".")
         for i in range(1, len(parts)):
             prefix = ".".join(parts[:i])
-            if prefix in self.global_state.appendum:
+            if prefix in self.global_state.extra_namespaces:
                 return True
         return False
 

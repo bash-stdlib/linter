@@ -51,7 +51,8 @@ class TestLintCommand(unittest.TestCase):
         mock_linter_class.assert_called_once_with(
             mock_load.return_value,
             ignored_codes=["STD005", "STD001"],
-            appendum=args.appendum,
+            extra_namespaces=args.extra_namespace,
+            extra_functions=args.extra_function,
         )
 
 

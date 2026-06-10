@@ -45,11 +45,18 @@ def get_parser() -> argparse.ArgumentParser:
         help="Error codes to ignore",
     )
     check_parser.add_argument(
-        "--appendum",
-        "-a",
+        "--extra-namespace",
+        "-ns",
         action="append",
         default=[],
-        help="Additional namespaces or functions to ignore",
+        help="Additional namespaces to ignore (wildcard match)",
+    )
+    check_parser.add_argument(
+        "--extra-function",
+        "-fn",
+        action="append",
+        default=[],
+        help="Additional functions to ignore (exact match)",
     )
 
     # List command
