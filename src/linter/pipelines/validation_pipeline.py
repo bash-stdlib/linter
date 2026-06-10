@@ -3,8 +3,9 @@
 from typing import TYPE_CHECKING, List, Optional
 
 from errors import STD006, STD008, STD009
-from linter.line_iterators.comment_ignores import CommentIgnores
-from parsers.token_iterators import ShlexTokenIterator
+from linter.line_iterators import CommentIgnores, LineIteratorBase
+from linter.pipelines.base import BasePipeline
+from linter.token_iterators import ShlexTokenIterator
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
@@ -16,14 +17,15 @@ if TYPE_CHECKING:
     from typing import Match, Pattern
 
     from errors.base import LinterErrorBase
-    from linter.line_iterators.base import LineIteratorBase
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
-    from parsers import BashArgumentsParser
     from validators.base import ValidatorBase
 
+if TYPE_CHECKING:
+    from linter.pipelines import ArgumentPipeline
 
-class ValidationPipeline:
+
+class ValidationPipeline(BasePipeline):
     """Manages the validation pass of the linter."""
 
     def __init__(
@@ -31,12 +33,11 @@ class ValidationPipeline:
         global_state: "GlobalLinterState",
         file_state: "FileLinterState",
         stdlib_call_pattern: "Pattern[str]",
-        argument_parser: "BashArgumentsParser",
+        argument_pipeline: "ArgumentPipeline",
     ) -> None:
-        self.global_state = global_state
-        self.file_state = file_state
+        super().__init__(global_state, file_state)
         self.stdlib_call_pattern = stdlib_call_pattern
-        self.argument_parser = argument_parser
+        self.argument_pipeline = argument_pipeline
         self.validators: List["ValidatorBase"] = [
             NotNamespaceCallValidator(global_state, file_state),
             IsFunctionCallValidator(global_state, file_state),
@@ -46,6 +47,10 @@ class ValidationPipeline:
         self.line_iterators: List["LineIteratorBase"] = [
             CommentIgnores(global_state, file_state),
         ]
+
+    def execute(self) -> None:
+        """Execute the pipeline (abstract method from BasePipeline)."""
+        pass
 
     def run(self, file_content: str, filepath: str) -> List["LinterErrorBase"]:
         """Run the validation pass."""
@@ -92,7 +97,7 @@ class ValidationPipeline:
         absolute_end = offset + match.end()
         column = match.start() + 1
 
-        args = self.argument_parser.parse(content[absolute_end:])
+        args = self.argument_pipeline.run(content[absolute_end:])
         if args is None:
             if not self._is_ignored(STD006.CODE, line_num):
                 return STD006(filepath, line_num, column, call_name)

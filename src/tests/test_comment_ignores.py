@@ -1,7 +1,7 @@
 import unittest
 from typing import Any, Dict
 
-from linter.line_iterators.comment_ignores import CommentIgnores
+from linter.line_iterators import CommentIgnores
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 

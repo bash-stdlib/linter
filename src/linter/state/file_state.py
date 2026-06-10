@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
 if TYPE_CHECKING:
-    from linter.scope import FunctionScope
+    from linter.state.function_scope import FunctionScope
 
 
 class FileLinterState:

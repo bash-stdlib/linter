@@ -1,6 +1,6 @@
 import unittest
 
-from parsers.transformers.line_continuation import LineContinuationTransformer
+from linter.transformers.line_continuation import LineContinuationTransformer
 
 
 class TestLineContinuationTransformer(unittest.TestCase):
