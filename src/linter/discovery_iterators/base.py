@@ -21,6 +21,12 @@ class DiscoveryIteratorBase(abc.ABC):
         self.file_state = file_state
 
     @abc.abstractmethod
-    def handle_token(self, token: "AdvancedToken") -> None:
-        """Process a single token and update the linter state."""
+    def handle_token(self, token: "AdvancedToken") -> bool:
+        """Process a single token and update the linter state.
+
+        Returns:
+            bool: True if processing should continue to the next iterator,
+                  False otherwise.
+
+        """
         pass

@@ -40,42 +40,25 @@ class FunctionScopeDiscoveryIterator(DiscoveryIteratorBase):
         self.in_function_keyword = False
         self.last_token: Optional["AdvancedToken"] = None
 
-    def handle_token(self, token: "AdvancedToken") -> None:
+    def handle_token(self, token: "AdvancedToken") -> bool:
         """Process a single token to find function boundaries."""
-        # EnhancedShlex provides unquoted_specials and is_fully_quoted.
-        # It handles comments by either skipping them or treating them as
-        # commenters. If # is in target_chars, it's a token.
-
-        # We should ignore tokens that are within comments.
-        # ShlexTokenIterator marks # as a separator if unquoted.
-
         if token.is_fully_quoted:
             self.last_token = None
-            return
+            return True
 
         if token == self.OPEN_BRACE and self.OPEN_BRACE in token.unquoted_specials:
             self._handle_open_brace()
-            self.last_token = token
-            return
-
-        if token == self.CLOSE_BRACE and self.CLOSE_BRACE in token.unquoted_specials:
+        elif token == self.CLOSE_BRACE and self.CLOSE_BRACE in token.unquoted_specials:
             self._handle_close_brace(token)
-            self.last_token = token
-            return
-
-        if token == self.FUNCTION_KEYWORD:
+        elif token == self.FUNCTION_KEYWORD:
             self._handle_function_keyword(token)
-            self.last_token = token
-            return
-
-        if token in self.PARENS:
+        elif token in self.PARENS:
             self._handle_parentheses()
-            self.last_token = token
-            return
+        else:
+            self._handle_word(token)
 
-        # It's a word or other special character
-        self._handle_word(token)
         self.last_token = token
+        return True
 
     def _handle_open_brace(self) -> None:
         self.current_balance += 1

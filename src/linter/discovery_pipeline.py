@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, List
 
+from linter.discovery_iterators.comment import CommentDiscoveryIterator
 from linter.discovery_iterators.function_scope import FunctionScopeDiscoveryIterator
 from parsers.token_iterators.enhanced_shlex import AdvancedToken
 from parsers.token_iterators.shlex import ShlexTokenIterator
@@ -21,6 +22,7 @@ class DiscoveryPipeline:
         file_state: "FileLinterState",
     ) -> None:
         self.iterators: List["DiscoveryIteratorBase"] = [
+            CommentDiscoveryIterator(global_state, file_state),
             FunctionScopeDiscoveryIterator(global_state, file_state),
         ]
 
@@ -33,22 +35,8 @@ class DiscoveryPipeline:
                     continue
                 token: AdvancedToken = token_str
 
-                # Check for comments - ShlexTokenIterator marks them with #
-                if "#" in token.unquoted_specials and token.startswith("#"):
-                    # Consume tokens until we reach a newline
-                    try:
-                        while True:
-                            next_token = next(tokens)
-                            if (
-                                isinstance(next_token, AdvancedToken)
-                                and "\n" in next_token.unquoted_specials
-                            ):
-                                break
-                    except StopIteration:
-                        break
-                    continue
-
                 for iterator in self.iterators:
-                    iterator.handle_token(token)
+                    if not iterator.handle_token(token):
+                        break
         except ValueError:
             pass

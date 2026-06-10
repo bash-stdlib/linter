@@ -18,6 +18,7 @@ class TestFunctionScopes(unittest.TestCase):
 
         self.linter.lint(filepath)
         scopes = self.linter.file_state.function_scopes
+
         self.assertEqual(len(scopes), 1)
         scope = scopes[0]
         self.assertEqual(scope.name, "func")
@@ -31,6 +32,7 @@ class TestFunctionScopes(unittest.TestCase):
 
         self.linter.lint(filepath)
         scopes = self.linter.file_state.function_scopes
+
         self.assertEqual(len(scopes), 1)
         scope = scopes[0]
         self.assertEqual(scope.name, "func")
@@ -41,11 +43,10 @@ class TestFunctionScopes(unittest.TestCase):
 
         self.linter.lint(filepath)
         scopes = self.linter.file_state.function_scopes
-        self.assertEqual(len(scopes), 2)
 
+        self.assertEqual(len(scopes), 2)
         outer = next(s for s in scopes if s.name == "outer")
         inner = next(s for s in scopes if s.name == "inner")
-
         self.assertTrue(outer.contains(3, 5))  # inside inner
         self.assertTrue(inner.contains(3, 5))
         self.assertTrue(outer.contains(6, 5))  # inside outer, but after inner
@@ -55,6 +56,7 @@ class TestFunctionScopes(unittest.TestCase):
         filepath = os.path.join(self.asset_dir, "unclosed.sh")
 
         errors = self.linter.lint(filepath)
+
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].CODE, "STD009")
 
@@ -63,6 +65,7 @@ class TestFunctionScopes(unittest.TestCase):
 
         self.linter.lint(filepath)
         scopes = self.linter.file_state.function_scopes
+
         self.assertEqual(len(scopes), 1)
         self.assertEqual(scopes[0].end_line, 3)
 
@@ -71,14 +74,12 @@ class TestFunctionScopes(unittest.TestCase):
 
         self.linter.lint(filepath)
         scopes = self.linter.file_state.function_scopes
-        self.assertEqual(len(scopes), 2)
 
+        self.assertEqual(len(scopes), 2)
         outer = next(s for s in scopes if s.start_line == 1)
         inner = next(s for s in scopes if s.start_line == 2)
-
         self.assertEqual(outer.name, "hello")
         self.assertEqual(inner.name, "hello")
-
         self.assertTrue(outer.contains(3, 5))
         self.assertTrue(inner.contains(3, 5))
         self.assertTrue(outer.contains(5, 5))
