@@ -87,10 +87,11 @@ class EnhancedShlex(shlex.shlex):
         escape_char: Optional[str] = "\\" if getattr(self, "posix", True) else None
         match_idx = 0
         is_ansi_c_quote: bool = False
+        brace_level = 0
 
         # 2. Reconstruct the literal token representation from the raw source
         while self.source_ptr < len(self.source_str):
-            if match_idx == len(raw_token) and current_quote is None and not escaped:
+            if match_idx == len(raw_token) and current_quote is None and not escaped and brace_level == 0:
                 # We've matched all characters. Should we stop?
                 # Punctuation tokens are always single-entity in our target_chars.
                 if raw_token in self.target_chars:
@@ -150,12 +151,48 @@ class EnhancedShlex(shlex.shlex):
                     current_quote = ch
                     self.source_ptr += 1
                 else:
+                    # Track brace level for expansions like ${...}
+                    if ch == "$" and self.source_ptr + 1 < len(self.source_str) and self.source_str[self.source_ptr + 1] == "{":
+                        if brace_level == 0 and match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                             # If we are starting an expansion, and it's part of THIS token
+                             pass
+                        else:
+                             # Expansion might be a new token in shlex
+                             if match_idx == len(raw_token):
+                                 break
+
+                        brace_level += 1
+                        # Consume the ${
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                        self.source_ptr += 1
+                        ch = self.source_str[self.source_ptr]
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                        self.source_ptr += 1
+                        continue
+
+                    if ch == "}" and brace_level > 0:
+                        brace_level -= 1
+                        if match_idx < len(raw_token) and ch == raw_token[match_idx]:
+                            match_idx += 1
+                        self.source_ptr += 1
+                        continue
+
                     if ch in self.target_chars:
-                        if match_idx == 0 and ch != raw_token[0]:
-                            break
-                        unquoted_specials.add(ch)
+                        if brace_level == 0:
+                            if match_idx == 0 and ch != raw_token[0]:
+                                break
+                            unquoted_specials.add(ch)
+                        # If brace_level > 0, we don't treat it as unquoted special
+
                     if match_idx < len(raw_token) and ch == raw_token[match_idx]:
                         match_idx += 1
+                    else:
+                        # If we are NOT matching raw_token, we should stop if we are at brace_level 0
+                        if brace_level == 0:
+                            break
+
                     self.source_ptr += 1
 
         # 3. Explicitly verify if the original text was fully wrapped in quotes
