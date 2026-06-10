@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, List
 
 from linter.discovery_iterators.comment import CommentDiscoveryIterator
 from linter.discovery_iterators.function_scope import FunctionScopeDiscoveryIterator
-from parsers.token_iterators.enhanced_shlex import AdvancedToken
 from parsers.token_iterators.shlex import ShlexTokenIterator
 
 if TYPE_CHECKING:
@@ -30,11 +29,7 @@ class DiscoveryPipeline:
         """Stream tokens through all discovery iterators."""
         tokens = ShlexTokenIterator(content)
         try:
-            for token_str in tokens:
-                if not isinstance(token_str, AdvancedToken):
-                    continue
-                token: AdvancedToken = token_str
-
+            for token in tokens:
                 for iterator in self.iterators:
                     if not iterator.handle_token(token):
                         break

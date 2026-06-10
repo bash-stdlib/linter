@@ -1,7 +1,12 @@
 """Iterator for tokenizing Bash code using shlex."""
 
+from typing import TYPE_CHECKING
+
 from constants import SHELL_COMMAND_SEPARATORS
 from .enhanced_shlex import EnhancedShlex
+
+if TYPE_CHECKING:
+    from .enhanced_shlex import AdvancedToken
 
 
 class ShlexTokenIterator:
@@ -85,7 +90,7 @@ class ShlexTokenIterator:
     def __iter__(self) -> "ShlexTokenIterator":
         return self
 
-    def __next__(self) -> "str":
+    def __next__(self) -> "AdvancedToken":
         try:
             token = next(self.lexer)
             return token
