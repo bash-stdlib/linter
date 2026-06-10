@@ -120,3 +120,12 @@ class Linter:
         if self.file_state.is_ignored(code, line):
             return True
         return False
+
+    def _get_line_number(self, content: "str", offset: "int") -> "int":
+        return content.count("\n", 0, offset) + content.count("\x0b", 0, offset) + 1
+
+    def _get_column_number(self, content: "str", offset: "int") -> "int":
+        last_newline = max(
+            content.rfind("\n", 0, offset), content.rfind("\x0b", 0, offset)
+        )
+        return offset - last_newline if last_newline != -1 else offset + 1

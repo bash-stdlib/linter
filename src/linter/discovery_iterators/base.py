@@ -35,7 +35,7 @@ class DiscoveryIteratorBase(abc.ABC):
         self.file_state = file_state
 
     @abc.abstractmethod
-    def handle_token(self, token: "AdvancedToken") -> bool:
+    def handle_token(self, token: "AdvancedToken") -> "DiscoveryAction":
         """Process a single token and update the linter state.
 
         Returns:

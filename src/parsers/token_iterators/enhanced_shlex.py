@@ -91,16 +91,19 @@ class EnhancedShlex(shlex.shlex):
 
         # 2. Reconstruct the literal token representation from the raw source
         while self.source_ptr < len(self.source_str):
-            if (
-                match_idx == len(raw_token)
-                and current_quote is None
-                and not escaped
-                and (
+            if match_idx == len(raw_token) and current_quote is None and not escaped:
+                # We've matched all characters. Should we stop?
+                # Punctuation tokens are always single-entity in our target_chars.
+                if raw_token in self.target_chars:
+                    break
+
+                # For words, we only continue if the very next character is a quote
+                # (to handle adjacent quoted strings like "abc"'def').
+                if (
                     self.source_ptr >= len(self.source_str)
                     or self.source_str[self.source_ptr] not in self.quotes
-                )
-            ):
-                break
+                ):
+                    break
 
             ch = self.source_str[self.source_ptr]
 
@@ -175,4 +178,5 @@ class EnhancedShlex(shlex.shlex):
             if ch == "\n":
                 break
         # Synchronize shlex internal state
-        self.instream.seek(self.source_ptr)
+        if hasattr(self.instream, "seek"):
+            self.instream.seek(self.source_ptr)
