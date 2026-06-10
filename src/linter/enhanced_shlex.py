@@ -78,8 +78,6 @@ class EnhancedShlex(shlex.shlex):
                     self.source_ptr += 1
                 self.source_ptr += 1
             else:
-                # if it is part of punctuation_chars and if raw_token starts with it
-                # we don't break yet if we are looking for only punctuation
                 break
 
         start_ptr = self.source_ptr
@@ -100,9 +98,12 @@ class EnhancedShlex(shlex.shlex):
 
                 # For words, we only continue if the very next character is a quote
                 # (to handle adjacent quoted strings like "abc"'def').
+                # BUT ONLY if raw_token didn't end with a punctuation character,
+                # which shlex would have split.
                 if (
                     self.source_ptr >= len(self.source_str)
                     or self.source_str[self.source_ptr] not in self.quotes
+                    or (raw_token and raw_token[-1] in self.target_chars)
                 ):
                     break
 
@@ -115,17 +116,14 @@ class EnhancedShlex(shlex.shlex):
                 self.source_ptr += 1
                 continue
 
-            # Check for ANSI-C quoting: $'...'
-            if (
-                not current_quote
-                and match_idx > 0
-                and raw_token[match_idx - 1] == "$"
-                and ch == "'"
-            ):
-                is_ansi_c_quote = True
-                current_quote = ch
-                self.source_ptr += 1
-                continue
+            # Check for ANSI-C quoting: $'...' or Dollar quoting: $"..."
+            # It can start at the beginning of a token or after a $
+            if not current_quote and not escaped and ch in self.quotes:
+                if match_idx > 0 and raw_token[match_idx - 1] == "$":
+                    is_ansi_c_quote = (ch == "'")
+                    current_quote = ch
+                    self.source_ptr += 1
+                    continue
 
             # Only treat backslash as escape when NOT inside regular single quotes
             # (inside regular single quotes, backslash is always literal in shell)
@@ -163,9 +161,17 @@ class EnhancedShlex(shlex.shlex):
         # 3. Explicitly verify if the original text was fully wrapped in quotes
         literal_len = self.source_ptr - start_ptr
         first_char = self.source_str[start_ptr] if literal_len > 0 else ""
-        is_fully_quoted = (first_char in self.quotes) and (
-            literal_len == len(raw_token) + 2
-        )
+
+        # Determine if it's fully quoted, considering $ prefix for ANSI-C/Dollar quotes
+        if first_char == "$" and literal_len > 1:
+            second_char = self.source_str[start_ptr + 1]
+            is_fully_quoted = (second_char in self.quotes) and (
+                literal_len == len(raw_token) + 2
+            )
+        else:
+            is_fully_quoted = (first_char in self.quotes) and (
+                literal_len == len(raw_token) + 2
+            )
 
         # 4. Calculate line number manually for accuracy
         # We count \n and \v (which acts as a line terminator in our linter)
@@ -174,6 +180,16 @@ class EnhancedShlex(shlex.shlex):
             + self.source_str.count("\x0b", 0, start_ptr)
             + 1
         )
+
+        # Workaround for shlex behavior on $'...' and $"..."
+        # If we have over-consumed the literal token compared to raw_token
+        # and raw_token is just "$", it means shlex has already split it
+        # but our reconstruction merged it.
+        if raw_token == "$" and literal_len > 1:
+            # We must backtrack source_ptr and re-evaluate literal_len
+            self.source_ptr = start_ptr + 1
+            literal_len = 1
+            is_fully_quoted = False
 
         return AdvancedToken(
             raw_token,
