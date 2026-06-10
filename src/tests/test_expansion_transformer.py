@@ -1,6 +1,6 @@
 import unittest
 
-from parsers.transformers.expansion import ExpansionTransformer
+from linter.transformers.expansion import ExpansionTransformer
 
 
 class TestExpansionTransformer(unittest.TestCase):

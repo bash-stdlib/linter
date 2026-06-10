@@ -2,8 +2,8 @@
 
 import unittest
 
-from parsers.token_iterators.enhanced_shlex import AdvancedToken
-from parsers.token_iterators.shlex import ShlexTokenIterator
+from linter.token_iterators.enhanced_shlex import AdvancedToken
+from linter.token_iterators.shlex import ShlexTokenIterator
 
 
 class TestShlexTokenIterator(unittest.TestCase):

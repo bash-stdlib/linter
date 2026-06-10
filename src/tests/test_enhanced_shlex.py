@@ -2,7 +2,7 @@
 
 import unittest
 
-from parsers.token_iterators.enhanced_shlex import EnhancedShlex
+from linter.token_iterators.enhanced_shlex import EnhancedShlex
 
 
 class TestEnhancedShlexSingleQuotes(unittest.TestCase):

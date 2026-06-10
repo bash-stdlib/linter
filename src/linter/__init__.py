@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 from errors import STD000
 from linter.discovery_pipeline import DiscoveryPipeline
+from linter.pipelines import ArgumentPipeline
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
+from linter.transformers import LineContinuationTransformer
 from linter.validation_pipeline import ValidationPipeline
-from parsers import BashArgumentsParser
-from parsers.transformers import LineContinuationTransformer
 
 if TYPE_CHECKING:
     from typing import Pattern
@@ -27,7 +27,7 @@ class Linter:
     ) -> "None":
         self.global_state = GlobalLinterState(metadata, ignored_codes, appendum)
         self.stdlib_call_pattern: "Pattern[str]" = self._build_call_pattern()
-        self.argument_parser = BashArgumentsParser()
+        self.argument_pipeline = ArgumentPipeline()
         self.line_continuation_transformer = LineContinuationTransformer()
 
     def lint(self, filepath: "str") -> "List[LinterErrorBase]":
@@ -54,7 +54,7 @@ class Linter:
             self.global_state,
             self.file_state,
             self.stdlib_call_pattern,
-            self.argument_parser,
+            self.argument_pipeline,
         )
         return validation.run(file_content, filepath)
 

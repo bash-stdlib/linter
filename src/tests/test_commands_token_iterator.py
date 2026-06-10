@@ -2,7 +2,7 @@
 
 import unittest
 
-from parsers.token_iterators.commands import CommandsTokenIterator
+from linter.token_iterators.commands import CommandsTokenIterator
 
 
 class TestCommandsTokenIterator(unittest.TestCase):

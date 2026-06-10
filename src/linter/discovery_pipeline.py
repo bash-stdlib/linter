@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List
 from linter.discovery_iterators.base import DiscoveryAction
 from linter.discovery_iterators.comment import CommentDiscoveryIterator
 from linter.discovery_iterators.function_scope import FunctionScopeDiscoveryIterator
-from parsers.token_iterators.shlex import ShlexTokenIterator
+from linter.token_iterators.shlex import ShlexTokenIterator
 
 if TYPE_CHECKING:
     from linter.discovery_iterators.base import DiscoveryIteratorBase
