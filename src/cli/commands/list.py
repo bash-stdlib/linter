@@ -2,7 +2,7 @@
 
 import argparse
 
-from errors import get_all_errors
+from issues import get_all_issues
 from .base import CommandBase
 
 
@@ -12,7 +12,7 @@ class ListErrorCodesCommand(CommandBase):
     def execute(self, args: argparse.Namespace) -> None:
         print("BASH STDLIB Linter - Error Codes:")
         print("-" * 40)
-        for error_class in get_all_errors():
+        for error_class in get_all_issues():
             print("{}: {}".format(error_class.CODE, error_class.TITLE))
             print("      {}".format(error_class.DESCRIPTION))
             print()

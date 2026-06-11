@@ -2,11 +2,11 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from errors import STD005
+from issues import STD005
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class ArgumentCountValidator(ValidatorBase):
@@ -19,7 +19,7 @@ class ArgumentCountValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssueBase]":
         if call not in self.global_state.functions:
             return None
 

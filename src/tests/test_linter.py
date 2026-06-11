@@ -3,17 +3,17 @@ import unittest
 from typing import TYPE_CHECKING, List
 from unittest.mock import MagicMock, mock_open, patch
 
-from errors.std001 import STD001
-from errors.std002 import STD002
-from errors.std003 import STD003
-from errors.std004 import STD004
-from errors.std005 import STD005
-from errors.std006 import STD006
+from issues.errors.STD001 import STD001
+from issues.errors.STD002 import STD002
+from issues.errors.STD003 import STD003
+from issues.errors.STD004 import STD004
+from issues.errors.STD005 import STD005
+from issues.errors.STD006 import STD006
 from linter import Linter
 from tests.assets.linter.core.metadata import METADATA
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class TestLinter(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestLinter(unittest.TestCase):
         self.metadata = METADATA
         self.linter = Linter(self.metadata)
 
-    def _lint_content(self, content: "str") -> "List[LinterErrorBase]":
+    def _lint_content(self, content: "str") -> "List[LinterIssueBase]":
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
             return linter.lint("test.sh")
@@ -30,52 +30,52 @@ class TestLinter(unittest.TestCase):
         content = "stdlib.array.assert"
         expected_path = os.path.abspath("test.sh")
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].file, expected_path)
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0].file, expected_path)
 
-    def test_lint__exact_match__returns_no_errors(self) -> "None":
+    def test_lint__exact_match__returns_no_issues(self) -> "None":
         content = "stdlib.array.assert.is_array arg1"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
     def test_lint__call_to_namespace__returns_std003_error(self) -> "None":
         content = "stdlib.array.assert"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD003)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD003)
 
     def test_lint__misspelled_function__returns_std002_error(self) -> "None":
         content = "stdlib.array.assert.is_ary arg1"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD002)
-        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", errors[0].message)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD002)
+        self.assertIn("Did you mean 'stdlib.array.assert.is_array'?", issues[0].message)
 
     def test_lint__invalid_sub_namespace__returns_std001_error(self) -> "None":
         content = "stdlib.array.unknown.func arg1"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD001)
-        self.assertIn("Invalid namespace 'stdlib.array.unknown'", errors[0].message)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD001)
+        self.assertIn("Invalid namespace 'stdlib.array.unknown'", issues[0].message)
 
     def test_lint__invalid_root_namespace__returns_std001_error(self) -> "None":
         content = "stdlib.unknown.func arg1"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD001)
-        self.assertIn("Invalid namespace 'stdlib.unknown'", errors[0].message)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD001)
+        self.assertIn("Invalid namespace 'stdlib.unknown'", issues[0].message)
 
     def test_lint__unknown_stdlib_call__returns_std004_error(self) -> "None":
         self.metadata["namespaces"] = [
@@ -84,10 +84,10 @@ class TestLinter(unittest.TestCase):
         self.linter = Linter(self.metadata)
         content = "stdlib.completely_unknown arg1"
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD004)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD004)
 
     def test_get_line_number__content_offset__returns_correct_line(self) -> "None":
         content = "line1\nline2\nline3"
@@ -117,43 +117,43 @@ class TestLinter(unittest.TestCase):
     ) -> "None":
         linter = Linter(self.metadata)
 
-        errors = linter.lint("dummy.sh")
+        issues = linter.lint("dummy.sh")
 
-        self.assertEqual(len(errors), 2)
-        self.assertIsInstance(errors[0], STD005)
-        self.assertEqual(errors[0].line, 1)
-        self.assertIsInstance(errors[1], STD005)
-        self.assertEqual(errors[1].line, 2)
+        self.assertEqual(len(issues), 2)
+        self.assertIsInstance(issues[0], STD005)
+        self.assertEqual(issues[0].line, 1)
+        self.assertIsInstance(issues[1], STD005)
+        self.assertEqual(issues[1].line, 2)
 
     def test_lint__unbalanced_quotes__returns_std006_error(self) -> "None":
         content = 'stdlib.array.assert.is_array "unbalanced'
 
-        errors = self._lint_content(content)
+        issues = self._lint_content(content)
 
-        self.assertEqual(len(errors), 1)
-        self.assertIsInstance(errors[0], STD006)
-        self.assertIn("Failed to parse arguments", errors[0].message)
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD006)
+        self.assertIn("Failed to parse arguments", issues[0].message)
 
     def test_lint__ignored_error_code__filters_out_error(self) -> "None":
         content = "stdlib.array.assert.is_array arg1 arg2"
         linter = Linter(self.metadata, ignored_codes=["STD005"])
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0, "Errors: {}".format([e.CODE for e in errors]))
+        self.assertEqual(len(issues), 0, "Errors: {}".format([e.CODE for e in issues]))
 
     def test_lint__ignored_error_code_lowercase__filters_out_error(self) -> "None":
         content = "stdlib.array.assert.is_array arg1 arg2"
         linter = Linter(self.metadata, ignored_codes=["std005"])
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
         self.assertEqual(
-            len(errors),
+            len(issues),
             0,
-            "Errors found: {}".format([(e.CODE, e.message) for e in errors]),
+            "Errors found: {}".format([(e.CODE, e.message) for e in issues]),
         )
 
     def test_lint__comment_disable_same_line__filters_out_error(self) -> "None":
@@ -161,20 +161,20 @@ class TestLinter(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in errors])
+        self.assertNotIn("STD005", [e.CODE for e in issues])
 
     def test_lint__comment_disable_previous_line__filters_out_error(self) -> "None":
         content = "# stdlib: disable STD005\nstdlib.array.assert.is_array arg1 arg2"
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in errors])
+        self.assertNotIn("STD005", [e.CODE for e in issues])
 
-    def test_lint__comment_disable_file_level__filters_out_all_matching_errors(
+    def test_lint__comment_disable_file_level__filters_out_all_matching_issues(
         self,
     ) -> "None":
         content = (
@@ -186,20 +186,20 @@ class TestLinter(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in errors])
+        self.assertNotIn("STD005", [e.CODE for e in issues])
 
     def test_lint__unused_ignore__returns_std008_error(self) -> "None":
         content = "# stdlib: disable STD001\necho hello"
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        error_codes = [e.CODE for e in errors]
+        error_codes = [e.CODE for e in issues]
         self.assertIn("STD008", error_codes)
-        unused_error = [e for e in errors if e.CODE == "STD008"][0]
+        unused_error = [e for e in issues if e.CODE == "STD008"][0]
         self.assertEqual(unused_error.match, "STD001")
 
 

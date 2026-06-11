@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import mock_open, patch
 
-from errors.std001 import STD001
+from issues.errors.STD001 import STD001
 from linter import Linter
 from tests.assets.linter.subshells.metadata import METADATA, SCRIPTS
 
@@ -17,13 +17,13 @@ class TestLinterSubshells(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
         self.assertTrue(
             any(
                 isinstance(e, STD001)
                 and getattr(e, "namespace", None) == "stdlib.invalid"
-                for e in errors
+                for e in issues
             )
         )
 
@@ -32,13 +32,13 @@ class TestLinterSubshells(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
         self.assertTrue(
             any(
                 isinstance(e, STD001)
                 and getattr(e, "namespace", None) == "stdlib.invalid"
-                for e in errors
+                for e in issues
             )
         )
 
@@ -47,9 +47,9 @@ class TestLinterSubshells(unittest.TestCase):
         linter = Linter(self.metadata)
 
         with patch("builtins.open", mock_open(read_data=content)):
-            errors = linter.lint("test.sh")
+            issues = linter.lint("test.sh")
 
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(issues), 0)
 
 
 if __name__ == "__main__":

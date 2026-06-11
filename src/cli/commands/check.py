@@ -11,7 +11,7 @@ from stdlib_html.fetcher import HTMLFetcher
 from .base import CommandBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class LintCommand(CommandBase):
@@ -35,12 +35,12 @@ class LintCommand(CommandBase):
             extra_namespaces=args.extra_namespace,
             extra_functions=args.extra_function,
         )
-        all_errors: "List[LinterErrorBase]" = []
+        all_issues: "List[LinterIssueBase]" = []
         for filepath in args.files:
-            all_errors.extend(linter.lint(filepath))
+            all_issues.extend(linter.lint(filepath))
 
         formatter = get_formatter(args.format)
-        print(formatter.format(all_errors))
+        print(formatter.format(all_issues))
 
-        if all_errors:
+        if all_issues:
             sys.exit(1)

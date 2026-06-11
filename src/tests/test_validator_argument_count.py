@@ -3,7 +3,7 @@
 import unittest
 from typing import List
 
-from errors.std005 import STD005
+from issues.errors.STD005 import STD005
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 from tests.assets.validator.argument_count.metadata import METADATA

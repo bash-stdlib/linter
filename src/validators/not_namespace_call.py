@@ -2,11 +2,11 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from errors import STD003
+from issues import STD003
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class NotNamespaceCallValidator(ValidatorBase):
@@ -19,7 +19,7 @@ class NotNamespaceCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssueBase]":
         if (
             call in self.global_state.namespaces
             and call not in self.global_state.functions

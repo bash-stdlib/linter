@@ -2,11 +2,11 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from errors import STD001, STD002, STD004
+from issues import STD001, STD002, STD004
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class IsFunctionCallValidator(ValidatorBase):
@@ -21,7 +21,7 @@ class IsFunctionCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssueBase]":
         if call in self.global_state.functions:
             return None
 

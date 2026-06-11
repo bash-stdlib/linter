@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, List
 from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class VSCodeFormatterBase(FormatterBase):
-    def format(self, errors: "List[LinterErrorBase]") -> "str":
+    def format(self, issues: "List[LinterIssueBase]") -> "str":
         diagnostics = []
-        for error in errors:
+        for error in issues:
             # VS Code positions are 0-indexed
             # We also provide a range covering the match
             start_line = max(0, error.line - 1)
@@ -25,7 +25,7 @@ class VSCodeFormatterBase(FormatterBase):
                         "start": {"line": start_line, "character": start_char},
                         "end": {"line": start_line, "character": end_char},
                     },
-                    "severity": 1,  # Error
+                    "severity": error.SEVERITY.vscode_severity,
                     "code": error.CODE,
                     "source": "bash-stdlib-lint",
                     "message": error.message,

@@ -4,7 +4,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from errors import STD000
+from issues import STD000
 from linter.pipelines import (
     ArgumentPipeline,
     DiscoveryPipeline,
@@ -17,7 +17,7 @@ from linter.transformers import LineContinuationTransformer
 if TYPE_CHECKING:
     from typing import Pattern
 
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class Linter:
@@ -35,7 +35,7 @@ class Linter:
         self.argument_pipeline = ArgumentPipeline()
         self.line_continuation_transformer = LineContinuationTransformer()
 
-    def lint(self, filepath: "str") -> "List[LinterErrorBase]":
+    def lint(self, filepath: "str") -> "List[LinterIssueBase]":
         self.file_state = FileLinterState()
         filepath = os.path.abspath(filepath)
 
@@ -91,7 +91,7 @@ class Linter:
 
         # Combine all roots into a single pattern.
         # dot_roots are names that should only match if they are either exactly the name
-        # or followed by a dot (to avoid matching things like @parametrize_with_errors).
+        # or followed by a dot (to avoid matching things like @parametrize_with_issues).
         # underscore_roots (like assert_) can be followed by anything.
 
         dot_pattern = (

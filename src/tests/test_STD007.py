@@ -2,7 +2,7 @@
 
 import unittest
 
-from errors import STD007
+from issues import STD007
 
 
 class TestSTD007(unittest.TestCase):
