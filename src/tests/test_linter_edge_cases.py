@@ -12,8 +12,6 @@ class TestLinterEdgeCases(unittest.TestCase):
         self.metadata = METADATA
         self.linter = Linter(self.metadata)
 
-    def tearDown(self) -> None:
-        pass
 
     def lint_content(self, content: str) -> List[LinterIssueBase]:
         with patch("builtins.open", mock_open(read_data=content)):

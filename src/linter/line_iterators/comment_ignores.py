@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class CommentIgnores(LineIteratorBase):
-    """Parses and stores linter error codes ignored via comments."""
+    """Parses and stores linter issue codes ignored via comments."""
 
     IGNORE_PATTERN = re.compile(
         r"#\s*stdlib:\s*disable\s+([A-Z0-9,\s]+)", re.IGNORECASE

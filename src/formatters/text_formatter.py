@@ -14,15 +14,15 @@ class TextFormatterBase(FormatterBase):
             return "No issues found."
 
         lines = []
-        for error in issues:
+        for issue in issues:
             lines.append(
                 "{}:{}:{} - [{}] [{}] {}".format(
-                    error.file,
-                    error.line,
-                    error.column,
-                    error.SEVERITY.level.upper(),
-                    error.CODE,
-                    error.message,
+                    issue.file,
+                    issue.line,
+                    issue.column,
+                    issue.SEVERITY.level.upper(),
+                    issue.CODE,
+                    issue.message,
                 )
             )
         return "\n".join(lines)

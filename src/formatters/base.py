@@ -1,4 +1,4 @@
-"""Base class for error formatters."""
+"""Base class for issue formatters."""
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List

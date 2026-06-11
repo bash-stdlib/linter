@@ -12,12 +12,12 @@ if TYPE_CHECKING:
 class VSCodeFormatterBase(FormatterBase):
     def format(self, issues: "List[LinterIssueBase]") -> "str":
         diagnostics = []
-        for error in issues:
+        for issue in issues:
             # VS Code positions are 0-indexed
             # We also provide a range covering the match
-            start_line = max(0, error.line - 1)
-            start_char = max(0, error.column - 1)
-            end_char = start_char + len(error.match)
+            start_line = max(0, issue.line - 1)
+            start_char = max(0, issue.column - 1)
+            end_char = start_char + len(issue.match)
 
             diagnostics.append(
                 {
@@ -25,11 +25,11 @@ class VSCodeFormatterBase(FormatterBase):
                         "start": {"line": start_line, "character": start_char},
                         "end": {"line": start_line, "character": end_char},
                     },
-                    "severity": error.SEVERITY.vscode_severity,
-                    "code": error.CODE,
+                    "severity": issue.SEVERITY.vscode_severity,
+                    "code": issue.CODE,
                     "source": "bash-stdlib-lint",
-                    "message": error.message,
-                    "file": error.file,
+                    "message": issue.message,
+                    "file": issue.file,
                 }
             )
         return json.dumps(diagnostics, indent=4)

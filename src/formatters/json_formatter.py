@@ -11,4 +11,4 @@ if TYPE_CHECKING:
 
 class JSONFormatterBase(FormatterBase):
     def format(self, issues: "List[LinterIssueBase]") -> "str":
-        return json.dumps([error.to_dict() for error in issues], indent=4)
+        return json.dumps([issue.to_dict() for issue in issues], indent=4)

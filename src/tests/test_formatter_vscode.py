@@ -9,10 +9,10 @@ class TestVSCodeFormatterBase(unittest.TestCase):
     def setUp(self) -> None:
         self.formatter = VSCodeFormatterBase()
 
-    def test_format__single_error__returns_vscode_json(self) -> None:
-        error = STD003("test.sh", 5, 10, "stdlib.ns")
+    def test_format__single_issue__returns_vscode_json(self) -> None:
+        issue = STD003("test.sh", 5, 10, "stdlib.ns")
 
-        result = self.formatter.format([error])
+        result = self.formatter.format([issue])
 
         data = json.loads(result)
         self.assertEqual(len(data), 1)

@@ -111,7 +111,7 @@ class TestLinter(unittest.TestCase):
         read_data="stdlib.array.assert.is_array\n"
         "stdlib.array.assert.is_array arg1 arg2",
     )
-    def test_lint__script_with_error__returns_error_list_with_codes(
+    def test_lint__script_with_error__returns_issue_list_with_codes(
         self,
         mock_file: "MagicMock",
     ) -> "None":
@@ -141,7 +141,7 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             issues = linter.lint("test.sh")
 
-        self.assertEqual(len(issues), 0, "Errors: {}".format([e.CODE for e in issues]))
+        self.assertEqual(len(issues), 0, "Issues: {}".format([issue.CODE for issue in issues]))
 
     def test_lint__ignored_error_code_lowercase__filters_out_error(self) -> "None":
         content = "stdlib.array.assert.is_array arg1 arg2"
@@ -153,7 +153,7 @@ class TestLinter(unittest.TestCase):
         self.assertEqual(
             len(issues),
             0,
-            "Errors found: {}".format([(e.CODE, e.message) for e in issues]),
+            "Issues found: {}".format([(issue.CODE, issue.message) for issue in issues]),
         )
 
     def test_lint__comment_disable_same_line__filters_out_error(self) -> "None":
@@ -163,7 +163,7 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in issues])
+        self.assertNotIn("STD005", [issue.CODE for issue in issues])
 
     def test_lint__comment_disable_previous_line__filters_out_error(self) -> "None":
         content = "# stdlib: disable STD005\nstdlib.array.assert.is_array arg1 arg2"
@@ -172,7 +172,7 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in issues])
+        self.assertNotIn("STD005", [issue.CODE for issue in issues])
 
     def test_lint__comment_disable_file_level__filters_out_all_matching_issues(
         self,
@@ -188,7 +188,7 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             issues = linter.lint("test.sh")
 
-        self.assertNotIn("STD005", [e.CODE for e in issues])
+        self.assertNotIn("STD005", [issue.CODE for issue in issues])
 
     def test_lint__unused_ignore__returns_std008_error(self) -> "None":
         content = "# stdlib: disable STD001\necho hello"
@@ -197,10 +197,10 @@ class TestLinter(unittest.TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             issues = linter.lint("test.sh")
 
-        error_codes = [e.CODE for e in issues]
-        self.assertIn("STD008", error_codes)
-        unused_error = [e for e in issues if e.CODE == "STD008"][0]
-        self.assertEqual(unused_error.match, "STD001")
+        issue_codes = [issue.CODE for issue in issues]
+        self.assertIn("STD008", issue_codes)
+        unused_issue = [issue for issue in issues if issue.CODE == "STD008"][0]
+        self.assertEqual(unused_issue.match, "STD001")
 
 
 if __name__ == "__main__":

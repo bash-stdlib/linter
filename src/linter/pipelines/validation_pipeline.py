@@ -62,11 +62,11 @@ class ValidationPipeline(BasePipeline):
                 iterator.process_line(line_content, line_num, offset)
 
             for match in self.stdlib_call_pattern.finditer(line_content):
-                error = self._process_match(
+                issue = self._process_match(
                     match, file_content, filepath, line_num, offset
                 )
-                if error:
-                    issues.append(error)
+                if issue:
+                    issues.append(issue)
 
             offset += len(line_content)
 
@@ -104,10 +104,10 @@ class ValidationPipeline(BasePipeline):
             return None
 
         for validator in self.validators:
-            error = validator.check(call_name, filepath, line_num, column, args)
-            if error:
-                if not self._is_ignored(error.CODE, line_num):
-                    return error
+            issue = validator.check(call_name, filepath, line_num, column, args)
+            if issue:
+                if not self._is_ignored(issue.CODE, line_num):
+                    return issue
         return None
 
     def _is_at_command_position(
@@ -156,7 +156,7 @@ class ValidationPipeline(BasePipeline):
         return False
 
     def _is_ignored(self, code: str, line: int) -> bool:
-        """Check if the error code is ignored for the given line."""
+        """Check if the issue code is ignored for the given line."""
         code = code.upper()
         if code in self.global_state.ignored_codes:
             return True
