@@ -19,7 +19,7 @@ class FileLinterState:
         self.function_scopes: List["FunctionScope"] = []
 
     def is_ignored(self, code: str, line: int) -> bool:
-        """Check if a specific error code is ignored for a given line."""
+        """Check if a specific issue code is ignored for a given line."""
         code = code.upper()
 
         file_ignored = self._check_file_ignores(code)

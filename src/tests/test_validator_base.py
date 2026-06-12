@@ -1,7 +1,7 @@
 import unittest
 from typing import List, Optional
 
-from errors.base import LinterErrorBase
+from issues.base import LinterIssueBase
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
 from tests.assets.validator.base.metadata import METADATA
@@ -16,7 +16,7 @@ class ConcreteValidator(ValidatorBase):
         line: int,
         column: int,
         args: Optional[List[str]] = None,
-    ) -> Optional[LinterErrorBase]:
+    ) -> Optional[LinterIssueBase]:
         return None
 
 

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from errors import STD006, STD008, STD009
+from issues import STD006, STD008, STD009
 from linter.line_iterators import CommentIgnores, LineIteratorBase
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators import ShlexTokenIterator
@@ -16,7 +16,7 @@ from validators import (
 if TYPE_CHECKING:
     from typing import Match, Pattern
 
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
     from validators.base import ValidatorBase
@@ -52,9 +52,9 @@ class ValidationPipeline(BasePipeline):
         """Execute the pipeline (abstract method from BasePipeline)."""
         pass
 
-    def run(self, file_content: str, filepath: str) -> List["LinterErrorBase"]:
+    def run(self, file_content: str, filepath: str) -> List["LinterIssueBase"]:
         """Run the validation pass."""
-        errors: List["LinterErrorBase"] = []
+        issues: List["LinterIssueBase"] = []
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
@@ -62,18 +62,18 @@ class ValidationPipeline(BasePipeline):
                 iterator.process_line(line_content, line_num, offset)
 
             for match in self.stdlib_call_pattern.finditer(line_content):
-                error = self._process_match(
+                issue = self._process_match(
                     match, file_content, filepath, line_num, offset
                 )
-                if error:
-                    errors.append(error)
+                if issue:
+                    issues.append(issue)
 
             offset += len(line_content)
 
-        self._check_unclosed_scopes(errors, filepath)
-        self._check_unused_ignores(errors, filepath)
+        self._check_unclosed_scopes(issues, filepath)
+        self._check_unused_ignores(issues, filepath)
 
-        return errors
+        return issues
 
     def _process_match(
         self,
@@ -82,7 +82,7 @@ class ValidationPipeline(BasePipeline):
         filepath: "str",
         line_num: int,
         offset: int = 0,
-    ) -> Optional["LinterErrorBase"]:
+    ) -> Optional["LinterIssueBase"]:
         if self._is_function_definition(match, content, offset):
             return None
 
@@ -104,10 +104,10 @@ class ValidationPipeline(BasePipeline):
             return None
 
         for validator in self.validators:
-            error = validator.check(call_name, filepath, line_num, column, args)
-            if error:
-                if not self._is_ignored(error.CODE, line_num):
-                    return error
+            issue = validator.check(call_name, filepath, line_num, column, args)
+            if issue:
+                if not self._is_ignored(issue.CODE, line_num):
+                    return issue
         return None
 
     def _is_at_command_position(
@@ -156,24 +156,24 @@ class ValidationPipeline(BasePipeline):
         return False
 
     def _is_ignored(self, code: str, line: int) -> bool:
-        """Check if the error code is ignored for the given line."""
+        """Check if the issue code is ignored for the given line."""
         code = code.upper()
         if code in self.global_state.ignored_codes:
             return True
         return self.file_state.is_ignored(code, line)
 
     def _check_unclosed_scopes(
-        self, errors: List["LinterErrorBase"], filepath: str
+        self, issues: List["LinterIssueBase"], filepath: str
     ) -> None:
         """Check for unclosed function scopes and report them."""
         for scope in self.file_state.function_scopes:
             if scope.end_line == -1:
                 if not self._is_ignored(STD009.CODE, scope.start_line):
-                    errors.append(STD009(filepath, scope.start_line, 1, scope.name))
+                    issues.append(STD009(filepath, scope.start_line, 1, scope.name))
 
     def _check_unused_ignores(
-        self, errors: List["LinterErrorBase"], filepath: str
+        self, issues: List["LinterIssueBase"], filepath: str
     ) -> None:
         """Check for unused ignore directives and report them."""
         for code, line in self.file_state.get_unused_ignores():
-            errors.append(STD008(filepath, line, 1, code))
+            issues.append(STD008(filepath, line, 1, code))

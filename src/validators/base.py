@@ -5,7 +5,7 @@ import difflib
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
     from linter.state.file_state import FileLinterState
     from linter.state.global_state import GlobalLinterState
 
@@ -27,7 +27,7 @@ class ValidatorBase(abc.ABC):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
-    ) -> "Optional[LinterErrorBase]":
+    ) -> "Optional[LinterIssueBase]":
         """Check if the given call violates this validator."""
         pass
 

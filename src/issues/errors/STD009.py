@@ -1,6 +1,6 @@
 """Error for unclosed function scopes."""
 
-from errors.base import LinterErrorBase
+from .base import LinterErrorBase
 
 
 class STD009(LinterErrorBase):

@@ -55,10 +55,10 @@ class TestFunctionScopes(unittest.TestCase):
     def test_lint__unclosed_function__reports_std009_error(self) -> None:
         filepath = os.path.join(self.asset_dir, "unclosed.sh")
 
-        errors = self.linter.lint(filepath)
+        issues = self.linter.lint(filepath)
 
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].CODE, "STD009")
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0].CODE, "STD009")
 
     def test_lint__quoted_braces__ignores_braces(self) -> None:
         filepath = os.path.join(self.asset_dir, "quoted_braces.sh")

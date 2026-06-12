@@ -1,19 +1,17 @@
-"""Base classes for linter exceptions and reported errors."""
+"""Base classes for linter issues."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .enum import Severity
 
 
-class BaseLinterException(Exception):
-    """Base class for all internal linter exceptions."""
-
-    pass
-
-
-class LinterErrorBase(ABC):
-    """Base class for all specific linting errors and warnings."""
+class LinterIssueBase(ABC):
+    """Base class for all specific linting issues (errors and warnings)."""
 
     CODE: str = ""
+    SEVERITY: "Severity"
     TITLE: str = ""
     DESCRIPTION: str = ""
 
@@ -40,14 +38,15 @@ class LinterErrorBase(ABC):
             raise NotImplementedError(error_msg)
 
     @abstractmethod
-    def format_message(self) -> "str":
-        """Format the specific error message for this error."""
+    def format_message(self) -> str:
+        """Format the specific message for this issue."""
         pass
 
-    def to_dict(self) -> "Dict[str, Any]":
-        """Convert the error to a dictionary for JSON output."""
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the issue to a dictionary for JSON output."""
         return {
             "code": self.CODE,
+            "severity": self.SEVERITY.level,
             "title": self.TITLE,
             "file": self.file,
             "line": self.line,

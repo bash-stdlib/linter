@@ -1,6 +1,6 @@
 import unittest
 
-from errors.std000 import STD000
+from issues.errors.STD000 import STD000
 
 
 class TestSTD000(unittest.TestCase):

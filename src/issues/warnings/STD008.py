@@ -1,9 +1,9 @@
 """Linter error STD008: Unused ignore."""
 
-from .base import LinterErrorBase
+from .base import LinterWarningBase
 
 
-class STD008(LinterErrorBase):
+class STD008(LinterWarningBase):
     CODE = "STD008"
     TITLE = "unused ignore"
     DESCRIPTION = (

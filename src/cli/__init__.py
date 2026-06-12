@@ -60,7 +60,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
 
     # List command
-    subparsers.add_parser("list", help="List all linter error codes and explanations")
+    subparsers.add_parser("list", help="List all linter issue codes and explanations")
 
     return parser
 

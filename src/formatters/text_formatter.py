@@ -5,19 +5,24 @@ from typing import TYPE_CHECKING, List
 from .base import FormatterBase
 
 if TYPE_CHECKING:
-    from errors.base import LinterErrorBase
+    from issues.base import LinterIssueBase
 
 
 class TextFormatterBase(FormatterBase):
-    def format(self, errors: "List[LinterErrorBase]") -> "str":
-        if not errors:
-            return "No errors found."
+    def format(self, issues: "List[LinterIssueBase]") -> "str":
+        if not issues:
+            return "No issues found."
 
         lines = []
-        for error in errors:
+        for issue in issues:
             lines.append(
-                "{}:{}:{} - [{}] {}".format(
-                    error.file, error.line, error.column, error.CODE, error.message
+                "{}:{}:{} - [{}] [{}] {}".format(
+                    issue.file,
+                    issue.line,
+                    issue.column,
+                    issue.SEVERITY.level.upper(),
+                    issue.CODE,
+                    issue.message,
                 )
             )
         return "\n".join(lines)

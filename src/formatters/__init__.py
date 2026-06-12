@@ -1,4 +1,4 @@
-"""Output formatters for linter errors."""
+"""Output formatters for linter issues."""
 
 from typing import TYPE_CHECKING, Dict, Type, Union
 
