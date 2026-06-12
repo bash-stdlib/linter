@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import mock_open, patch
 
@@ -19,31 +20,11 @@ class TestLinterComments(unittest.TestCase):
         self.assertEqual(len(issues), 0)
 
     def test_lint__complex_comments__does_not_break_function_scopes(self) -> None:
-        content = (
-            "#!/bin/bash\n"
-            "\n"
-            "#   (default=\"$'^([^:]+:[0-9]+|environment:[0-9]+):.+$'\").\n"
-            "# @stderr The error message if the assertion fails.\n"
-            "reproduce_bug1() {\n"
-            "  #\n"
-            "  :\n"
-            "}\n"
-            "\n"
-            "\n"
-            "debug1() {\n"
-            "  #\n"
-            "  :\n"
-            "}\n"
-            "\n"
-            "#   (default=\"$'^([^:]+:[0-9]+|environment:[0-9]+):.+$'\").\n"
-            "reproduce_bug2() {\n"
-            "  #\n"
-            "  :\n"
-            "}\n"
+        filepath = os.path.join(
+            os.path.dirname(__file__), "assets/linter/comments/complex_comments.sh"
         )
 
-        with patch("builtins.open", mock_open(read_data=content)):
-            issues = self.linter.lint("test.sh")
+        issues = self.linter.lint(filepath)
 
         self.assertEqual(len(issues), 0)
         self.assertEqual(len(self.linter.file_state.function_scopes), 3)
