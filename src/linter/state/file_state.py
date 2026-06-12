@@ -1,9 +1,10 @@
 """File-specific state object for the linter."""
 
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     from linter.state.function_scope import FunctionScope
+    from linter.state.mock_scope import MockScope
 
 
 class FileLinterState:
@@ -17,6 +18,7 @@ class FileLinterState:
         self.line_ignores: Dict[int, Dict[Tuple[str, int], bool]] = {}
 
         self.function_scopes: List["FunctionScope"] = []
+        self.mock_scopes: List["MockScope"] = []
 
     def is_ignored(self, code: str, line: int) -> bool:
         """Check if a specific issue code is ignored for a given line."""
@@ -60,3 +62,27 @@ class FileLinterState:
                 )
 
         return sorted([k for k, v in all_defs.items() if not v], key=lambda x: x[1])
+
+    def add_mock_lifecycle(
+        self, name: str, offset: int
+    ) -> None:
+        """Add a new mock lifecycle."""
+        from linter.state.mock_scope import MockScope
+
+        self.mock_scopes.append(
+            MockScope(name=name, start_offset=offset)
+        )
+
+    def end_mock_lifecycle(self, name: str, offset: int) -> None:
+        """End the most recent lifecycle for a mock of the given name."""
+        for scope in reversed(self.mock_scopes):
+            if scope.name == name and scope.end_offset == -1:
+                scope.end_offset = offset
+                break
+
+    def is_mock_active(self, name: str, offset: int) -> bool:
+        """Check if a mock with the given name is active at the given offset."""
+        for scope in self.mock_scopes:
+            if scope.name == name and scope.is_active(offset):
+                return True
+        return False

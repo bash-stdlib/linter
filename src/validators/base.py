@@ -27,6 +27,7 @@ class ValidatorBase(abc.ABC):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
+        offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
         """Check if the given call violates this validator."""
         pass

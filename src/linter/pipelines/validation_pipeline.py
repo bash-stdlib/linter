@@ -1,5 +1,6 @@
 """Main validation pipeline for the linter."""
 
+import re
 from typing import TYPE_CHECKING, List, Optional
 
 from issues import STD006, STD008, STD009
@@ -9,6 +10,7 @@ from linter.token_iterators import ShlexTokenIterator
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
+    IsMockCallValidator,
     IsTestingFunctionCallValidator,
     NotNamespaceCallValidator,
 )
@@ -28,6 +30,8 @@ if TYPE_CHECKING:
 class ValidationPipeline(BasePipeline):
     """Manages the validation pass of the linter."""
 
+    MOCK_WILDCARD_PATTERN = re.compile(r"(?<!\w)([a-z0-9._]+(?:\.mock\.[a-z0-9._]+)?)(?![a-z0-9._])")
+
     def __init__(
         self,
         global_state: "GlobalLinterState",
@@ -40,6 +44,7 @@ class ValidationPipeline(BasePipeline):
         self.argument_pipeline = argument_pipeline
         self.validators: List["ValidatorBase"] = [
             NotNamespaceCallValidator(global_state, file_state),
+            IsMockCallValidator(global_state, file_state),
             IsFunctionCallValidator(global_state, file_state),
             ArgumentCountValidator(global_state, file_state),
             IsTestingFunctionCallValidator(global_state, file_state),
@@ -61,7 +66,24 @@ class ValidationPipeline(BasePipeline):
             for iterator in self.line_iterators:
                 iterator.process_line(line_content, line_num, offset)
 
+            # Combined pattern matching
+            matches = []
             for match in self.stdlib_call_pattern.finditer(line_content):
+                matches.append(match)
+
+            # Mock wildcard matching
+            for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
+                # Avoid duplicate matches if already matched by stdlib pattern
+                if not any(m.start() == match.start() for m in matches):
+                     # Only add if it's potentially a mock-related call
+                     call_name = match.group(1)
+                     if ".mock." in call_name or self.file_state.is_mock_active(call_name, offset + match.start()):
+                         matches.append(match)
+
+            # Sort matches by start position
+            matches.sort(key=lambda x: x.start())
+
+            for match in matches:
                 issue = self._process_match(
                     match, file_content, filepath, line_num, offset
                 )
@@ -83,6 +105,8 @@ class ValidationPipeline(BasePipeline):
         line_num: int,
         offset: int = 0,
     ) -> Optional["LinterIssueBase"]:
+        absolute_offset = offset + match.start()
+
         if self._is_function_definition(match, content, offset):
             return None
 
@@ -104,7 +128,9 @@ class ValidationPipeline(BasePipeline):
             return None
 
         for validator in self.validators:
-            issue = validator.check(call_name, filepath, line_num, column, args)
+            issue = validator.check(
+                call_name, filepath, line_num, column, args, absolute_offset
+            )
             if issue:
                 if not self._is_ignored(issue.CODE, line_num):
                     return issue

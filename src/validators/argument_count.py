@@ -1,4 +1,4 @@
-"""Validator for checking the number of arguments in standard library function calls."""
+"""Linter validator for checking the number of arguments passed to functions."""
 
 from typing import TYPE_CHECKING, List, Optional
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class ArgumentCountValidator(ValidatorBase):
-    """Checks if the call has the correct number of arguments."""
+    """Checks if the number of arguments matches the function definition."""
 
     def check(
         self,
@@ -19,28 +19,34 @@ class ArgumentCountValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
+        offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
-        if call not in self.global_state.functions:
-            return None
-
-        if args is None:
-            args = []
-
-        func_meta = self.global_state.metadata.get(call)
+        func_meta = self._get_meta(call, offset)
         if not func_meta:
             return None
 
         min_args = func_meta.get("min_args", 0)
-        max_args = func_meta.get("max_args", 0)
-        actual_args = len(args)
+        max_args = func_meta.get("max_args", -1)
 
-        is_valid = True
+        actual_args = len(args) if args is not None else 0
+
         if actual_args < min_args:
-            is_valid = False
-        elif max_args != -1 and actual_args > max_args:
-            is_valid = False
-
-        if not is_valid:
             return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+
+        if max_args != -1 and actual_args > max_args:
+            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+
+        return None
+
+    def _get_meta(self, call: str, offset: int) -> Optional[dict]:
+        if call in self.global_state.functions:
+            return self.global_state.metadata.get(call)
+
+        if ".mock." in call:
+            parts = call.split(".mock.", 1)
+            mock_name = parts[0]
+            method = parts[1]
+            if self.file_state.is_mock_active(mock_name, offset):
+                return self.global_state.metadata.get(f"object.mock.{method}")
 
         return None

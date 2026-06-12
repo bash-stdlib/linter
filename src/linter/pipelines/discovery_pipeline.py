@@ -7,6 +7,7 @@ from linter.discovery_iterators import (
     DiscoveryAction,
     DiscoveryIteratorBase,
     FunctionScopeDiscoveryIterator,
+    MockDiscoveryIterator,
 )
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators.shlex import ShlexTokenIterator
@@ -28,6 +29,7 @@ class DiscoveryPipeline(BasePipeline):
         self.iterators: List["DiscoveryIteratorBase"] = [
             CommentDiscoveryIterator(global_state, file_state),
             FunctionScopeDiscoveryIterator(global_state, file_state),
+            MockDiscoveryIterator(global_state, file_state),
         ]
 
     def execute(self) -> None:
