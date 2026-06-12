@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import mock_open, patch
 
@@ -17,6 +18,22 @@ class TestLinterComments(unittest.TestCase):
             issues = self.linter.lint("test.sh")
 
         self.assertEqual(len(issues), 0)
+
+    def test_lint__complex_comments__does_not_break_function_scopes(self) -> None:
+        filepath = os.path.join(
+            os.path.dirname(__file__), "assets/linter/comments/complex_comments.sh"
+        )
+
+        issues = self.linter.lint(filepath)
+
+        self.assertEqual(len(issues), 0)
+        self.assertEqual(len(self.linter.file_state.function_scopes), 3)
+        self.assertEqual(self.linter.file_state.function_scopes[0].name, "reproduce_bug1")
+        self.assertEqual(self.linter.file_state.function_scopes[1].name, "debug1")
+        self.assertEqual(self.linter.file_state.function_scopes[2].name, "reproduce_bug2")
+        self.assertNotEqual(self.linter.file_state.function_scopes[0].end_line, -1)
+        self.assertNotEqual(self.linter.file_state.function_scopes[1].end_line, -1)
+        self.assertNotEqual(self.linter.file_state.function_scopes[2].end_line, -1)
 
     def test_lint__inline_comment__returns_no_issues(self) -> None:
         content = "stdlib.something # stdlib.echo\n"
