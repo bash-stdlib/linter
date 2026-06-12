@@ -419,11 +419,8 @@ class EnhancedShlex(shlex.shlex):
 
     def skip_to_newline(self) -> None:
         """Advance the lexer to the next newline character."""
-        while self.source_ptr < len(self.source_str):
-            char = self.source_str[self.source_ptr]
-            self.source_ptr += 1
-            if char == "\n":
-                break
-        if hasattr(self.instream, "seek"):
-            self.instream.seek(self.source_ptr)
+        # Sync instream with current source_ptr before reading
+        self.instream.seek(self.source_ptr)
+        line = self.instream.readline()
+        self.source_ptr += len(line)
 
