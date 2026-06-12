@@ -18,7 +18,7 @@ class ShlexTokenIterator:
     COMMENT_CHAR = "#"
 
     def __init__(self, content: "str") -> None:
-        target_chars = list(SHELL_COMMAND_SEPARATORS) + [">", "<"]
+        target_chars = list(SHELL_COMMAND_SEPARATORS) + [">", "<", "!"]
         self.lexer = EnhancedShlex(
             content, posix=True, target_chars=target_chars, punctuation_chars=True
         )

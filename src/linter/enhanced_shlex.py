@@ -104,12 +104,15 @@ class EnhancedShlex(shlex.shlex):
         if state.char_index != len(raw_token) or state.current_quote or state.is_escaped:
             return False
         
-        # Punctuation tokens (single or multi-char like <() are single entities
-        if all(c in self.target_chars for c in raw_token):
+        # Punctuation tokens (those with no word characters) are single entities
+        if all(c not in self.wordchars for c in raw_token):
             return True
-        
+
         # Words continue if next char is a quote
-        if self.source_ptr >= len(protected_src) or protected_src[self.source_ptr] not in self.quotes:
+        if (
+            self.source_ptr >= len(protected_src)
+            or protected_src[self.source_ptr] not in self.quotes
+        ):
             return True
         
         return False

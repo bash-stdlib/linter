@@ -85,6 +85,20 @@ class TestFunctionScopes(unittest.TestCase):
         self.assertTrue(outer.contains(5, 5))
         self.assertFalse(inner.contains(5, 5))
 
+    def test_lint__command_substitution_with_exclamation__does_not_break_scope(
+        self,
+    ) -> None:
+        filepath = os.path.join(self.asset_dir, "issue_repro.sh")
+
+        issues = self.linter.lint(filepath)
+        scopes = self.linter.file_state.function_scopes
+
+        self.assertEqual(len(issues), 0)
+        self.assertEqual(len(scopes), 2)
+        self.assertEqual(scopes[0].name, "test_ok")
+        self.assertEqual(scopes[1].name, "test_broken")
+        self.assertNotEqual(scopes[1].end_line, -1)
+
 
 if __name__ == "__main__":
     unittest.main()
