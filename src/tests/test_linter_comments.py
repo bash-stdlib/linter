@@ -18,6 +18,42 @@ class TestLinterComments(unittest.TestCase):
 
         self.assertEqual(len(issues), 0)
 
+    def test_lint__complex_comments__does_not_break_function_scopes(self) -> None:
+        content = (
+            "#!/bin/bash\n"
+            "\n"
+            "#   (default=\"$'^([^:]+:[0-9]+|environment:[0-9]+):.+$'\").\n"
+            "# @stderr The error message if the assertion fails.\n"
+            "reproduce_bug1() {\n"
+            "  #\n"
+            "  :\n"
+            "}\n"
+            "\n"
+            "\n"
+            "debug1() {\n"
+            "  #\n"
+            "  :\n"
+            "}\n"
+            "\n"
+            "#   (default=\"$'^([^:]+:[0-9]+|environment:[0-9]+):.+$'\").\n"
+            "reproduce_bug2() {\n"
+            "  #\n"
+            "  :\n"
+            "}\n"
+        )
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            issues = self.linter.lint("test.sh")
+
+        self.assertEqual(len(issues), 0)
+        self.assertEqual(len(self.linter.file_state.function_scopes), 3)
+        self.assertEqual(self.linter.file_state.function_scopes[0].name, "reproduce_bug1")
+        self.assertEqual(self.linter.file_state.function_scopes[1].name, "debug1")
+        self.assertEqual(self.linter.file_state.function_scopes[2].name, "reproduce_bug2")
+        self.assertNotEqual(self.linter.file_state.function_scopes[0].end_line, -1)
+        self.assertNotEqual(self.linter.file_state.function_scopes[1].end_line, -1)
+        self.assertNotEqual(self.linter.file_state.function_scopes[2].end_line, -1)
+
     def test_lint__inline_comment__returns_no_issues(self) -> None:
         content = "stdlib.something # stdlib.echo\n"
 
