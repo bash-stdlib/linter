@@ -16,22 +16,6 @@ class IsFunctionCallValidator(ValidatorBase):
 
     WHITELISTED_PREFIXES = ["assert_"]
     MOCK_TOKEN = ".mock."
-    MOCK_META_PREFIX = "object.mock."
-
-    def __init__(
-        self, global_state: "GlobalLinterState", file_state: "FileLinterState"
-    ) -> None:
-        super().__init__(global_state, file_state)
-        self.mock_methods: Set[str] = self._derive_mock_methods()
-
-    def _derive_mock_methods(self) -> Set[str]:
-        """Derive mock methods from metadata by matching against the mock meta prefix."""
-        methods = set()
-        for func_name in self.global_state.functions:
-            if func_name.startswith(self.MOCK_META_PREFIX):
-                method = func_name[len(self.MOCK_META_PREFIX):]
-                methods.add(method)
-        return methods
 
     def check(
         self,
@@ -75,7 +59,7 @@ class IsFunctionCallValidator(ValidatorBase):
             parts = call.split(self.MOCK_TOKEN, 1)
             mock_name = parts[0]
             method = parts[1]
-            if self.file_state.is_mock_active(mock_name, offset) and method in self.mock_methods:
+            if self.file_state.is_mock_active(mock_name, offset) and method in self.global_state.mock_methods:
                 return True
 
         return False

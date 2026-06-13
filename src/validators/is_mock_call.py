@@ -17,22 +17,6 @@ class IsMockCallValidator(ValidatorBase):
 
     MOCK_TOKEN = ".mock."
     MOCK_PREFIX = "_mock."
-    MOCK_META_PREFIX = "object.mock."
-
-    def __init__(
-        self, global_state: "GlobalLinterState", file_state: "FileLinterState"
-    ) -> None:
-        super().__init__(global_state, file_state)
-        self.mock_methods: Set[str] = self._derive_mock_methods()
-
-    def _derive_mock_methods(self) -> Set[str]:
-        """Derive mock methods from metadata by matching against the mock meta prefix."""
-        methods = set()
-        for func_name in self.global_state.functions:
-            if func_name.startswith(self.MOCK_META_PREFIX):
-                method = func_name[len(self.MOCK_META_PREFIX):]
-                methods.add(method)
-        return methods
 
     def check(
         self,
@@ -79,7 +63,7 @@ class IsMockCallValidator(ValidatorBase):
                 "Mock '{}' is not active at this position.".format(mock_name)
             )
 
-        if method not in self.mock_methods:
+        if method not in self.global_state.mock_methods:
             return STD002(filepath, line, column, call, "{}{}".format(mock_name, self.MOCK_TOKEN[:-1]))
 
         return None

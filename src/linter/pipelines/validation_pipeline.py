@@ -86,22 +86,39 @@ class ValidationPipeline(BasePipeline):
         """Find and deduplicate all stdlib and mock-related matches on a line."""
         stdlib_matches = list(self.stdlib_call_pattern.finditer(line_content))
 
-        all_matches = stdlib_matches
-        stdlib_match_offsets = {m.start() for m in stdlib_matches}
+        all_potential_matches = stdlib_matches
 
         for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
-            if match.start() in stdlib_match_offsets:
-                continue
-
             call_name = match.group(1)
             is_mock_related = ".mock." in call_name or self.file_state.is_mock_active(
                 call_name, line_offset + match.start()
             )
 
             if is_mock_related:
-                all_matches.append(match)
+                all_potential_matches.append(match)
 
-        return sorted(all_matches, key=lambda x: x.start())
+        if not all_potential_matches:
+            return []
+
+        # Deduplicate and handle overlaps:
+        # If one match is contained within another, keep only the larger one.
+        # If they start at the same position, keep the longer one.
+        all_potential_matches.sort(key=lambda x: (x.start(), -x.end()))
+
+        final_matches = []
+        if all_potential_matches:
+            current_max_end = -1
+            for match in all_potential_matches:
+                if match.start() >= current_max_end:
+                    final_matches.append(match)
+                    current_max_end = match.end()
+                else:
+                    # Overlap detected. Since we sorted by start and then negative end,
+                    # this match starts at or after the previous one and ends at or before it.
+                    # We skip it because it's contained within the previous match.
+                    pass
+
+        return final_matches
 
     def _process_match(
         self,
@@ -146,22 +163,27 @@ class ValidationPipeline(BasePipeline):
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
         """Check if the match is at the start of a command."""
-        before = content[: offset + match.start()]
+        absolute_start = offset + match.start()
+        before = content[:absolute_start]
         if before.endswith("$") or before.endswith("${"):
             return False
-        last_newline = before.rfind("\n")
-        line_before = before[last_newline + 1 :]
-        shlex_iterator = ShlexTokenIterator(line_before)
+
+        # We need to look back to the beginning of the command or line.
+        # ShlexTokenIterator(before).is_at_command_position() is correct.
+        shlex_iterator = ShlexTokenIterator(before)
         return shlex_iterator.is_at_command_position()
 
     def _is_function_definition(
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
         """Check if the match is part of a function definition."""
-        before = content[: offset + match.start()]
+        absolute_start = offset + match.start()
+        before = content[:absolute_start]
         if ShlexTokenIterator.is_preceded_by_function_keyword(before):
             return True
-        after_content = content[offset + match.end() :]
+
+        absolute_end = offset + match.end()
+        after_content = content[absolute_end:]
         shlex_iterator = ShlexTokenIterator(after_content)
         return shlex_iterator.is_function_definition()
 
