@@ -24,6 +24,9 @@ class NotNamespaceCallValidator(ValidatorBase):
         if (
             call in self.global_state.namespaces
             or call in self.global_state.extra_namespaces
+        ) and (
+            call not in self.global_state.functions
+            and call not in self.global_state.extra_functions
         ):
             return STD003(filepath, line, column, call)
         return None

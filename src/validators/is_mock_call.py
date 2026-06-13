@@ -3,9 +3,7 @@
 import re
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from issues.errors.STD007 import STD007
-from issues.errors.STD010 import STD010
-from issues.errors.STD002 import STD002
+from issues import STD007, STD010, STD002
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
