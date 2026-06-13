@@ -26,7 +26,7 @@ class IsMockCallValidator(ValidatorBase):
         self.mock_methods: Set[str] = self._derive_mock_methods()
 
     def _derive_mock_methods(self) -> Set[str]:
-        """Derive mock methods from metadata by looking for 'object.mock.*'."""
+        """Derive mock methods from metadata by matching against the mock meta prefix."""
         methods = set()
         for func_name in self.global_state.functions:
             if func_name.startswith(self.MOCK_META_PREFIX):

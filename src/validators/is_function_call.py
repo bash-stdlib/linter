@@ -24,8 +24,8 @@ class IsFunctionCallValidator(ValidatorBase):
         super().__init__(global_state, file_state)
         self.mock_methods: Set[str] = self._derive_mock_methods()
 
-    def _derive_mock_methods(self) -> Set[Set[str]]:
-        """Derive mock methods from metadata by looking for 'object.mock.*'."""
+    def _derive_mock_methods(self) -> Set[str]:
+        """Derive mock methods from metadata by matching against the mock meta prefix."""
         methods = set()
         for func_name in self.global_state.functions:
             if func_name.startswith(self.MOCK_META_PREFIX):
