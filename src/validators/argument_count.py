@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
+from constants import ARRAY_EXPANSION_PLACEHOLDER
 from issues import STD005, STD011
 from validators.base import ValidatorBase
 
@@ -26,7 +27,7 @@ class ArgumentCountValidator(ValidatorBase):
     ) -> "Optional[LinterIssueBase]":
         if args:
             for arg in args:
-                if "${ARRAY_X}" in arg or arg in ("$@", "$*"):
+                if ARRAY_EXPANSION_PLACEHOLDER in arg or arg in ("$@", "$*"):
                     return STD011(filepath, line, column, call)
 
         func_meta = self._get_meta(call, offset)

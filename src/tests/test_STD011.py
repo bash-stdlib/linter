@@ -22,6 +22,22 @@ class TestSTD011(unittest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD011)
+
+    def test_STD011__quoted_at_sign__reported(self):
+        content = 'stdlib.string.args.join "$@"'
+
+        issues = self._lint_content(content)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD011)
+
+    def test_STD011__quoted_star__reported(self):
+        content = 'stdlib.string.args.join "$*"'
+
+        issues = self._lint_content(content)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD011)
         self.assertEqual(issues[0].line, 1)
 
     def test_STD011__array_variable__reported(self):

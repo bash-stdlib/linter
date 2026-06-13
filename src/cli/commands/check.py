@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List
 from cache import load_cache, save_cache
 from exceptions.empty_cache import EmptyCacheError
 from formatters import get_formatter
+from issues import LinterErrorBase
 from stdlib_html.fetcher import HTMLFetcher
 from .base import CommandBase
 
@@ -44,8 +45,6 @@ class LintCommand(CommandBase):
 
         if not all_issues:
             return
-
-        from issues import LinterErrorBase
 
         has_errors = any(isinstance(issue, LinterErrorBase) for issue in all_issues)
         if has_errors or args.fail_on_warnings:

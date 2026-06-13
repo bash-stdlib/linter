@@ -1,5 +1,7 @@
 """Central configuration constants for the bash-stdlib linter."""
 
+ARRAY_EXPANSION_PLACEHOLDER: "str" = "${ARRAY_X}"
+
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
 
 SHELL_COMMAND_SEPARATORS = {
