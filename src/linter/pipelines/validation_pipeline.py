@@ -66,22 +66,7 @@ class ValidationPipeline(BasePipeline):
             for iterator in self.line_iterators:
                 iterator.process_line(line_content, line_num, offset)
 
-            # Combined pattern matching
-            matches = []
-            for match in self.stdlib_call_pattern.finditer(line_content):
-                matches.append(match)
-
-            # Mock wildcard matching
-            for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
-                # Avoid duplicate matches if already matched by stdlib pattern
-                if not any(m.start() == match.start() for m in matches):
-                     # Only add if it's potentially a mock-related call
-                     call_name = match.group(1)
-                     if ".mock." in call_name or self.file_state.is_mock_active(call_name, offset + match.start()):
-                         matches.append(match)
-
-            # Sort matches by start position
-            matches.sort(key=lambda x: x.start())
+            matches = self._find_all_matches(line_content, offset)
 
             for match in matches:
                 issue = self._process_match(
@@ -96,6 +81,27 @@ class ValidationPipeline(BasePipeline):
         self._check_unused_ignores(issues, filepath)
 
         return issues
+
+    def _find_all_matches(self, line_content: str, line_offset: int) -> List["Match[str]"]:
+        """Find and deduplicate all stdlib and mock-related matches on a line."""
+        stdlib_matches = list(self.stdlib_call_pattern.finditer(line_content))
+
+        all_matches = stdlib_matches
+        existing_starts = {m.start() for m in stdlib_matches}
+
+        for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
+            if match.start() in existing_starts:
+                continue
+
+            call_name = match.group(1)
+            is_mock_related = ".mock." in call_name or self.file_state.is_mock_active(
+                call_name, line_offset + match.start()
+            )
+
+            if is_mock_related:
+                all_matches.append(match)
+
+        return sorted(all_matches, key=lambda x: x.start())
 
     def _process_match(
         self,

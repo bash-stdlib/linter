@@ -1,4 +1,4 @@
-"""Linter validator for checking the number of arguments passed to functions."""
+"""Validator for checking the number of arguments in standard library function calls."""
 
 from typing import TYPE_CHECKING, List, Optional
 
@@ -10,7 +10,10 @@ if TYPE_CHECKING:
 
 
 class ArgumentCountValidator(ValidatorBase):
-    """Checks if the number of arguments matches the function definition."""
+    """Checks if the call has the correct number of arguments."""
+
+    MOCK_TOKEN = ".mock."
+    MOCK_META_PREFIX = "object.mock."
 
     def check(
         self,
@@ -42,11 +45,11 @@ class ArgumentCountValidator(ValidatorBase):
         if call in self.global_state.functions:
             return self.global_state.metadata.get(call)
 
-        if ".mock." in call:
-            parts = call.split(".mock.", 1)
+        if self.MOCK_TOKEN in call:
+            parts = call.split(self.MOCK_TOKEN, 1)
             mock_name = parts[0]
             method = parts[1]
             if self.file_state.is_mock_active(mock_name, offset):
-                return self.global_state.metadata.get(f"object.mock.{method}")
+                return self.global_state.metadata.get("{}{}".format(self.MOCK_META_PREFIX, method))
 
         return None

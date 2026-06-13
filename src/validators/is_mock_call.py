@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 class IsMockCallValidator(ValidatorBase):
     """Validates calls to mock objects and ensures they are used in test files."""
 
+    MOCK_TOKEN = ".mock."
+    MOCK_PREFIX = "_mock."
+    MOCK_META_PREFIX = "object.mock."
+
     def __init__(
         self, global_state: "GlobalLinterState", file_state: "FileLinterState"
     ) -> None:
@@ -25,8 +29,8 @@ class IsMockCallValidator(ValidatorBase):
         """Derive mock methods from metadata by looking for 'object.mock.*'."""
         methods = set()
         for func_name in self.global_state.functions:
-            if func_name.startswith("object.mock."):
-                method = func_name[len("object.mock."):]
+            if func_name.startswith(self.MOCK_META_PREFIX):
+                method = func_name[len(self.MOCK_META_PREFIX):]
                 methods.add(method)
         return methods
 
@@ -41,36 +45,41 @@ class IsMockCallValidator(ValidatorBase):
     ) -> "Optional[LinterIssueBase]":
         is_test_file = "test" in filepath.lower()
 
-        # Check for _mock.* calls
-        if call.startswith("_mock."):
+        if self._is_mock_system_call(call):
              if not is_test_file:
                  return STD007(filepath, line, column, call)
              return None
 
-        # Check for <name>.mock.* calls
-        if ".mock." in call:
-            parts = call.split(".mock.", 1)
-            mock_name = parts[0]
-            method = parts[1]
+        if self.MOCK_TOKEN in call:
+            return self._validate_mock_object_call(call, filepath, line, column, offset, is_test_file)
 
-            if not is_test_file:
-                 return STD007(filepath, line, column, call)
-
-            # Check if mock is active
-            if not self.file_state.is_mock_active(mock_name, offset):
-                return STD010(filepath, line, column, mock_name, f"Mock '{mock_name}' is not active at this position.")
-
-            # Check if mock method is valid
-            if method not in self.mock_methods:
-                return STD002(filepath, line, column, call, f"{mock_name}.mock")
-
-            return None
-
-        # Check if it's a call to a mocked object (e.g. 'ls' if mocked)
         if self.file_state.is_mock_active(call, offset):
             if not is_test_file:
                  return STD007(filepath, line, column, call)
-            # It's an active mock, so it's valid to call it as a command
             return None
+
+        return None
+
+    def _is_mock_system_call(self, call: str) -> bool:
+        return call.startswith(self.MOCK_PREFIX)
+
+    def _validate_mock_object_call(
+        self, call: str, filepath: str, line: int, column: int, offset: int, is_test_file: bool
+    ) -> "Optional[LinterIssueBase]":
+        parts = call.split(self.MOCK_TOKEN, 1)
+        mock_name = parts[0]
+        method = parts[1]
+
+        if not is_test_file:
+             return STD007(filepath, line, column, call)
+
+        if not self.file_state.is_mock_active(mock_name, offset):
+            return STD010(
+                filepath, line, column, mock_name,
+                "Mock '{}' is not active at this position.".format(mock_name)
+            )
+
+        if method not in self.mock_methods:
+            return STD002(filepath, line, column, call, "{}{}".format(mock_name, self.MOCK_TOKEN[:-1]))
 
         return None

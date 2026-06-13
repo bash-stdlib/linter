@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class MockDiscoveryIterator(DiscoveryIteratorBase):
-    """Identifies _mock.create and _mock.delete calls to track mock lifecycles."""
+    """Tracks the instantiation and destruction of mocks to manage their active lifecycles."""
 
     CREATE_MOCK = "_mock.create"
     DELETE_MOCK = "_mock.delete"

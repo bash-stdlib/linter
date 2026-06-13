@@ -15,6 +15,8 @@ class IsFunctionCallValidator(ValidatorBase):
     """Checks if the call is a valid function or a misnamed one."""
 
     WHITELISTED_PREFIXES = ["assert_"]
+    MOCK_TOKEN = ".mock."
+    MOCK_META_PREFIX = "object.mock."
 
     def __init__(
         self, global_state: "GlobalLinterState", file_state: "FileLinterState"
@@ -22,12 +24,12 @@ class IsFunctionCallValidator(ValidatorBase):
         super().__init__(global_state, file_state)
         self.mock_methods: Set[str] = self._derive_mock_methods()
 
-    def _derive_mock_methods(self) -> Set[str]:
+    def _derive_mock_methods(self) -> Set[Set[str]]:
         """Derive mock methods from metadata by looking for 'object.mock.*'."""
         methods = set()
         for func_name in self.global_state.functions:
-            if func_name.startswith("object.mock."):
-                method = func_name[len("object.mock."):]
+            if func_name.startswith(self.MOCK_META_PREFIX):
+                method = func_name[len(self.MOCK_META_PREFIX):]
                 methods.add(method)
         return methods
 
@@ -40,19 +42,8 @@ class IsFunctionCallValidator(ValidatorBase):
         args: "Optional[List[str]]" = None,
         offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
-        if call in self.global_state.functions:
+        if self._is_valid_call(call, offset):
             return None
-
-        if self.file_state.is_mock_active(call, offset):
-            return None
-
-        # Whitelist mock method calls
-        if ".mock." in call:
-            parts = call.split(".mock.", 1)
-            mock_name = parts[0]
-            method = parts[1]
-            if self.file_state.is_mock_active(mock_name, offset) and method in self.mock_methods:
-                return None
 
         for prefix in self.WHITELISTED_PREFIXES:
             if call.startswith(prefix):
@@ -71,3 +62,20 @@ class IsFunctionCallValidator(ValidatorBase):
             return STD001(filepath, line, column, call, invalid_namespace)
 
         return STD004(filepath, line, column, call)
+
+    def _is_valid_call(self, call: str, offset: int) -> bool:
+        """Verify if the call is a known function, an active mock, or a valid mock method."""
+        if call in self.global_state.functions:
+            return True
+
+        if self.file_state.is_mock_active(call, offset):
+            return True
+
+        if self.MOCK_TOKEN in call:
+            parts = call.split(self.MOCK_TOKEN, 1)
+            mock_name = parts[0]
+            method = parts[1]
+            if self.file_state.is_mock_active(mock_name, offset) and method in self.mock_methods:
+                return True
+
+        return False

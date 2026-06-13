@@ -22,8 +22,6 @@ class MockScope:
         return self.start_offset <= offset <= self.end_offset
 
     def __repr__(self) -> str:
-        return (
-            f"MockScope(name={self.name!r}, "
-            f"start={self.start_offset}, "
-            f"end={self.end_offset})"
+        return "MockScope(name={!r}, start={}, end={})".format(
+            self.name, self.start_offset, self.end_offset
         )
