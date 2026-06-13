@@ -1,4 +1,4 @@
-"""ValidatorBase to prevent calling namespaces directly."""
+"""Linter validator to ensure namespaces are not called as functions."""
 
 from typing import TYPE_CHECKING, List, Optional
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class NotNamespaceCallValidator(ValidatorBase):
-    """Checks if the call is actually a namespace, which is not allowed."""
+    """Checks if a namespace is being called as a function."""
 
     def check(
         self,
@@ -19,10 +19,14 @@ class NotNamespaceCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
+        offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
         if (
             call in self.global_state.namespaces
-            and call not in self.global_state.functions
+            or call in self.global_state.extra_namespaces
+        ) and (
+            call not in self.global_state.functions
+            and call not in self.global_state.extra_functions
         ):
             return STD003(filepath, line, column, call)
         return None

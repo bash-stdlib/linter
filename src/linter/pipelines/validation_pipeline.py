@@ -1,5 +1,6 @@
 """Main validation pipeline for the linter."""
 
+import re
 from typing import TYPE_CHECKING, List, Optional
 
 from issues import STD006, STD008, STD009
@@ -9,6 +10,7 @@ from linter.token_iterators import ShlexTokenIterator
 from validators import (
     ArgumentCountValidator,
     IsFunctionCallValidator,
+    IsMockCallValidator,
     IsTestingFunctionCallValidator,
     NotNamespaceCallValidator,
 )
@@ -28,6 +30,8 @@ if TYPE_CHECKING:
 class ValidationPipeline(BasePipeline):
     """Manages the validation pass of the linter."""
 
+    MOCK_WILDCARD_PATTERN = re.compile(r"(?<!\w)([a-z0-9._]+(?:\.mock\.[a-z0-9._]+)?)(?![a-z0-9._])")
+
     def __init__(
         self,
         global_state: "GlobalLinterState",
@@ -40,6 +44,7 @@ class ValidationPipeline(BasePipeline):
         self.argument_pipeline = argument_pipeline
         self.validators: List["ValidatorBase"] = [
             NotNamespaceCallValidator(global_state, file_state),
+            IsMockCallValidator(global_state, file_state),
             IsFunctionCallValidator(global_state, file_state),
             ArgumentCountValidator(global_state, file_state),
             IsTestingFunctionCallValidator(global_state, file_state),
@@ -61,7 +66,9 @@ class ValidationPipeline(BasePipeline):
             for iterator in self.line_iterators:
                 iterator.process_line(line_content, line_num, offset)
 
-            for match in self.stdlib_call_pattern.finditer(line_content):
+            matches = self._find_all_matches(line_content, offset)
+
+            for match in matches:
                 issue = self._process_match(
                     match, file_content, filepath, line_num, offset
                 )
@@ -75,6 +82,46 @@ class ValidationPipeline(BasePipeline):
 
         return issues
 
+    def _find_all_matches(self, line_content: str, line_offset: int) -> List["Match[str]"]:
+        """Find and deduplicate all stdlib and mock-related matches on a line."""
+        stdlib_matches = list(self.stdlib_call_pattern.finditer(line_content))
+
+        all_potential_matches = stdlib_matches
+        stdlib_match_offsets = {m.start() for m in stdlib_matches}
+
+        for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
+            if match.start() in stdlib_match_offsets:
+                continue
+
+            call_name = match.group(1)
+            is_mock_related = ".mock." in call_name or self.file_state.is_mock_active(
+                call_name, line_offset + match.start()
+            )
+
+            if is_mock_related:
+                all_potential_matches.append(match)
+
+        if not all_potential_matches:
+            return []
+
+        return self._deduplicate_overlapping_matches(all_potential_matches)
+
+    def _deduplicate_overlapping_matches(self, matches: List["Match[str]"]) -> List["Match[str]"]:
+        """Filter matches so that only the longest, non-overlapping ones remain."""
+        # Sort by start position (ascending), then by length (descending)
+        matches.sort(key=lambda x: (x.start(), -len(x.group(0))))
+
+        final_matches = []
+        last_match_end_position = -1
+
+        for match in matches:
+            is_outside_previous_match = match.start() >= last_match_end_position
+            if is_outside_previous_match:
+                final_matches.append(match)
+                last_match_end_position = match.end()
+
+        return final_matches
+
     def _process_match(
         self,
         match: "Match[str]",
@@ -83,6 +130,8 @@ class ValidationPipeline(BasePipeline):
         line_num: int,
         offset: int = 0,
     ) -> Optional["LinterIssueBase"]:
+        absolute_offset = offset + match.start()
+
         if self._is_function_definition(match, content, offset):
             return None
 
@@ -104,7 +153,9 @@ class ValidationPipeline(BasePipeline):
             return None
 
         for validator in self.validators:
-            issue = validator.check(call_name, filepath, line_num, column, args)
+            issue = validator.check(
+                call_name, filepath, line_num, column, args, absolute_offset
+            )
             if issue:
                 if not self._is_ignored(issue.CODE, line_num):
                     return issue
@@ -114,9 +165,11 @@ class ValidationPipeline(BasePipeline):
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
         """Check if the match is at the start of a command."""
-        before = content[: offset + match.start()]
+        absolute_start = offset + match.start()
+        before = content[:absolute_start]
         if before.endswith("$") or before.endswith("${"):
             return False
+
         last_newline = before.rfind("\n")
         line_before = before[last_newline + 1 :]
         shlex_iterator = ShlexTokenIterator(line_before)
@@ -126,11 +179,16 @@ class ValidationPipeline(BasePipeline):
         self, match: "Match[str]", content: "str", offset: "int"
     ) -> bool:
         """Check if the match is part of a function definition."""
-        before = content[: offset + match.start()]
+        absolute_start = offset + match.start()
+        before = content[:absolute_start]
         if ShlexTokenIterator.is_preceded_by_function_keyword(before):
             return True
-        after_content = content[offset + match.end() :]
-        shlex_iterator = ShlexTokenIterator(after_content)
+
+        absolute_end = offset + match.end()
+        after_content = content[absolute_end:]
+        last_newline = after_content.find("\n")
+        line_after = after_content[:last_newline] if last_newline != -1 else after_content
+        shlex_iterator = ShlexTokenIterator(line_after)
         return shlex_iterator.is_function_definition()
 
     def _get_call_name(self, match: "Match[str]") -> "str":

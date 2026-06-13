@@ -9,6 +9,7 @@ from .STD005 import STD005
 from .STD006 import STD006
 from .STD007 import STD007
 from .STD009 import STD009
+from .STD010 import STD010
 
 __all__ = [
     "STD000",
@@ -20,4 +21,5 @@ __all__ = [
     "STD006",
     "STD007",
     "STD009",
+    "STD010",
 ]

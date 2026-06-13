@@ -19,6 +19,7 @@ class IsTestingFunctionCallValidator(ValidatorBase):
         line: int,
         column: int,
         args: "Optional[List[str]]" = None,
+        offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
         func_meta = self.global_state.metadata.get(call)
         if not func_meta:

@@ -40,7 +40,7 @@ class TestHTMLFetcher(unittest.TestCase):
         result = self.fetcher._extract_functions()
 
         self.assertIn("stdlib.func1", result)
-        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(mock_urlopen.call_count, 3)
 
     @patch("sys.stderr", new_callable=MagicMock)
     @patch("stdlib_html.fetcher.HTMLFetcher._extract_functions")

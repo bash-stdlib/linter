@@ -15,6 +15,7 @@ from .errors import (
     STD006,
     STD007,
     STD009,
+    STD010,
 )
 from .warnings import (
     STD008,
@@ -34,6 +35,7 @@ __all__ = [
     "STD007",
     "STD008",
     "STD009",
+    "STD010",
     "get_all_issues",
 ]
 
