@@ -30,32 +30,36 @@ class IsMockCallValidator(ValidatorBase):
         is_test_file = "test" in filepath.lower()
 
         if self._is_mock_system_call(call):
-             if not is_test_file:
-                 return STD007(filepath, line, column, call)
-             return None
+             return self._validate_production_usage(call, filepath, line, column, is_test_file)
 
         if self.MOCK_TOKEN in call:
             return self._validate_mock_object_call(call, filepath, line, column, offset, is_test_file)
 
         if self.file_state.is_mock_active(call, offset):
-            if not is_test_file:
-                 return STD007(filepath, line, column, call)
-            return None
+            return self._validate_production_usage(call, filepath, line, column, is_test_file)
 
         return None
 
     def _is_mock_system_call(self, call: str) -> bool:
         return call.startswith(self.MOCK_PREFIX)
 
+    def _validate_production_usage(
+        self, call: str, filepath: str, line: int, column: int, is_test_file: bool
+    ) -> "Optional[LinterIssueBase]":
+        if not is_test_file:
+            return STD007(filepath, line, column, call)
+        return None
+
     def _validate_mock_object_call(
         self, call: str, filepath: str, line: int, column: int, offset: int, is_test_file: bool
     ) -> "Optional[LinterIssueBase]":
+        production_issue = self._validate_production_usage(call, filepath, line, column, is_test_file)
+        if production_issue:
+            return production_issue
+
         parts = call.split(self.MOCK_TOKEN, 1)
         mock_name = parts[0]
         method = parts[1]
-
-        if not is_test_file:
-             return STD007(filepath, line, column, call)
 
         if not self.file_state.is_mock_active(mock_name, offset):
             return STD010(

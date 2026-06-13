@@ -87,8 +87,12 @@ class ValidationPipeline(BasePipeline):
         stdlib_matches = list(self.stdlib_call_pattern.finditer(line_content))
 
         all_potential_matches = stdlib_matches
+        stdlib_match_offsets = {m.start() for m in stdlib_matches}
 
         for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
+            if match.start() in stdlib_match_offsets:
+                continue
+
             call_name = match.group(1)
             is_mock_related = ".mock." in call_name or self.file_state.is_mock_active(
                 call_name, line_offset + match.start()
@@ -100,23 +104,21 @@ class ValidationPipeline(BasePipeline):
         if not all_potential_matches:
             return []
 
-        # Deduplicate and handle overlaps:
-        # If one match is contained within another, keep only the larger one.
-        # If they start at the same position, keep the longer one.
-        all_potential_matches.sort(key=lambda x: (x.start(), -x.end()))
+        return self._deduplicate_overlapping_matches(all_potential_matches)
+
+    def _deduplicate_overlapping_matches(self, matches: List["Match[str]"]) -> List["Match[str]"]:
+        """Filter matches so that only the longest, non-overlapping ones remain."""
+        # Sort by start position (ascending), then by length (descending)
+        matches.sort(key=lambda x: (x.start(), -len(x.group(0))))
 
         final_matches = []
-        if all_potential_matches:
-            current_max_end = -1
-            for match in all_potential_matches:
-                if match.start() >= current_max_end:
-                    final_matches.append(match)
-                    current_max_end = match.end()
-                else:
-                    # Overlap detected. Since we sorted by start and then negative end,
-                    # this match starts at or after the previous one and ends at or before it.
-                    # We skip it because it's contained within the previous match.
-                    pass
+        last_match_end_position = -1
+
+        for match in matches:
+            is_outside_previous_match = match.start() >= last_match_end_position
+            if is_outside_previous_match:
+                final_matches.append(match)
+                last_match_end_position = match.end()
 
         return final_matches
 
@@ -168,9 +170,9 @@ class ValidationPipeline(BasePipeline):
         if before.endswith("$") or before.endswith("${"):
             return False
 
-        # We need to look back to the beginning of the command or line.
-        # ShlexTokenIterator(before).is_at_command_position() is correct.
-        shlex_iterator = ShlexTokenIterator(before)
+        last_newline = before.rfind("\n")
+        line_before = before[last_newline + 1 :]
+        shlex_iterator = ShlexTokenIterator(line_before)
         return shlex_iterator.is_at_command_position()
 
     def _is_function_definition(
@@ -184,7 +186,9 @@ class ValidationPipeline(BasePipeline):
 
         absolute_end = offset + match.end()
         after_content = content[absolute_end:]
-        shlex_iterator = ShlexTokenIterator(after_content)
+        last_newline = after_content.find("\n")
+        line_after = after_content[:last_newline] if last_newline != -1 else after_content
+        shlex_iterator = ShlexTokenIterator(line_after)
         return shlex_iterator.is_function_definition()
 
     def _get_call_name(self, match: "Match[str]") -> "str":
