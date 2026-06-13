@@ -2,9 +2,6 @@
 
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
 
-GLOBAL_GRANTING_FUNCTIONS = {"setup", "setup_suite"}
-"""Functions that grant mocks global visibility within a test file."""
-
 SHELL_COMMAND_SEPARATORS = {
     ";",
     "|",
