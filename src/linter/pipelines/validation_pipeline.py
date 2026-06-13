@@ -87,10 +87,10 @@ class ValidationPipeline(BasePipeline):
         stdlib_matches = list(self.stdlib_call_pattern.finditer(line_content))
 
         all_matches = stdlib_matches
-        existing_starts = {m.start() for m in stdlib_matches}
+        stdlib_match_offsets = {m.start() for m in stdlib_matches}
 
         for match in self.MOCK_WILDCARD_PATTERN.finditer(line_content):
-            if match.start() in existing_starts:
+            if match.start() in stdlib_match_offsets:
                 continue
 
             call_name = match.group(1)
