@@ -2,7 +2,7 @@
 
 from typing import Dict, List, NamedTuple, Tuple
 
-from constants import ARRAY_EXPANSION_PLACEHOLDER
+from constants import ARRAY_MULTI_PLACEHOLDER, ARRAY_SINGLE_PLACEHOLDER
 from .base import TransformerBase
 
 
@@ -79,10 +79,14 @@ class ExpansionTransformer(TransformerBase):
         if count == 0:
             full_expansion = content[start_index:j]
             if config.start_token == "${":
-                if "[@]}" in full_expansion or "[*]}" in full_expansion:
-                    return ARRAY_EXPANSION_PLACEHOLDER, j
-                if full_expansion in ("${@}", "${*}"):
-                    return ARRAY_EXPANSION_PLACEHOLDER, j
+                if "[@]}" in full_expansion:
+                    return ARRAY_MULTI_PLACEHOLDER, j
+                if "[*]}" in full_expansion:
+                    return ARRAY_SINGLE_PLACEHOLDER, j
+                if full_expansion == "${@}":
+                    return ARRAY_MULTI_PLACEHOLDER, j
+                if full_expansion == "${*}":
+                    return ARRAY_SINGLE_PLACEHOLDER, j
 
             return config.placeholder, j
 

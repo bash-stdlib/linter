@@ -1,6 +1,7 @@
 """Central configuration constants for the bash-stdlib linter."""
 
-ARRAY_EXPANSION_PLACEHOLDER: "str" = "${ARRAY_X}"
+ARRAY_MULTI_PLACEHOLDER: "str" = "${ARRAY_MULTI_X}"
+ARRAY_SINGLE_PLACEHOLDER: "str" = "${ARRAY_SINGLE_X}"
 
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
 
