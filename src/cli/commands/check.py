@@ -42,5 +42,11 @@ class LintCommand(CommandBase):
         formatter = get_formatter(args.format)
         print(formatter.format(all_issues))
 
-        if all_issues:
+        if not all_issues:
+            return
+
+        from issues import LinterErrorBase
+
+        has_errors = any(isinstance(issue, LinterErrorBase) for issue in all_issues)
+        if has_errors or args.fail_on_warnings:
             sys.exit(1)

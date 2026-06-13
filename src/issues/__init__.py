@@ -19,6 +19,7 @@ from .errors import (
 )
 from .warnings import (
     STD008,
+    STD011,
 )
 
 __all__ = [
@@ -36,6 +37,7 @@ __all__ = [
     "STD008",
     "STD009",
     "STD010",
+    "STD011",
     "get_all_issues",
 ]
 

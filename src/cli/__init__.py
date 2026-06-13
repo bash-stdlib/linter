@@ -58,6 +58,11 @@ def get_parser() -> argparse.ArgumentParser:
         default=[],
         help="Additional functions to ignore (exact match)",
     )
+    check_parser.add_argument(
+        "--fail-on-warnings",
+        action="store_true",
+        help="Exit with non-zero code if warnings are found",
+    )
 
     # List command
     subparsers.add_parser("list", help="List all linter issue codes and explanations")

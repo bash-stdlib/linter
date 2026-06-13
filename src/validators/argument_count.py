@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from issues import STD005
+from issues import STD005, STD011
 from validators.base import ValidatorBase
 
 if TYPE_CHECKING:
@@ -24,6 +24,11 @@ class ArgumentCountValidator(ValidatorBase):
         args: "Optional[List[str]]" = None,
         offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
+        if args:
+            for arg in args:
+                if "${ARRAY_X}" in arg or arg in ("$@", "$*"):
+                    return STD011(filepath, line, column, call)
+
         func_meta = self._get_meta(call, offset)
         if not func_meta:
             return None

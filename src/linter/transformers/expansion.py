@@ -76,6 +76,13 @@ class ExpansionTransformer(TransformerBase):
                 j += 1
 
         if count == 0:
+            full_expansion = content[start_index:j]
+            if config.start_token == "${":
+                if "[@]}" in full_expansion or "[*]}" in full_expansion:
+                    return "${ARRAY_X}", j
+                if full_expansion in ("${@}", "${*}"):
+                    return "${ARRAY_X}", j
+
             return config.placeholder, j
 
         return content[start_index], start_index + 1
