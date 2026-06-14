@@ -8,7 +8,14 @@ from tests.assets.linter.core.metadata import METADATA
 
 class TestSTD011(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata = METADATA
+        self.metadata = METADATA.copy()
+        self.metadata["functions"] = METADATA["functions"].copy()
+        # Add a function with strict argument counts for testing
+        self.metadata["functions"]["stdlib.test.strict"] = {
+            "name": "stdlib.test.strict",
+            "min_args": 1,
+            "max_args": 1,
+        }
 
     def _lint_content(self, content: str):
         with patch("builtins.open", mock_open(read_data=content)):
@@ -17,6 +24,14 @@ class TestSTD011(unittest.TestCase):
 
     def test_STD011__array_in_brackets__reported(self):
         content = 'stdlib.string.args.join "${@}"'
+
+        issues = self._lint_content(content)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIsInstance(issues[0], STD011)
+
+    def test_STD011__array_slice_with_invalid_syntax__reported(self):
+        content = 'stdlib.string.args.join "${array[@]:a:b}"'
 
         issues = self._lint_content(content)
 
@@ -65,7 +80,7 @@ class TestSTD011(unittest.TestCase):
         self.assertIsInstance(issues[0], STD011)
 
     def test_STD011__too_many_args_with_array__reports_STD005(self):
-        content = 'stdlib.array.assert.is_array arg1 "${@}"'
+        content = 'stdlib.test.strict arg1 "${@}"'
 
         issues = self._lint_content(content)
 
@@ -73,14 +88,14 @@ class TestSTD011(unittest.TestCase):
         self.assertIsInstance(issues[0], STD005)
 
     def test_STD011__array_slice_with_static_length__parsed_correctly(self):
-        content = 'stdlib.array.assert.is_array "${array[@]:0:1}"'
+        content = 'stdlib.test.strict "${array[@]:0:1}"'
 
         issues = self._lint_content(content)
 
         self.assertEqual(len(issues), 0)
 
     def test_STD011__array_slice_with_too_many_length__reports_STD005(self):
-        content = 'stdlib.array.assert.is_array "${array[@]:0:2}"'
+        content = 'stdlib.test.strict "${array[@]:0:2}"'
 
         issues = self._lint_content(content)
 
@@ -88,7 +103,7 @@ class TestSTD011(unittest.TestCase):
         self.assertIsInstance(issues[0], STD005)
 
     def test_STD011__array_slice_without_length__reported(self):
-        content = 'stdlib.array.assert.is_array "${array[@]:0}"'
+        content = 'stdlib.string.args.join "${array[@]:0}"'
 
         issues = self._lint_content(content)
 

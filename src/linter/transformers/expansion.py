@@ -1,6 +1,6 @@
 """Transformer for simplifying Bash expansions for easier parsing."""
 
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from constants import (
     ARRAY_MULTI_PLACEHOLDER,
@@ -84,33 +84,44 @@ class ExpansionTransformer(TransformerBase):
         if count == 0:
             full_expansion = content[start_index:j]
             if config.start_token == "${":
-                if "[@]" in full_expansion:
-                    # Check for slice: ${array[@]:offset:length}
-                    if ":" in full_expansion:
-                        parts = full_expansion[2:-1].split(":")
-                        # length is provided: ${array[@]:offset:length}
-                        if len(parts) == 3:
-                            try:
-                                length = int(parts[2])
-                                return (
-                                    "{}{}{}".format(
-                                        ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX
-                                    ),
-                                    j,
-                                )
-                            except ValueError:
-                                pass
-                        # index to end: ${array[@]:offset}
-                        elif len(parts) == 2:
-                            return ARRAY_MULTI_PLACEHOLDER, j
-                    return ARRAY_MULTI_PLACEHOLDER, j
-                if "[*]" in full_expansion:
-                    return ARRAY_SINGLE_PLACEHOLDER, j
-                if full_expansion == "${@}":
-                    return ARRAY_MULTI_PLACEHOLDER, j
-                if full_expansion == "${*}":
-                    return ARRAY_SINGLE_PLACEHOLDER, j
+                placeholder = self._get_bash_expansion_placeholder(full_expansion)
+                return placeholder or config.placeholder, j
 
             return config.placeholder, j
 
         return content[start_index], start_index + 1
+
+    def _get_bash_expansion_placeholder(self, expansion: str) -> Optional[str]:
+        """Determine the appropriate placeholder for a Bash expansion."""
+        if expansion.startswith("${#"):
+            return None
+
+        # Format: ${parameter:offset} or ${parameter:offset:length}
+        if ":" in expansion and "[@]" not in expansion and "[*]" not in expansion:
+            return None
+
+        if "[@]" in expansion:
+            return self._get_array_expansion_placeholder(expansion, ARRAY_MULTI_PLACEHOLDER)
+        if "[*]" in expansion:
+            return self._get_array_expansion_placeholder(expansion, ARRAY_SINGLE_PLACEHOLDER)
+        if expansion == "${@}":
+            return ARRAY_MULTI_PLACEHOLDER
+        if expansion == "${*}":
+            return ARRAY_SINGLE_PLACEHOLDER
+        return None
+
+    def _get_array_expansion_placeholder(self, expansion: str, default: str) -> str:
+        """Handle array expansions, including slices with static lengths."""
+        if ":" not in expansion:
+            return default
+
+        parts = expansion[2:-1].split(":")
+        # Format: ${array[@]:offset:length}
+        if len(parts) == 3:
+            try:
+                length = int(parts[2])
+                return "{}{}{}".format(ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX)
+            except ValueError:
+                return default
+
+        return default
