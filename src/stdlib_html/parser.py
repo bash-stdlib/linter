@@ -1,5 +1,6 @@
 """HTML parser to extract bash-stdlib function metadata from documentation."""
 
+import enum
 import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
@@ -24,18 +25,12 @@ class HTMLParser(html.parser.HTMLParser):
     )
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
-    RE_TYPE_MODIFIER: "str" = r"\b({})\s+({})\b".format(
+    RE_TYPE_MODIFIER: "str" = r"\b(?P<type>{})\s+(?P<modifier>{})\b".format(
         "|".join(t.value for t in FunctionArgumentType),
         "|".join(m.value for m in FunctionModifierType),
     )
-    RE_TYPE_PAREN: "str" = (
-        r"\((?:(?P<type>{}|{})|(?P<only_optional>{}))(?:,\s*(?P<optional>{}))?\)"
-    ).format(
-        "|".join(t.value for t in FunctionArgumentType),
-        "|".join(m.value for m in FunctionModifierType),
-        DocumentationIndicator.OPTIONAL.value,
-        DocumentationIndicator.OPTIONAL.value,
-    )
+    RE_TYPE_PAREN: "str" = r"\((?P<content>[^)]+)\)"
+    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
 
     def __init__(self, is_testing: "bool" = False) -> "None":
@@ -157,61 +152,61 @@ class HTMLParser(html.parser.HTMLParser):
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
         """Extract type and optionality from an argument definition using parentheses."""
-        entity_type = FunctionArgumentType.STRING
-        is_optional = False
-        modifier = None
-
-        paren_match = re.search(self.RE_TYPE_PAREN, text)
-        if paren_match:
-            groups = paren_match.groupdict()
-            type_val = groups.get("type")
-            if type_val:
-                found_type = FunctionArgumentType.from_str(type_val)
-                if found_type:
-                    entity_type = found_type
-
-                found_modifier = FunctionModifierType.from_str(type_val)
-                if found_modifier:
-                    modifier = found_modifier
-            if groups.get("optional") or groups.get("only_optional"):
-                is_optional = True
-
-        return entity_type, is_optional, modifier
+        return self._extract_type_info(text)
 
     def _parse_modifier_type(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract type and modifier from a keyword or global."""
+        """Extract type, optionality, and modifier from a keyword or global."""
+        return self._extract_type_info(text)
+
+    def _extract_type_info(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
+        """Extract type, optionality, and modifier from any definition."""
         entity_type = FunctionArgumentType.STRING
-        is_optional = False
+        is_optional = DocumentationIndicator.OPTIONAL.value in text.lower()
         modifier = None
 
-        # 1. Try suffix style: "string keyword"
-        modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
-        if modifier_match:
-            found_type = FunctionArgumentType.from_str(modifier_match.group(1))
+        # 1. Try to find information in parentheses
+        paren_match = re.search(self.RE_TYPE_PAREN, text)
+        if paren_match:
+            content = paren_match.group("content").lower()
+            found_type = self._find_first_enum(content, FunctionArgumentType)
             if found_type:
                 entity_type = found_type
 
-            found_modifier = FunctionModifierType.from_str(modifier_match.group(2))
+            found_modifier = self._find_first_enum(content, FunctionModifierType)
             if found_modifier:
                 modifier = found_modifier
 
-        # 2. Try parentheses style: "(string)"
-        if entity_type == FunctionArgumentType.STRING and not modifier:
-            p_type, p_optional, p_modifier = self._parse_argument_type(text)
-            if p_type != FunctionArgumentType.STRING or p_optional or p_modifier:
-                entity_type = p_type
-                is_optional = p_optional
-                modifier = p_modifier
+        # 2. If no modifier found, try suffix style: "string keyword"
+        if not modifier:
+            modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
+            if modifier_match:
+                groups = modifier_match.groupdict()
+                found_type = FunctionArgumentType.from_str(groups.get("type"))
+                if found_type:
+                    entity_type = found_type
 
-        # 3. Try standalone modifier
+                found_modifier = FunctionModifierType.from_str(groups.get("modifier"))
+                if found_modifier:
+                    modifier = found_modifier
+
+        # 3. Final fallback for standalone modifier
         if not modifier:
             only_modifier_match = re.search(self.RE_MODIFIER_ONLY, text)
             if only_modifier_match:
                 modifier = FunctionModifierType.from_str(only_modifier_match.group(1))
 
         return entity_type, is_optional, modifier
+
+    def _find_first_enum(self, text: str, enum_cls: type) -> "Optional[enum.Enum]":
+        """Find the first enum member whose value is present in the text."""
+        for member in enum_cls:
+            if member.value in text:
+                return member
+        return None
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in self.VARIADIC_SYMBOLS

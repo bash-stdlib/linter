@@ -255,6 +255,20 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.reserved"]
         self.assertEqual(metadata.arguments[0].modifier, "reserved")
 
+    def test_parse__paren_type_and_modifier__extracts_both_correctly(self) -> "None":
+        html = """
+        <section id="stdlib-test-mixed-paren">
+        <h3>stdlib.test.mixed_paren</h3>
+        <ul class="simple">
+        <li><p>STDLIB_VAR (integer global): A global var</p></li>
+        </ul>
+        </section>
+        """
+        result = self.parser.parse(html)
+        metadata = result["stdlib.test.mixed_paren"]
+        self.assertEqual(metadata.globals[0].type, "integer")
+        self.assertEqual(metadata.globals[0].modifier, "global")
+
 
 if __name__ == "__main__":
     unittest.main()
