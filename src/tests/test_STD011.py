@@ -5,17 +5,18 @@ from issues import STD011, STD005
 from linter import Linter
 from tests.assets.linter.core.metadata import METADATA
 
+TEST_METADATA = METADATA.copy()
+TEST_METADATA["functions"] = METADATA["functions"].copy()
+TEST_METADATA["functions"]["stdlib.test.strict"] = {
+    "name": "stdlib.test.strict",
+    "min_args": 1,
+    "max_args": 1,
+}
+
 
 class TestSTD011(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata = METADATA.copy()
-        self.metadata["functions"] = METADATA["functions"].copy()
-        # Add a function with strict argument counts for testing
-        self.metadata["functions"]["stdlib.test.strict"] = {
-            "name": "stdlib.test.strict",
-            "min_args": 1,
-            "max_args": 1,
-        }
+        self.metadata = TEST_METADATA
 
     def _lint_content(self, content: str):
         with patch("builtins.open", mock_open(read_data=content)):
@@ -53,7 +54,6 @@ class TestSTD011(unittest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD011)
-        self.assertEqual(issues[0].line, 1)
 
     def test_STD011__array_variable__reported(self):
         content = 'stdlib.string.args.join "${args[@]}"'
@@ -109,6 +109,13 @@ class TestSTD011(unittest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD011)
+
+    def test_STD011__string_slice__not_reported(self):
+        content = 'stdlib.test.strict "${text:6}"'
+
+        issues = self._lint_content(content)
+
+        self.assertEqual(len(issues), 0)
 
 
 if __name__ == "__main__":

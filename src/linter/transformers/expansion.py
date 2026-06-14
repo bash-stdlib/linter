@@ -100,14 +100,24 @@ class ExpansionTransformer(TransformerBase):
         if ":" in expansion and "[@]" not in expansion and "[*]" not in expansion:
             return None
 
+        # Exact matches for positional parameter expansions
+        exact_matches = {
+            "${@}": ARRAY_MULTI_PLACEHOLDER,
+            "${*}": ARRAY_SINGLE_PLACEHOLDER,
+        }
+        if expansion in exact_matches:
+            return exact_matches[expansion]
+
+        # Array access or slice
         if "[@]" in expansion:
-            return self._get_array_expansion_placeholder(expansion, ARRAY_MULTI_PLACEHOLDER)
+            return self._get_array_expansion_placeholder(
+                expansion, ARRAY_MULTI_PLACEHOLDER
+            )
         if "[*]" in expansion:
-            return self._get_array_expansion_placeholder(expansion, ARRAY_SINGLE_PLACEHOLDER)
-        if expansion == "${@}":
-            return ARRAY_MULTI_PLACEHOLDER
-        if expansion == "${*}":
-            return ARRAY_SINGLE_PLACEHOLDER
+            return self._get_array_expansion_placeholder(
+                expansion, ARRAY_SINGLE_PLACEHOLDER
+            )
+
         return None
 
     def _get_array_expansion_placeholder(self, expansion: str, default: str) -> str:
