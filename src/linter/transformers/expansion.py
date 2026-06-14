@@ -96,19 +96,26 @@ class ExpansionTransformer(TransformerBase):
         if expansion.startswith("${#"):
             return None
 
-        # Format: ${parameter:offset} or ${parameter:offset:length}
-        if ":" in expansion and "[@]" not in expansion and "[*]" not in expansion:
+        if self._is_string_slice(expansion):
             return None
 
-        # Exact matches for positional parameter expansions
-        exact_matches = {
+        return self._get_positional_param_placeholder(expansion) or \
+               self._get_array_content_placeholder(expansion)
+
+    def _is_string_slice(self, expansion: str) -> bool:
+        """Check if expansion is a string slice: ${parameter:offset[:length]}."""
+        return ":" in expansion and "[@]" not in expansion and "[*]" not in expansion
+
+    def _get_positional_param_placeholder(self, expansion: str) -> Optional[str]:
+        """Get placeholder for exact positional parameter expansions."""
+        positional_placeholders = {
             "${@}": ARRAY_MULTI_PLACEHOLDER,
             "${*}": ARRAY_SINGLE_PLACEHOLDER,
         }
-        if expansion in exact_matches:
-            return exact_matches[expansion]
+        return positional_placeholders.get(expansion)
 
-        # Array access or slice
+    def _get_array_content_placeholder(self, expansion: str) -> Optional[str]:
+        """Get placeholder for array expansions or slices."""
         if "[@]" in expansion:
             return self._get_array_expansion_placeholder(
                 expansion, ARRAY_MULTI_PLACEHOLDER
@@ -117,7 +124,6 @@ class ExpansionTransformer(TransformerBase):
             return self._get_array_expansion_placeholder(
                 expansion, ARRAY_SINGLE_PLACEHOLDER
             )
-
         return None
 
     def _get_array_expansion_placeholder(self, expansion: str, default: str) -> str:
@@ -126,12 +132,21 @@ class ExpansionTransformer(TransformerBase):
             return default
 
         parts = expansion[2:-1].split(":")
-        # Format: ${array[@]:offset:length}
+
         if len(parts) == 3:
-            try:
-                length = int(parts[2])
-                return "{}{}{}".format(ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX)
-            except ValueError:
-                return default
+            return self._get_static_slice_length_placeholder(parts[2], default)
+
+        if len(parts) == 2:
+            return default
 
         return default
+
+    def _get_static_slice_length_placeholder(
+        self, length_expression: str, fallback: str
+    ) -> str:
+        """Attempt to parse a static slice length and return its placeholder."""
+        try:
+            length = int(length_expression)
+            return "{}{}{}".format(ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX)
+        except ValueError:
+            return fallback
