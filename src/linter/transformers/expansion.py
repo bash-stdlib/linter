@@ -2,6 +2,12 @@
 
 from typing import Dict, List, NamedTuple, Tuple
 
+from constants import (
+    ARRAY_MULTI_PLACEHOLDER,
+    ARRAY_SINGLE_PLACEHOLDER,
+    ARRAY_SIZE_PREFIX,
+    ARRAY_SIZE_SUFFIX,
+)
 from .base import TransformerBase
 
 
@@ -76,6 +82,35 @@ class ExpansionTransformer(TransformerBase):
                 j += 1
 
         if count == 0:
+            full_expansion = content[start_index:j]
+            if config.start_token == "${":
+                if "[@]" in full_expansion:
+                    # Check for slice: ${array[@]:offset:length}
+                    if ":" in full_expansion:
+                        parts = full_expansion[2:-1].split(":")
+                        # length is provided: ${array[@]:offset:length}
+                        if len(parts) == 3:
+                            try:
+                                length = int(parts[2])
+                                return (
+                                    "{}{}{}".format(
+                                        ARRAY_SIZE_PREFIX, length, ARRAY_SIZE_SUFFIX
+                                    ),
+                                    j,
+                                )
+                            except ValueError:
+                                pass
+                        # index to end: ${array[@]:offset}
+                        elif len(parts) == 2:
+                            return ARRAY_MULTI_PLACEHOLDER, j
+                    return ARRAY_MULTI_PLACEHOLDER, j
+                if "[*]" in full_expansion:
+                    return ARRAY_SINGLE_PLACEHOLDER, j
+                if full_expansion == "${@}":
+                    return ARRAY_MULTI_PLACEHOLDER, j
+                if full_expansion == "${*}":
+                    return ARRAY_SINGLE_PLACEHOLDER, j
+
             return config.placeholder, j
 
         return content[start_index], start_index + 1

@@ -1,5 +1,10 @@
 """Central configuration constants for the bash-stdlib linter."""
 
+ARRAY_MULTI_PLACEHOLDER: "str" = "__ARRAY_MULTI_X__"
+ARRAY_SINGLE_PLACEHOLDER: "str" = "__ARRAY_SINGLE_X__"
+ARRAY_SIZE_PREFIX: "str" = "__ARRAY_SIZE_"
+ARRAY_SIZE_SUFFIX: "str" = "__"
+
 CACHE_FILE: "str" = ".bash_stdlib_cache.json"
 
 SHELL_COMMAND_SEPARATORS = {
