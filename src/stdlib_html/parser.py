@@ -5,35 +5,40 @@ import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
 
-from .metadata import FunctionInput, FunctionMetadata
-
-
-class EntityType(enum.Enum):
-    """Known types for arguments, keywords, and globals."""
-
-    STRING = "string"
-    INTEGER = "integer"
-    BOOLEAN = "boolean"
-    ARRAY = "array"
-    RESERVED = "reserved"
+from .metadata import (
+    FunctionInput,
+    FunctionInputModifier,
+    FunctionInputType,
+    FunctionMetadata,
+)
 
 
 class HTMLParser(html.parser.HTMLParser):
     """Parses bash-stdlib documentation to extract function metadata."""
 
     EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
-    PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
-    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     INDICATORS = enum.Enum("INDICATORS", ["optional"])
-    MODIFIER_TYPES = enum.Enum("MODIFIER_TYPES", ["keyword", "global"])
-    VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
+    PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
-    RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
-    RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
-    RE_TYPE_PAREN: "str" = r"\(([^)]+)\)"
-    RE_TYPE_MODIFIER: "str" = r"\b({})\s+(keyword|global)\b".format(
-        "|".join(t.value for t in EntityType)
+    RE_MODIFIER_ONLY: "str" = r"\b({})\b".format(
+        "|".join(m.value for m in FunctionInputModifier)
     )
+    RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
+    RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
+    RE_TYPE_MODIFIER: "str" = r"\b({})\s+({})\b".format(
+        "|".join(t.value for t in FunctionInputType),
+        "|".join(
+            m.value for m in FunctionInputModifier if m != FunctionInputModifier.RESERVED
+        ),
+    )
+    RE_TYPE_PAREN: "str" = (
+        r"\((?:(?P<type>{}|{})|(?P<only_optional>optional))(?:,\s*(?P<optional>optional))?\)"
+    ).format(
+        "|".join(t.value for t in FunctionInputType),
+        "|".join(m.value for m in FunctionInputModifier),
+    )
+    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
+    VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
 
     def __init__(self, is_testing: "bool" = False) -> "None":
         super().__init__()
@@ -133,14 +138,14 @@ class HTMLParser(html.parser.HTMLParser):
         if not args or not self.current_function:
             return
 
-        entity_type, is_optional = self._extract_type(text)
+        entity_type, is_optional, modifier = self._extract_type(text)
 
         for arg in args:
             if any(a.name == arg for a in self.current_function.arguments):
                 continue
 
             self.current_function.arguments.append(
-                FunctionInput(arg, entity_type, is_optional)
+                FunctionInput(arg, entity_type, is_optional, modifier)
             )
 
             if self._is_variadic(arg):
@@ -150,30 +155,38 @@ class HTMLParser(html.parser.HTMLParser):
                 if not is_optional:
                     self.current_function.min_args += 1
 
-    def _extract_type(self, text: "str") -> "Tuple[str, bool]":
-        """Extract the type and optionality from the text."""
-        is_optional = self.INDICATORS.optional.name in text.lower()
+    def _extract_type(self, text: "str") -> "Tuple[str, bool, Optional[str]]":
+        """Extract the type, optionality, and modifier from the text."""
+        entity_type = FunctionInputType.STRING.value
+        is_optional = False
+        modifier = None
 
-        found_type = EntityType.STRING.value
-
-        # Priority 1: Parentheses (e.g. (string), (integer, optional))
         paren_match = re.search(self.RE_TYPE_PAREN, text)
         if paren_match:
-            content = paren_match.group(1).lower()
-            for t in EntityType:
-                if t.value in content:
-                    found_type = t.value
-                    break
-        else:
-            # Priority 2: Modifier suffix (e.g. string keyword, boolean global)
-            modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
-            if modifier_match:
-                found_type = modifier_match.group(1).lower()
+            groups = paren_match.groupdict()
+            type_val = groups.get("type")
+            if type_val:
+                if any(type_val == t.value for t in FunctionInputType):
+                    entity_type = type_val
+                if any(type_val == m.value for m in FunctionInputModifier):
+                    modifier = type_val
+            if groups.get("optional") or groups.get("only_optional"):
+                is_optional = True
 
-        if found_type == EntityType.ARRAY.value:
-            return "array[str]", is_optional
+        modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
+        if modifier_match:
+            entity_type = modifier_match.group(1)
+            modifier = modifier_match.group(2)
 
-        return found_type, is_optional
+        if not modifier:
+            only_modifier_match = re.search(self.RE_MODIFIER_ONLY, text)
+            if only_modifier_match:
+                modifier = only_modifier_match.group(1)
+
+        if entity_type == FunctionInputType.ARRAY.value:
+            entity_type = "array[str]"
+
+        return entity_type, is_optional, modifier
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in self.VARIADIC_SYMBOLS
@@ -187,27 +200,33 @@ class HTMLParser(html.parser.HTMLParser):
         if match and self.current_function:
             var = match.group(1)
             if not any(g.name == var for g in self.current_function.globals):
-                entity_type, is_optional = self._extract_type(text)
+                entity_type, is_optional, modifier = self._extract_type(text)
+                if not modifier:
+                    modifier = FunctionInputModifier.GLOBAL.value
                 self.current_function.globals.append(
-                    FunctionInput(var, entity_type, is_optional)
+                    FunctionInput(var, entity_type, is_optional, modifier)
                 )
 
     def _process_other_li(self, text: "str") -> "None":
         if not self.current_function:
             return
 
-        for modifier, function_set in dict(
-            {
-                self.MODIFIER_TYPES["global"].name: self.current_function.globals,
-                self.MODIFIER_TYPES["keyword"].name: self.current_function.keywords,
-            }
-        ).items():
-            if modifier in text.lower():
-                match = re.search(self.RE_STDLIB_VAR, text)
-                if match:
-                    entity = match.group(1)
-                    if not any(e.name == entity for e in function_set):
-                        entity_type, is_optional = self._extract_type(text)
-                        function_set.append(
-                            FunctionInput(entity, entity_type, is_optional)
-                        )
+        entity_type, is_optional, modifier = self._extract_type(text)
+        if not modifier:
+            return
+
+        match = re.search(self.RE_STDLIB_VAR, text)
+        if not match:
+            return
+
+        var = match.group(1)
+
+        if modifier == FunctionInputModifier.GLOBAL.value:
+            target = self.current_function.globals
+        elif modifier == FunctionInputModifier.KEYWORD.value:
+            target = self.current_function.keywords
+        else:
+            return
+
+        if not any(e.name == var for e in target):
+            target.append(FunctionInput(var, entity_type, is_optional, modifier))

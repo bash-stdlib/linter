@@ -4,7 +4,14 @@ METADATA = {
     "functions": {
         "stdlib.array.assert.is_array": {
             "name": "stdlib.array.assert.is_array",
-            "arguments": [{"name": "$1", "type": "string", "is_optional": False}],
+            "arguments": [
+                {
+                    "name": "$1",
+                    "type": "string",
+                    "is_optional": False,
+                    "modifier": None,
+                }
+            ],
             "keywords": [],
             "globals": [],
             "min_args": 1,
@@ -22,8 +29,18 @@ METADATA = {
         "@parametrize.compose": {
             "name": "@parametrize.compose",
             "arguments": [
-                {"name": "$1", "type": "string", "is_optional": False},
-                {"name": "...", "type": "string", "is_optional": False},
+                {
+                    "name": "$1",
+                    "type": "string",
+                    "is_optional": False,
+                    "modifier": None,
+                },
+                {
+                    "name": "...",
+                    "type": "string",
+                    "is_optional": False,
+                    "modifier": None,
+                },
             ],
             "keywords": [],
             "globals": [],
@@ -33,7 +50,14 @@ METADATA = {
         },
         "assert_rc": {
             "name": "assert_rc",
-            "arguments": [{"name": "$1", "type": "string", "is_optional": False}],
+            "arguments": [
+                {
+                    "name": "$1",
+                    "type": "string",
+                    "is_optional": False,
+                    "modifier": None,
+                }
+            ],
             "keywords": [],
             "globals": [],
             "min_args": 1,

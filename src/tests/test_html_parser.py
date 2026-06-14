@@ -70,8 +70,10 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.keywords"]
         self.assertEqual(metadata.keywords[0].name, "STDLIB_KW_1")
         self.assertEqual(metadata.keywords[0].type, "string")
+        self.assertEqual(metadata.keywords[0].modifier, "keyword")
         self.assertEqual(metadata.keywords[1].name, "STDLIB_KW_2")
         self.assertEqual(metadata.keywords[1].type, "boolean")
+        self.assertEqual(metadata.keywords[1].modifier, "keyword")
 
     def test_parse__globals__extracts_globals_correctly(self) -> "None":
         html = """
@@ -91,6 +93,7 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.globals"]
         self.assertEqual(metadata.globals[0].name, "STDLIB_VAR_1")
         self.assertEqual(metadata.globals[0].type, "string")
+        self.assertEqual(metadata.globals[0].modifier, "global")
 
     def test_parse__mixed_metadata__extracts_everything_correctly(self) -> "None":
         html = """
@@ -122,8 +125,10 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.arguments[0].type, "string")
         self.assertEqual(metadata.keywords[0].name, "STDLIB_KW")
         self.assertEqual(metadata.keywords[0].type, "string")
+        self.assertEqual(metadata.keywords[0].modifier, "keyword")
         self.assertEqual(metadata.globals[0].name, "STDLIB_GLOBAL")
         self.assertEqual(metadata.globals[0].type, "string")
+        self.assertEqual(metadata.globals[0].modifier, "global")
 
     def test_parse__optional_arguments__calculates_min_max_correctly(self) -> "None":
         html = """
@@ -234,7 +239,7 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.array"]
         self.assertEqual(metadata.arguments[0].type, "array[str]")
 
-    def test_parse__reserved_type__is_extracted_correctly(self) -> "None":
+    def test_parse__reserved_modifier__is_extracted_correctly(self) -> "None":
         html = """
         <section id="stdlib-test-reserved">
         <h3>stdlib.test.reserved</h3>
@@ -248,7 +253,7 @@ class TestHTMLParser(unittest.TestCase):
         """
         result = self.parser.parse(html)
         metadata = result["stdlib.test.reserved"]
-        self.assertEqual(metadata.arguments[0].type, "reserved")
+        self.assertEqual(metadata.arguments[0].modifier, "reserved")
 
 
 if __name__ == "__main__":
