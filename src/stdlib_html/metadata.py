@@ -1,24 +1,8 @@
 """Model for storing metadata of bash-stdlib functions."""
 
-import enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-
-class FunctionInputType(enum.Enum):
-    """Known types for arguments, keywords, and globals."""
-
-    ARRAY = "array"
-    BOOLEAN = "boolean"
-    INTEGER = "integer"
-    STRING = "string"
-
-
-class FunctionInputModifier(enum.Enum):
-    """Modifiers for function inputs."""
-
-    GLOBAL = "global"
-    KEYWORD = "keyword"
-    RESERVED = "reserved"
+from .enum import FunctionArgumentType, FunctionModifierType
 
 
 class FunctionInput:
@@ -27,14 +11,20 @@ class FunctionInput:
     def __init__(
         self,
         name: "str",
-        entity_type: "str",
+        entity_type: "Union[str, FunctionArgumentType]",
         is_optional: "bool" = False,
-        modifier: "Optional[str]" = None,
+        modifier: "Optional[Union[str, FunctionModifierType]]" = None,
     ) -> "None":
         self.name = name
-        self.type = entity_type
+        self.type = (
+            entity_type.value
+            if isinstance(entity_type, FunctionArgumentType)
+            else entity_type
+        )
         self.is_optional = is_optional
-        self.modifier = modifier
+        self.modifier = (
+            modifier.value if isinstance(modifier, FunctionModifierType) else modifier
+        )
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the input to a dictionary for JSON serialization."""

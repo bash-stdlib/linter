@@ -1,43 +1,41 @@
 """HTML parser to extract bash-stdlib function metadata from documentation."""
 
-import enum
 import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
 
-from .metadata import (
-    FunctionInput,
-    FunctionInputModifier,
-    FunctionInputType,
-    FunctionMetadata,
+from .enum import (
+    DocumentationIndicator,
+    DocumentationSection,
+    FunctionArgumentType,
+    FunctionModifierType,
 )
+from .metadata import FunctionInput, FunctionMetadata
 
 
 class HTMLParser(html.parser.HTMLParser):
     """Parses bash-stdlib documentation to extract function metadata."""
 
     EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
-    INDICATORS = enum.Enum("INDICATORS", ["optional"])
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
     RE_MODIFIER_ONLY: "str" = r"\b({})\b".format(
-        "|".join(m.value for m in FunctionInputModifier)
+        "|".join(m.value for m in FunctionModifierType)
     )
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
     RE_TYPE_MODIFIER: "str" = r"\b({})\s+({})\b".format(
-        "|".join(t.value for t in FunctionInputType),
-        "|".join(
-            m.value for m in FunctionInputModifier if m != FunctionInputModifier.RESERVED
-        ),
+        "|".join(t.value for t in FunctionArgumentType),
+        "|".join(m.value for m in FunctionModifierType),
     )
     RE_TYPE_PAREN: "str" = (
-        r"\((?:(?P<type>{}|{})|(?P<only_optional>optional))(?:,\s*(?P<optional>optional))?\)"
+        r"\((?:(?P<type>{}|{})|(?P<only_optional>{}))(?:,\s*(?P<optional>{}))?\)"
     ).format(
-        "|".join(t.value for t in FunctionInputType),
-        "|".join(m.value for m in FunctionInputModifier),
+        "|".join(t.value for t in FunctionArgumentType),
+        "|".join(m.value for m in FunctionModifierType),
+        DocumentationIndicator.OPTIONAL.value,
+        DocumentationIndicator.OPTIONAL.value,
     )
-    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
 
     def __init__(self, is_testing: "bool" = False) -> "None":
@@ -126,9 +124,9 @@ class HTMLParser(html.parser.HTMLParser):
         if not text:
             return
 
-        if self.current_section == self.SECTIONS_TITLES["args"]:
+        if self.current_section == DocumentationSection.ARGUMENTS.value:
             self._process_argument(text)
-        elif self.current_section == self.SECTIONS_TITLES["set"]:
+        elif self.current_section == DocumentationSection.VARIABLES_SET.value:
             self._process_variable_set(text)
         else:
             self._process_other_li(text)
@@ -157,7 +155,7 @@ class HTMLParser(html.parser.HTMLParser):
 
     def _extract_type(self, text: "str") -> "Tuple[str, bool, Optional[str]]":
         """Extract the type, optionality, and modifier from the text."""
-        entity_type = FunctionInputType.STRING.value
+        entity_type = FunctionArgumentType.STRING.value
         is_optional = False
         modifier = None
 
@@ -166,9 +164,9 @@ class HTMLParser(html.parser.HTMLParser):
             groups = paren_match.groupdict()
             type_val = groups.get("type")
             if type_val:
-                if any(type_val == t.value for t in FunctionInputType):
+                if any(type_val == t.value for t in FunctionArgumentType):
                     entity_type = type_val
-                if any(type_val == m.value for m in FunctionInputModifier):
+                if any(type_val == m.value for m in FunctionModifierType):
                     modifier = type_val
             if groups.get("optional") or groups.get("only_optional"):
                 is_optional = True
@@ -183,7 +181,7 @@ class HTMLParser(html.parser.HTMLParser):
             if only_modifier_match:
                 modifier = only_modifier_match.group(1)
 
-        if entity_type == FunctionInputType.ARRAY.value:
+        if entity_type == FunctionArgumentType.ARRAY.value:
             entity_type = "array[str]"
 
         return entity_type, is_optional, modifier
@@ -202,7 +200,7 @@ class HTMLParser(html.parser.HTMLParser):
             if not any(g.name == var for g in self.current_function.globals):
                 entity_type, is_optional, modifier = self._extract_type(text)
                 if not modifier:
-                    modifier = FunctionInputModifier.GLOBAL.value
+                    modifier = FunctionModifierType.GLOBAL.value
                 self.current_function.globals.append(
                     FunctionInput(var, entity_type, is_optional, modifier)
                 )
@@ -221,9 +219,9 @@ class HTMLParser(html.parser.HTMLParser):
 
         var = match.group(1)
 
-        if modifier == FunctionInputModifier.GLOBAL.value:
+        if modifier == FunctionModifierType.GLOBAL.value:
             target = self.current_function.globals
-        elif modifier == FunctionInputModifier.KEYWORD.value:
+        elif modifier == FunctionModifierType.KEYWORD.value:
             target = self.current_function.keywords
         else:
             return
