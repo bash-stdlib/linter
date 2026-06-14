@@ -4,7 +4,7 @@ METADATA = {
     "functions": {
         "stdlib.array.assert.is_array": {
             "name": "stdlib.array.assert.is_array",
-            "arguments": ["$1"],
+            "arguments": [{"name": "$1", "type": "string"}],
             "keywords": [],
             "globals": [],
             "min_args": 1,
@@ -12,7 +12,10 @@ METADATA = {
         },
         "stdlib.string.args.join": {
             "name": "stdlib.string.args.join",
-            "arguments": ["$1", "..."],
+            "arguments": [
+                {"name": "$1", "type": "string"},
+                {"name": "...", "type": "string"},
+            ],
             "keywords": [],
             "globals": [],
             "min_args": 1,

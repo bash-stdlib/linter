@@ -5,7 +5,7 @@ import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
 
-from .metadata import FunctionMetadata
+from .metadata import FunctionMetadata, TypedEntity
 
 
 class HTMLParser(html.parser.HTMLParser):
@@ -20,6 +20,8 @@ class HTMLParser(html.parser.HTMLParser):
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
+    RE_TYPE_PAREN: "str" = r"\(([^)]+)\)"
+    RE_TYPE_MODIFIER: "str" = r"\b(\w+)\s+(keyword|global)\b"
 
     def __init__(self, is_testing: "bool" = False) -> "None":
         super().__init__()
@@ -120,12 +122,13 @@ class HTMLParser(html.parser.HTMLParser):
             return
 
         is_required = self._is_required(text)
+        entity_type = self._extract_type(text)
 
         for arg in args:
-            if arg in self.current_function.arguments:
+            if any(a.name == arg for a in self.current_function.arguments):
                 continue
 
-            self.current_function.arguments.append(arg)
+            self.current_function.arguments.append(TypedEntity(arg, entity_type))
 
             if self._is_variadic(arg):
                 self.current_function.max_args = -1
@@ -133,6 +136,25 @@ class HTMLParser(html.parser.HTMLParser):
                 self._increment_max_args()
                 if is_required:
                     self.current_function.min_args += 1
+
+    def _extract_type(self, text: "str") -> "str":
+        """Extract the type information from the text."""
+        # Check for type in parentheses: (string), (integer, optional)
+        paren_match = re.search(self.RE_TYPE_PAREN, text)
+        if paren_match:
+            type_str = paren_match.group(1).split(",")[0].strip().lower()
+        else:
+            # Check for type before keyword/global: string keyword
+            modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
+            if modifier_match:
+                type_str = modifier_match.group(1).strip().lower()
+            else:
+                type_str = "string"
+
+        if type_str == "array":
+            return "array[str]"
+
+        return type_str
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in self.VARIADIC_SYMBOLS
@@ -148,8 +170,10 @@ class HTMLParser(html.parser.HTMLParser):
         match = re.search(self.RE_STDLIB_VAR, text)
         if match and self.current_function:
             var = match.group(1)
-            if var not in self.current_function.globals:
-                self.current_function.globals.append(var)
+            if not any(g.name == var for g in self.current_function.globals):
+                self.current_function.globals.append(
+                    TypedEntity(var, self._extract_type(text))
+                )
 
     def _process_other_li(self, text: "str") -> "None":
         if not self.current_function:
@@ -165,5 +189,7 @@ class HTMLParser(html.parser.HTMLParser):
                 match = re.search(self.RE_STDLIB_VAR, text)
                 if match:
                     entity = match.group(1)
-                    if entity not in function_set:
-                        function_set.append(entity)
+                    if not any(e.name == entity for e in function_set):
+                        function_set.append(
+                            TypedEntity(entity, self._extract_type(text))
+                        )
