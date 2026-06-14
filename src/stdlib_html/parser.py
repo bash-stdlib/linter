@@ -5,7 +5,17 @@ import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
 
-from .metadata import FunctionMetadata, TypedEntity
+from .metadata import FunctionInput, FunctionMetadata
+
+
+class EntityType(enum.Enum):
+    """Known types for arguments, keywords, and globals."""
+
+    STRING = "string"
+    INTEGER = "integer"
+    BOOLEAN = "boolean"
+    ARRAY = "array"
+    RESERVED = "reserved"
 
 
 class HTMLParser(html.parser.HTMLParser):
@@ -21,7 +31,9 @@ class HTMLParser(html.parser.HTMLParser):
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
     RE_TYPE_PAREN: "str" = r"\(([^)]+)\)"
-    RE_TYPE_MODIFIER: "str" = r"\b(\w+)\s+(keyword|global)\b"
+    RE_TYPE_MODIFIER: "str" = r"\b({})\s+(keyword|global)\b".format(
+        "|".join(t.value for t in EntityType)
+    )
 
     def __init__(self, is_testing: "bool" = False) -> "None":
         super().__init__()
@@ -121,46 +133,50 @@ class HTMLParser(html.parser.HTMLParser):
         if not args or not self.current_function:
             return
 
-        is_required = self._is_required(text)
-        entity_type = self._extract_type(text)
+        entity_type, is_optional = self._extract_type(text)
 
         for arg in args:
             if any(a.name == arg for a in self.current_function.arguments):
                 continue
 
-            self.current_function.arguments.append(TypedEntity(arg, entity_type))
+            self.current_function.arguments.append(
+                FunctionInput(arg, entity_type, is_optional)
+            )
 
             if self._is_variadic(arg):
                 self.current_function.max_args = -1
             else:
                 self._increment_max_args()
-                if is_required:
+                if not is_optional:
                     self.current_function.min_args += 1
 
-    def _extract_type(self, text: "str") -> "str":
-        """Extract the type information from the text."""
-        # Check for type in parentheses: (string), (integer, optional)
+    def _extract_type(self, text: "str") -> "Tuple[str, bool]":
+        """Extract the type and optionality from the text."""
+        is_optional = self.INDICATORS.optional.name in text.lower()
+
+        found_type = EntityType.STRING.value
+
+        # Priority 1: Parentheses (e.g. (string), (integer, optional))
         paren_match = re.search(self.RE_TYPE_PAREN, text)
         if paren_match:
-            type_str = paren_match.group(1).split(",")[0].strip().lower()
+            content = paren_match.group(1).lower()
+            for t in EntityType:
+                if t.value in content:
+                    found_type = t.value
+                    break
         else:
-            # Check for type before keyword/global: string keyword
+            # Priority 2: Modifier suffix (e.g. string keyword, boolean global)
             modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
             if modifier_match:
-                type_str = modifier_match.group(1).strip().lower()
-            else:
-                type_str = "string"
+                found_type = modifier_match.group(1).lower()
 
-        if type_str == "array":
-            return "array[str]"
+        if found_type == EntityType.ARRAY.value:
+            return "array[str]", is_optional
 
-        return type_str
+        return found_type, is_optional
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in self.VARIADIC_SYMBOLS
-
-    def _is_required(self, text: "str") -> "bool":
-        return self.INDICATORS.optional.name not in text.lower()
 
     def _increment_max_args(self) -> "None":
         if self.current_function and self.current_function.max_args != -1:
@@ -171,8 +187,9 @@ class HTMLParser(html.parser.HTMLParser):
         if match and self.current_function:
             var = match.group(1)
             if not any(g.name == var for g in self.current_function.globals):
+                entity_type, is_optional = self._extract_type(text)
                 self.current_function.globals.append(
-                    TypedEntity(var, self._extract_type(text))
+                    FunctionInput(var, entity_type, is_optional)
                 )
 
     def _process_other_li(self, text: "str") -> "None":
@@ -190,6 +207,7 @@ class HTMLParser(html.parser.HTMLParser):
                 if match:
                     entity = match.group(1)
                     if not any(e.name == entity for e in function_set):
+                        entity_type, is_optional = self._extract_type(text)
                         function_set.append(
-                            TypedEntity(entity, self._extract_type(text))
+                            FunctionInput(entity, entity_type, is_optional)
                         )

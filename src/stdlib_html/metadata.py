@@ -3,16 +3,23 @@
 from typing import Any, Dict, List, Optional
 
 
-class TypedEntity:
-    """Represents an entity (argument, keyword, or global) with a name and type."""
+class FunctionInput:
+    """Represents an input (argument, keyword, or global) with a name, type, and optionality."""
 
-    def __init__(self, name: "str", entity_type: "str") -> "None":
+    def __init__(
+        self, name: "str", entity_type: "str", is_optional: "bool" = False
+    ) -> "None":
         self.name = name
         self.type = entity_type
+        self.is_optional = is_optional
 
-    def to_dict(self) -> "Dict[str, str]":
-        """Convert the entity to a dictionary for JSON serialization."""
-        return {"name": self.name, "type": self.type}
+    def to_dict(self) -> "Dict[str, Any]":
+        """Convert the input to a dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "type": self.type,
+            "is_optional": self.is_optional,
+        }
 
 
 class FunctionMetadata:
@@ -21,9 +28,9 @@ class FunctionMetadata:
     def __init__(
         self,
         name: "str",
-        arguments: "Optional[List[TypedEntity]]" = None,
-        keywords: "Optional[List[TypedEntity]]" = None,
-        globals: "Optional[List[TypedEntity]]" = None,
+        arguments: "Optional[List[FunctionInput]]" = None,
+        keywords: "Optional[List[FunctionInput]]" = None,
+        globals: "Optional[List[FunctionInput]]" = None,
         min_args: "int" = 0,
         max_args: "int" = 0,
         is_testing: "bool" = False,

@@ -4,7 +4,7 @@ METADATA = {
     "functions": {
         "stdlib.array.assert.is_array": {
             "name": "stdlib.array.assert.is_array",
-            "arguments": [{"name": "$1", "type": "string"}],
+            "arguments": [{"name": "$1", "type": "string", "is_optional": False}],
             "keywords": [],
             "globals": [],
             "min_args": 1,

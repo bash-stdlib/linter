@@ -49,8 +49,10 @@ class TestHTMLParser(unittest.TestCase):
         metadata = result["stdlib.test.args"]
         self.assertEqual(metadata.arguments[0].name, "$1")
         self.assertEqual(metadata.arguments[0].type, "string")
+        self.assertFalse(metadata.arguments[0].is_optional)
         self.assertEqual(metadata.arguments[1].name, "$2")
         self.assertEqual(metadata.arguments[1].type, "integer")
+        self.assertFalse(metadata.arguments[1].is_optional)
 
     def test_parse__keywords__extracts_keywords_correctly(self) -> "None":
         html = """
@@ -143,6 +145,7 @@ class TestHTMLParser(unittest.TestCase):
         self.assertEqual(metadata.min_args, 1)
         self.assertEqual(metadata.max_args, 2)
         self.assertEqual(metadata.arguments[1].type, "integer")
+        self.assertTrue(metadata.arguments[1].is_optional)
 
     def test_parse__variadic_arguments__calculates_min_max_correctly(self) -> "None":
         html = """
@@ -188,6 +191,8 @@ class TestHTMLParser(unittest.TestCase):
         # Our implementation counts required arguments
         self.assertEqual(metadata.min_args, 1)
         self.assertEqual(metadata.max_args, 2)
+        self.assertTrue(metadata.arguments[0].is_optional)
+        self.assertFalse(metadata.arguments[1].is_optional)
 
     def test_parse__multiple_args_in_one_li__extracts_all_counts_correctly(
         self,
@@ -228,6 +233,22 @@ class TestHTMLParser(unittest.TestCase):
         result = self.parser.parse(html)
         metadata = result["stdlib.test.array"]
         self.assertEqual(metadata.arguments[0].type, "array[str]")
+
+    def test_parse__reserved_type__is_extracted_correctly(self) -> "None":
+        html = """
+        <section id="stdlib-test-reserved">
+        <h3>stdlib.test.reserved</h3>
+        <section id="arguments">
+        <h4>Arguments</h4>
+        <ul class="simple">
+        <li><p><strong>$1</strong> (reserved): A reserved arg</p></li>
+        </ul>
+        </section>
+        </section>
+        """
+        result = self.parser.parse(html)
+        metadata = result["stdlib.test.reserved"]
+        self.assertEqual(metadata.arguments[0].type, "reserved")
 
 
 if __name__ == "__main__":

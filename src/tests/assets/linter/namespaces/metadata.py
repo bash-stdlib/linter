@@ -4,7 +4,7 @@ METADATA = {
     "functions": {
         "stdlib.array.assert.is_array": {
             "name": "stdlib.array.assert.is_array",
-            "arguments": [{"name": "$1", "type": "string"}],
+            "arguments": [{"name": "$1", "type": "string", "is_optional": False}],
             "keywords": [],
             "globals": [],
             "min_args": 1,
@@ -22,8 +22,8 @@ METADATA = {
         "@parametrize.compose": {
             "name": "@parametrize.compose",
             "arguments": [
-                {"name": "$1", "type": "string"},
-                {"name": "...", "type": "string"},
+                {"name": "$1", "type": "string", "is_optional": False},
+                {"name": "...", "type": "string", "is_optional": False},
             ],
             "keywords": [],
             "globals": [],
@@ -33,7 +33,7 @@ METADATA = {
         },
         "assert_rc": {
             "name": "assert_rc",
-            "arguments": [{"name": "$1", "type": "string"}],
+            "arguments": [{"name": "$1", "type": "string", "is_optional": False}],
             "keywords": [],
             "globals": [],
             "min_args": 1,
