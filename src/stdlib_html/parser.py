@@ -136,7 +136,7 @@ class HTMLParser(html.parser.HTMLParser):
         if not args or not self.current_function:
             return
 
-        entity_type, is_optional, modifier = self._extract_type(text)
+        entity_type, is_optional, modifier = self._parse_argument_type(text)
 
         for arg in args:
             if any(a.name == arg for a in self.current_function.arguments):
@@ -153,10 +153,10 @@ class HTMLParser(html.parser.HTMLParser):
                 if not is_optional:
                     self.current_function.min_args += 1
 
-    def _extract_type(
+    def _parse_argument_type(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract the type, optionality, and modifier from the text."""
+        """Extract type and optionality from an argument definition using parentheses."""
         entity_type = FunctionArgumentType.STRING
         is_optional = False
         modifier = None
@@ -176,6 +176,17 @@ class HTMLParser(html.parser.HTMLParser):
             if groups.get("optional") or groups.get("only_optional"):
                 is_optional = True
 
+        return entity_type, is_optional, modifier
+
+    def _parse_modifier_type(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
+        """Extract type and modifier from a keyword or global."""
+        entity_type = FunctionArgumentType.STRING
+        is_optional = False
+        modifier = None
+
+        # 1. Try suffix style: "string keyword"
         modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
         if modifier_match:
             found_type = FunctionArgumentType.from_str(modifier_match.group(1))
@@ -186,6 +197,15 @@ class HTMLParser(html.parser.HTMLParser):
             if found_modifier:
                 modifier = found_modifier
 
+        # 2. Try parentheses style: "(string)"
+        if entity_type == FunctionArgumentType.STRING and not modifier:
+            p_type, p_optional, p_modifier = self._parse_argument_type(text)
+            if p_type != FunctionArgumentType.STRING or p_optional or p_modifier:
+                entity_type = p_type
+                is_optional = p_optional
+                modifier = p_modifier
+
+        # 3. Try standalone modifier
         if not modifier:
             only_modifier_match = re.search(self.RE_MODIFIER_ONLY, text)
             if only_modifier_match:
@@ -205,7 +225,7 @@ class HTMLParser(html.parser.HTMLParser):
         if match and self.current_function:
             var = match.group(1)
             if not any(g.name == var for g in self.current_function.globals):
-                entity_type, is_optional, modifier = self._extract_type(text)
+                entity_type, is_optional, modifier = self._parse_modifier_type(text)
                 if not modifier:
                     modifier = FunctionModifierType.GLOBAL
                 self.current_function.globals.append(
@@ -216,7 +236,7 @@ class HTMLParser(html.parser.HTMLParser):
         if not self.current_function:
             return
 
-        entity_type, is_optional, modifier = self._extract_type(text)
+        entity_type, is_optional, modifier = self._parse_modifier_type(text)
         if not modifier:
             return
 

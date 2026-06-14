@@ -16,11 +16,21 @@ class FunctionInput:
         modifier: "Optional[FunctionModifierType]" = None,
     ) -> "None":
         self.name = name
-        self.type = (
-            "array[str]" if entity_type == FunctionArgumentType.ARRAY else entity_type.value
-        )
+        self._entity_type = entity_type
         self.is_optional = is_optional
-        self.modifier = modifier.value if modifier else None
+        self._modifier = modifier
+
+    @property
+    def type(self) -> "str":
+        """Get the string representation of the entity type."""
+        if self._entity_type == FunctionArgumentType.ARRAY:
+            return "array[str]"
+        return self._entity_type.value
+
+    @property
+    def modifier(self) -> "Optional[str]":
+        """Get the string representation of the modifier."""
+        return self._modifier.value if self._modifier else None
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the input to a dictionary for JSON serialization."""

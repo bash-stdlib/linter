@@ -14,11 +14,16 @@ class EnumBase(enum.Enum):
         """Convert a string to an enum member."""
         if value is None:
             return None
-        value = value.lower()
+        value = cls._transform_value(value)
         for member in cls:
             if member.value == value:
                 return member
         return None
+
+    @staticmethod
+    def _transform_value(value: "str") -> "str":
+        """Normalize the string value for comparison."""
+        return value.lower()
 
 
 class FunctionArgumentType(EnumBase):
@@ -50,12 +55,7 @@ class DocumentationSection(EnumBase):
     ARGUMENTS = "Arguments"
     VARIABLES_SET = "Variables set"
 
-    @classmethod
-    def from_str(cls: Type["DocumentationSection"], value: "Optional[str]") -> "Optional[DocumentationSection]":
-        """Convert a string to an enum member (case-sensitive for sections)."""
-        if value is None:
-            return None
-        for member in cls:
-            if member.value == value:
-                return member
-        return None
+    @staticmethod
+    def _transform_value(value: "str") -> "str":
+        """Normalize the string value (case-sensitive for sections)."""
+        return value
