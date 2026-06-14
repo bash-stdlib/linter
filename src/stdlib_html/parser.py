@@ -153,9 +153,11 @@ class HTMLParser(html.parser.HTMLParser):
                 if not is_optional:
                     self.current_function.min_args += 1
 
-    def _extract_type(self, text: "str") -> "Tuple[str, bool, Optional[str]]":
+    def _extract_type(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
         """Extract the type, optionality, and modifier from the text."""
-        entity_type = FunctionArgumentType.STRING.value
+        entity_type = FunctionArgumentType.STRING
         is_optional = False
         modifier = None
 
@@ -164,25 +166,30 @@ class HTMLParser(html.parser.HTMLParser):
             groups = paren_match.groupdict()
             type_val = groups.get("type")
             if type_val:
-                if any(type_val == t.value for t in FunctionArgumentType):
-                    entity_type = type_val
-                if any(type_val == m.value for m in FunctionModifierType):
-                    modifier = type_val
+                found_type = FunctionArgumentType.from_str(type_val)
+                if found_type:
+                    entity_type = found_type
+
+                found_modifier = FunctionModifierType.from_str(type_val)
+                if found_modifier:
+                    modifier = found_modifier
             if groups.get("optional") or groups.get("only_optional"):
                 is_optional = True
 
         modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
         if modifier_match:
-            entity_type = modifier_match.group(1)
-            modifier = modifier_match.group(2)
+            found_type = FunctionArgumentType.from_str(modifier_match.group(1))
+            if found_type:
+                entity_type = found_type
+
+            found_modifier = FunctionModifierType.from_str(modifier_match.group(2))
+            if found_modifier:
+                modifier = found_modifier
 
         if not modifier:
             only_modifier_match = re.search(self.RE_MODIFIER_ONLY, text)
             if only_modifier_match:
-                modifier = only_modifier_match.group(1)
-
-        if entity_type == FunctionArgumentType.ARRAY.value:
-            entity_type = "array[str]"
+                modifier = FunctionModifierType.from_str(only_modifier_match.group(1))
 
         return entity_type, is_optional, modifier
 
@@ -200,7 +207,7 @@ class HTMLParser(html.parser.HTMLParser):
             if not any(g.name == var for g in self.current_function.globals):
                 entity_type, is_optional, modifier = self._extract_type(text)
                 if not modifier:
-                    modifier = FunctionModifierType.GLOBAL.value
+                    modifier = FunctionModifierType.GLOBAL
                 self.current_function.globals.append(
                     FunctionInput(var, entity_type, is_optional, modifier)
                 )
@@ -219,9 +226,9 @@ class HTMLParser(html.parser.HTMLParser):
 
         var = match.group(1)
 
-        if modifier == FunctionModifierType.GLOBAL.value:
+        if modifier == FunctionModifierType.GLOBAL:
             target = self.current_function.globals
-        elif modifier == FunctionModifierType.KEYWORD.value:
+        elif modifier == FunctionModifierType.KEYWORD:
             target = self.current_function.keywords
         else:
             return

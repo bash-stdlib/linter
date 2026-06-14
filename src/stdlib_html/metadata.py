@@ -1,30 +1,26 @@
 """Model for storing metadata of bash-stdlib functions."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from .enum import FunctionArgumentType, FunctionModifierType
 
 
 class FunctionInput:
-    """Represents an input (argument, keyword, or global) with a name, type, and optionality."""
+    """Represents an input with a name, type, and optionality."""
 
     def __init__(
         self,
         name: "str",
-        entity_type: "Union[str, FunctionArgumentType]",
+        entity_type: "FunctionArgumentType",
         is_optional: "bool" = False,
-        modifier: "Optional[Union[str, FunctionModifierType]]" = None,
+        modifier: "Optional[FunctionModifierType]" = None,
     ) -> "None":
         self.name = name
         self.type = (
-            entity_type.value
-            if isinstance(entity_type, FunctionArgumentType)
-            else entity_type
+            "array[str]" if entity_type == FunctionArgumentType.ARRAY else entity_type.value
         )
         self.is_optional = is_optional
-        self.modifier = (
-            modifier.value if isinstance(modifier, FunctionModifierType) else modifier
-        )
+        self.modifier = modifier.value if modifier else None
 
     def to_dict(self) -> "Dict[str, Any]":
         """Convert the input to a dictionary for JSON serialization."""
