@@ -2,7 +2,12 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-from constants import ARRAY_MULTI_PLACEHOLDER, ARRAY_SINGLE_PLACEHOLDER
+from constants import (
+    ARRAY_MULTI_PLACEHOLDER,
+    ARRAY_SINGLE_PLACEHOLDER,
+    ARRAY_SIZE_PREFIX,
+    ARRAY_SIZE_SUFFIX,
+)
 from issues import STD005, STD011
 from validators.base import ValidatorBase
 
@@ -25,6 +30,30 @@ class ArgumentCountValidator(ValidatorBase):
         args: "Optional[List[str]]" = None,
         offset: int = 0,
     ) -> "Optional[LinterIssueBase]":
+        func_meta = self._get_meta(call, offset)
+        if not func_meta:
+            return None
+
+        min_args = func_meta.get("min_args", 0)
+        max_args = func_meta.get("max_args", -1)
+
+        actual_args = 0
+        if args:
+            for arg in args:
+                if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(
+                    ARRAY_SIZE_SUFFIX
+                ):
+                    try:
+                        size = int(arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)])
+                        actual_args += size
+                    except ValueError:
+                        actual_args += 1
+                else:
+                    actual_args += 1
+
+        if max_args != -1 and actual_args > max_args:
+            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+
         if args:
             for arg in args:
                 if (
@@ -34,19 +63,7 @@ class ArgumentCountValidator(ValidatorBase):
                 ):
                     return STD011(filepath, line, column, call)
 
-        func_meta = self._get_meta(call, offset)
-        if not func_meta:
-            return None
-
-        min_args = func_meta.get("min_args", 0)
-        max_args = func_meta.get("max_args", -1)
-
-        actual_args = len(args) if args is not None else 0
-
         if actual_args < min_args:
-            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
-
-        if max_args != -1 and actual_args > max_args:
             return STD005(filepath, line, column, call, actual_args, min_args, max_args)
 
         return None
