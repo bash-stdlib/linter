@@ -60,6 +60,7 @@ class ShlexTokenIterator:
         """
         try:
             at_start = True
+            last_token = None
             for token in self:
                 if (
                     hasattr(token, "unquoted_specials")
@@ -75,17 +76,29 @@ class ShlexTokenIterator:
 
                 if not is_quoted and token in SHELL_COMMAND_SEPARATORS:
                     at_start = True
+                    last_token = token
                     continue
 
                 if token == "$":
+                    last_token = token
                     continue
+
                 if "=" in token and at_start:
+                    last_token = token
                     continue
 
                 at_start = False
+                last_token = token
+
+            if self.parsing_error:
+                return False
+
+            if at_start and last_token and "=" in last_token:
+                return self.lexer.source_ptr < len(self.lexer.source_str)
+
             return at_start
         except (StopIteration, ValueError):
-            return True
+            return not self.parsing_error
 
     def __iter__(self) -> "ShlexTokenIterator":
         return self
