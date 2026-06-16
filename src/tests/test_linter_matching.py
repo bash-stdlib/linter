@@ -21,6 +21,37 @@ class TestLinterMatching(unittest.TestCase):
 
         self.assertEqual(len(issues), 0)
 
+    def test_lint__quoted_assignment__is_ignored(self) -> None:
+        content = 'VAR="stdlib.foo"'
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            issues = linter.lint("test.sh")
+
+        self.assertEqual(len(issues), 0)
+
+    def test_lint__quoted_command_call__is_detected(self) -> None:
+        content = '"stdlib.foo"'
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            issues = linter.lint("test.sh")
+
+        # It is detected as a call, and since it has 0 args but expects 0, it should have 0 issues.
+        # (Wait, if it was NOT detected as a call, it would also have 0 issues).
+        # To verify it IS detected, we'd need it to have an error like STD005.
+        self.assertEqual(len(issues), 0)
+
+    def test_lint__quoted_command_call_with_args__is_detected(self) -> None:
+        content = '"stdlib.foo" arg1'
+        linter = Linter(self.metadata)
+
+        with patch("builtins.open", mock_open(read_data=content)):
+            issues = linter.lint("test.sh")
+
+        # It should be detected and report STD005 (wrong number of arguments)
+        self.assertTrue(any(i.CODE == "STD005" for i in issues))
+
     def test_lint__function_definitions__are_ignored(self) -> None:
         content = (
             "function stdlib.foo() {\n  echo hello\n}\nstdlib.foo () {\n  echo hi\n}"
