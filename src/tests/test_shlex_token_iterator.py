@@ -95,6 +95,9 @@ class TestShlexTokenIterator(unittest.TestCase):
         iterator = ShlexTokenIterator("KEYWORD=")
         self.assertFalse(iterator.is_at_command_position())
 
+        iterator = ShlexTokenIterator("KEYWORD=''")
+        self.assertFalse(iterator.is_at_command_position())
+
     def test_is_at_command_position__assignment_with_whitespace__returns_true(
         self,
     ) -> None:
