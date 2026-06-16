@@ -12,6 +12,18 @@ if TYPE_CHECKING:
 class ShlexTokenIterator:
     """Iterates over tokens produced by shlex.shlex."""
 
+    BASH_KEYWORDS = {
+        "if",
+        "then",
+        "else",
+        "elif",
+        "fi",
+        "do",
+        "done",
+        "while",
+        "until",
+        "!",
+    }
     FUNCTION_KEYWORD = "function"
     WHITESPACE_CHARS = " \t\r\x0b"
     WORDCHARS_APPENDUM = "./$*?@-_"
@@ -53,6 +65,63 @@ class ShlexTokenIterator:
             pass
         return False
 
+    def get_token_at_command_position(
+        self, start_offset: int, end_offset: int
+    ) -> "Optional[AdvancedToken]":
+        """Determine if a match at the given offsets is a command call.
+
+        Returns the AdvancedToken if it's a valid command call, None otherwise.
+        """
+        try:
+            at_start = True
+            for token in self:
+                # Check if this token matches our regex match boundaries
+                is_exact_match = (
+                    token.start_offset == start_offset
+                    and token.end_offset == end_offset
+                )
+                is_exact_quoted_match = (
+                    getattr(token, "is_fully_quoted", False)
+                    and token.start_offset + 1 == start_offset
+                    and token.end_offset - 1 == end_offset
+                )
+
+                if is_exact_match or is_exact_quoted_match:
+                    if at_start and "=" not in token:
+                        return token
+                    return None
+
+                # Optimization: if we've passed the match, stop
+                if token.start_offset > start_offset:
+                    return None
+
+                if (
+                    hasattr(token, "unquoted_specials")
+                    and self.COMMENT_CHAR in token.unquoted_specials
+                    and token.startswith(self.COMMENT_CHAR)
+                ):
+                    return None
+
+                is_quoted = getattr(token, "is_fully_quoted", False)
+
+                if not is_quoted and (
+                    token in SHELL_COMMAND_SEPARATORS or token in self.BASH_KEYWORDS
+                ):
+                    at_start = True
+                    continue
+
+                if token == "$":
+                    continue
+
+                if "=" in token and at_start:
+                    continue
+
+                at_start = False
+
+            return None
+        except (StopIteration, ValueError):
+            return None
+
     def is_at_command_position(self) -> bool:
         """Check if current tokens are at the start of a command.
 
@@ -68,12 +137,11 @@ class ShlexTokenIterator:
                 ):
                     return False
 
-                if hasattr(token, "is_fully_quoted"):
-                    is_quoted = getattr(token, "is_fully_quoted")
-                else:
-                    is_quoted = False
+                is_quoted = getattr(token, "is_fully_quoted", False)
 
-                if not is_quoted and token in SHELL_COMMAND_SEPARATORS:
+                if not is_quoted and (
+                    token in SHELL_COMMAND_SEPARATORS or token in self.BASH_KEYWORDS
+                ):
                     at_start = True
                     continue
 

@@ -136,12 +136,27 @@ class ValidationPipeline(BasePipeline):
         line_num: int,
         offset: int = 0,
     ) -> Optional["LinterIssueBase"]:
-        absolute_offset = offset + match.start()
+        absolute_start = offset + match.start()
+        absolute_end = offset + match.end()
 
         if self._is_function_definition(match, content, offset):
             return None
 
-        matched_token = self._get_command_token(match, content, offset)
+        # Determine the line boundaries for local tokenization
+        line_start = content.rfind("\n", 0, absolute_start) + 1
+        line_end = content.find("\n", absolute_end)
+        if line_end == -1:
+            line_end = len(content)
+
+        line_content = content[line_start:line_end]
+        match_start_in_line = absolute_start - line_start
+        match_end_in_line = absolute_end - line_start
+
+        shlex_iterator = ShlexTokenIterator(line_content)
+        matched_token = shlex_iterator.get_token_at_command_position(
+            match_start_in_line, match_end_in_line
+        )
+
         if matched_token is None:
             return None
 
@@ -151,7 +166,6 @@ class ValidationPipeline(BasePipeline):
             return None
 
         # Use the end of the actual token (which might be quoted) as the start for args
-        line_start = content.rfind("\n", 0, absolute_offset) + 1
         absolute_token_end = line_start + matched_token.end_offset
         column = match.start() + 1
 
@@ -163,96 +177,11 @@ class ValidationPipeline(BasePipeline):
 
         for validator in self.validators:
             issue = validator.check(
-                call_name, filepath, line_num, column, args, absolute_offset
+                call_name, filepath, line_num, column, args, absolute_start
             )
             if issue:
                 if not self._is_ignored(issue.CODE, line_num):
                     return issue
-        return None
-
-    def _get_command_token(
-        self, match: "Match[str]", content: "str", offset: "int"
-    ) -> Optional["AdvancedToken"]:
-        """Check if the match is at the start of a command and return its token."""
-        from linter.enhanced_shlex import AdvancedToken
-
-        absolute_start = offset + match.start()
-        absolute_end = offset + match.end()
-
-        # Find the boundaries of the line containing the match
-        line_start = content.rfind("\n", 0, absolute_start) + 1
-        line_end = content.find("\n", absolute_end)
-        if line_end == -1:
-            line_end = len(content)
-
-        line_content = content[line_start:line_end]
-        match_start_in_line = absolute_start - line_start
-        match_end_in_line = absolute_end - line_start
-
-        shlex_iterator = ShlexTokenIterator(line_content)
-
-        # Basic command position check logic
-        # at_start is True at the beginning of a line or after a command separator.
-        at_start = True
-        for token in shlex_iterator:
-            # Check if this token matches our regex match
-            # token.start_offset and token.end_offset are relative to line_content
-            if (
-                token.start_offset <= match_start_in_line
-                and token.end_offset >= match_end_in_line
-            ):
-                # We found the token that contains our match.
-                # It must be exactly the match (possibly quoted)
-                # and it must be at a valid command position.
-
-                is_exact_match = (
-                    token.start_offset == match_start_in_line
-                    and token.end_offset == match_end_in_line
-                )
-                is_exact_quoted_match = (
-                    token.is_fully_quoted
-                    and token.start_offset + 1 == match_start_in_line
-                    and token.end_offset - 1 == match_end_in_line
-                )
-
-                if is_exact_match or is_exact_quoted_match:
-                    if at_start and "=" not in token:
-                        return token
-                    return None
-
-                # If we are here, the match is a substring of a larger token.
-                return None
-
-            # Update at_start for the next token
-            if not token.is_fully_quoted and (
-                token in {";", "|", "&", "&&", "||", "(", ")", "{", "}", "`", "!"}
-                or token
-                in {
-                    "if",
-                    "then",
-                    "elif",
-                    "else",
-                    "while",
-                    "until",
-                    "do",
-                    "for",
-                    "in",
-                }
-            ):
-                at_start = True
-                continue
-
-            if token == "$":
-                # Likely part of an expansion, not a command position reset
-                at_start = False
-                continue
-
-            if "=" in token and at_start:
-                # Still at command position for the NEXT token if this was an assignment
-                continue
-
-            at_start = False
-
         return None
 
     def _is_function_definition(
