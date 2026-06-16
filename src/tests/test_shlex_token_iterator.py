@@ -91,10 +91,11 @@ class TestShlexTokenIterator(unittest.TestCase):
         iterator = ShlexTokenIterator("| ")
         self.assertTrue(iterator.is_at_command_position())
 
-    def test_is_at_command_position__implied_assigned__returns_false(self) -> None:
+    def test_is_at_command_position__implied_assignment__returns_false(self) -> None:
         iterator = ShlexTokenIterator("KEYWORD=")
         self.assertFalse(iterator.is_at_command_position())
 
+    def test_is_at_command_position__actual_assignment__returns_false(self) -> None:
         iterator = ShlexTokenIterator("KEYWORD=''")
         self.assertFalse(iterator.is_at_command_position())
 
