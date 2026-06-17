@@ -4,9 +4,9 @@ import unittest
 from unittest.mock import mock_open, patch
 
 from linter import Linter
+from linter.pipelines.discovery_pipeline import DiscoveryPipeline
 from linter.state.file_state import FileLinterState
 from linter.state.global_state import GlobalLinterState
-from linter.pipelines.discovery_pipeline import DiscoveryPipeline
 from tests.assets.linter.mock.metadata import METADATA
 
 
@@ -130,6 +130,7 @@ mymock.mock.assert_not_called
 
         codes = [i.CODE for i in issues]
         self.assertIn("STD010", codes)
+
 
 if __name__ == "__main__":
     unittest.main()

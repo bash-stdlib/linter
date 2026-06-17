@@ -516,9 +516,9 @@ class EnhancedShlex(shlex.shlex):
         return self
 
     def skip_to_newline(self) -> str:
-        """Advance the lexer to the next newline character and return skipped content."""
+        """Advance the lexer to next newline and return skipped content."""
         if hasattr(self.instream, "seek"):
             self.instream.seek(self.source_ptr)
-        skipped_content = self.instream.readline()
+        skipped_content = str(self.instream.readline())
         self.source_ptr += len(skipped_content)
         return skipped_content

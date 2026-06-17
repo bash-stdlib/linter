@@ -1,13 +1,8 @@
 """Line iterator for discovering mock lifecycles in comments."""
 
 import re
-from typing import TYPE_CHECKING
 
 from linter.line_iterators.base import LineIteratorBase
-
-if TYPE_CHECKING:
-    from linter.state.file_state import FileLinterState
-    from linter.state.global_state import GlobalLinterState
 
 
 class MockCommentDiscovery(LineIteratorBase):
@@ -17,7 +12,9 @@ class MockCommentDiscovery(LineIteratorBase):
     ACTION_DELETE = "delete"
 
     MOCK_PATTERN = re.compile(
-        r"#\s*stdlib\s+_mock\.({}|{}):\s*([^#\n\r]+)".format(ACTION_CREATE, ACTION_DELETE),
+        r"#\s*stdlib\s+_mock\.({}|{}):\s*([^#\n\r]+)".format(
+            ACTION_CREATE, ACTION_DELETE
+        ),
         re.IGNORECASE,
     )
 

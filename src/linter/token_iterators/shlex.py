@@ -104,12 +104,9 @@ class ShlexTokenIterator:
         return self
 
     def skip_to_newline(self) -> str:
-        """Advance the internal lexer to the next newline.
-
-        Returns:
-            str: The content that was skipped.
-        """
-        return self.lexer.skip_to_newline()
+        """Advance the internal lexer to the next newline and return skipped content."""
+        skipped_content = self.lexer.skip_to_newline()
+        return skipped_content
 
     def __next__(self) -> "AdvancedToken":
         try:
