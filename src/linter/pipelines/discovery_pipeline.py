@@ -50,8 +50,8 @@ class DiscoveryPipeline(BasePipeline):
                     if action == DiscoveryAction.STOP_TOKEN:
                         break
                     if action == DiscoveryAction.STOP_LINE:
-                        skipped = tokens.skip_to_newline()
-                        full_line = str(token) + skipped
+                        skipped_content = tokens.skip_to_newline()
+                        full_line = str(token) + skipped_content
                         for line_iterator in self.line_iterators:
                             line_iterator.process_line(
                                 full_line, token.line_num, token.start_offset

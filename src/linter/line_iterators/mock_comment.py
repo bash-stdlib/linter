@@ -13,23 +13,27 @@ if TYPE_CHECKING:
 class MockCommentDiscovery(LineIteratorBase):
     """Identifies mock creation and deletion via stdlib comments."""
 
+    ACTION_CREATE = "create"
+    ACTION_DELETE = "delete"
+
     MOCK_PATTERN = re.compile(
-        r"#\s*stdlib\s+_mock\.(create|delete):\s*([^#\n\r]+)", re.IGNORECASE
+        r"#\s*stdlib\s+_mock\.({}|{}):\s*([^#\n\r]+)".format(ACTION_CREATE, ACTION_DELETE),
+        re.IGNORECASE,
     )
 
     def process_line(self, line_content: str, line_num: int, offset: int) -> None:
         """Find mock lifecycle directives in comments."""
         for match in self.MOCK_PATTERN.finditer(line_content):
-            action = match.group(1).lower()
-            names_raw = match.group(2)
+            mock_action = match.group(1).lower()
+            mock_names_raw = match.group(2)
             absolute_offset = offset + match.start()
 
-            names = [n.strip() for n in names_raw.split(",")]
+            mock_names = [n.strip() for n in mock_names_raw.split(",")]
 
-            for name in names:
-                if not name:
+            for mock_name in mock_names:
+                if not mock_name:
                     continue
-                if action == "create":
-                    self.file_state.add_mock_lifecycle(name, absolute_offset)
-                elif action == "delete":
-                    self.file_state.end_mock_lifecycle(name, absolute_offset)
+                if mock_action == self.ACTION_CREATE:
+                    self.file_state.add_mock_lifecycle(mock_name, absolute_offset)
+                elif mock_action == self.ACTION_DELETE:
+                    self.file_state.end_mock_lifecycle(mock_name, absolute_offset)
