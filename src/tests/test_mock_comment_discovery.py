@@ -64,6 +64,40 @@ class TestMockCommentDiscovery(unittest.TestCase):
         self.assertNotEqual(file_state.mock_scopes[0].end_offset, -1)
         self.assertNotEqual(file_state.mock_scopes[1].end_offset, -1)
 
+    def test_discovery__create_comment_with_trailing__adds_mock(self) -> None:
+        content = "# stdlib _mock.create: mymock # some note\n"
+        file_state = FileLinterState()
+        global_state = GlobalLinterState(self.metadata)
+        discovery = DiscoveryPipeline(global_state, file_state)
+
+        discovery.process(content)
+
+        self.assertEqual(len(file_state.mock_scopes), 1)
+        self.assertEqual(file_state.mock_scopes[0].name, "mymock")
+
+    def test_discovery__inline_create_comment__adds_mock(self) -> None:
+        content = "ls # stdlib _mock.create: mymock\n"
+        file_state = FileLinterState()
+        global_state = GlobalLinterState(self.metadata)
+        discovery = DiscoveryPipeline(global_state, file_state)
+
+        discovery.process(content)
+
+        self.assertEqual(len(file_state.mock_scopes), 1)
+        self.assertEqual(file_state.mock_scopes[0].name, "mymock")
+
+    def test_discovery__inline_create_multiple_comment__adds_mocks(self) -> None:
+        content = "ls # stdlib _mock.create: m1, m2\n"
+        file_state = FileLinterState()
+        global_state = GlobalLinterState(self.metadata)
+        discovery = DiscoveryPipeline(global_state, file_state)
+
+        discovery.process(content)
+
+        self.assertEqual(len(file_state.mock_scopes), 2)
+        self.assertEqual(file_state.mock_scopes[0].name, "m1")
+        self.assertEqual(file_state.mock_scopes[1].name, "m2")
+
     def test_lint__mock_via_comment__no_issues(self) -> None:
         content = """
 # stdlib _mock.create: mymock

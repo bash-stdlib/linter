@@ -14,7 +14,7 @@ class MockCommentDiscovery(LineIteratorBase):
     """Identifies mock creation and deletion via stdlib comments."""
 
     MOCK_PATTERN = re.compile(
-        r"#\s*stdlib\s+_mock\.(create|delete):\s*(.+)", re.IGNORECASE
+        r"#\s*stdlib\s+_mock\.(create|delete):\s*([^#\n\r]+)", re.IGNORECASE
     )
 
     def process_line(self, line_content: str, line_num: int, offset: int) -> None:

@@ -515,10 +515,15 @@ class EnhancedShlex(shlex.shlex):
     def __iter__(self) -> Iterator[AdvancedToken]:  # type: ignore[override]
         return self
 
-    def skip_to_newline(self) -> None:
-        """Advance the lexer to the next newline character."""
+    def skip_to_newline(self) -> str:
+        """Advance the lexer to the next newline character.
+
+        Returns:
+            str: The content that was skipped.
+        """
         # Sync instream with current source_ptr before reading
         if hasattr(self.instream, "seek"):
             self.instream.seek(self.source_ptr)
         line = self.instream.readline()
         self.source_ptr += len(line)
+        return line

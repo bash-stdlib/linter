@@ -9,7 +9,7 @@ from linter.discovery_iterators import (
     FunctionScopeDiscoveryIterator,
     MockDiscoveryIterator,
 )
-from linter.line_iterators import LineIteratorBase, MockCommentDiscovery
+from linter.line_iterators import MockCommentDiscovery
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators.shlex import ShlexTokenIterator
 
@@ -32,9 +32,7 @@ class DiscoveryPipeline(BasePipeline):
             FunctionScopeDiscoveryIterator(global_state, file_state),
             MockDiscoveryIterator(global_state, file_state),
         ]
-        self.line_iterators: List["LineIteratorBase"] = [
-            MockCommentDiscovery(global_state, file_state),
-        ]
+        self.mock_comment_discovery = MockCommentDiscovery(global_state, file_state)
 
     def execute(self) -> None:
         """Execute the pipeline (abstract method from BasePipeline)."""
@@ -42,8 +40,6 @@ class DiscoveryPipeline(BasePipeline):
 
     def process(self, content: str) -> None:
         """Stream tokens through all discovery iterators."""
-        self._run_line_discovery(content)
-
         tokens = ShlexTokenIterator(content)
         try:
             for token in tokens:
@@ -52,16 +48,11 @@ class DiscoveryPipeline(BasePipeline):
                     if action == DiscoveryAction.STOP_TOKEN:
                         break
                     if action == DiscoveryAction.STOP_LINE:
-                        tokens.skip_to_newline()
+                        skipped = tokens.skip_to_newline()
+                        # Pass the full line content (token + skipped) to comment processors
+                        self.mock_comment_discovery.process_line(
+                            str(token) + skipped, token.line_num, token.start_offset
+                        )
                         break
         except ValueError:
             pass
-
-    def _run_line_discovery(self, content: str) -> None:
-        """Process content line by line for discovery."""
-        offset = 0
-        for i, line_content in enumerate(content.splitlines(True)):
-            line_num = i + 1
-            for iterator in self.line_iterators:
-                iterator.process_line(line_content, line_num, offset)
-            offset += len(line_content)
