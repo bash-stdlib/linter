@@ -4,7 +4,6 @@ import re
 from typing import TYPE_CHECKING, List, Optional
 
 from issues import STD006, STD008, STD009
-from linter.line_iterators import CommentIgnores, LineIteratorBase
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators import ShlexTokenIterator
 from validators import (
@@ -51,9 +50,6 @@ class ValidationPipeline(BasePipeline):
             ArgumentCountValidator(global_state, file_state),
             IsTestingFunctionCallValidator(global_state, file_state),
         ]
-        self.line_iterators: List["LineIteratorBase"] = [
-            CommentIgnores(global_state, file_state),
-        ]
 
     def execute(self) -> None:
         """Execute the pipeline (abstract method from BasePipeline)."""
@@ -65,8 +61,6 @@ class ValidationPipeline(BasePipeline):
         offset = 0
         for i, line_content in enumerate(file_content.splitlines(True)):
             line_num = i + 1
-            for iterator in self.line_iterators:
-                iterator.process_line(line_content, line_num, offset)
 
             matches = self._find_all_matches(line_content, offset)
 
