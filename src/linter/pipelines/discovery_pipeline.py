@@ -42,12 +42,7 @@ class DiscoveryPipeline(BasePipeline):
 
     def process(self, content: str) -> None:
         """Stream tokens through all discovery iterators."""
-        offset = 0
-        for i, line_content in enumerate(content.splitlines(True)):
-            line_num = i + 1
-            for iterator in self.line_iterators:
-                iterator.process_line(line_content, line_num, offset)
-            offset += len(line_content)
+        self._run_line_discovery(content)
 
         tokens = ShlexTokenIterator(content)
         try:
@@ -61,3 +56,12 @@ class DiscoveryPipeline(BasePipeline):
                         break
         except ValueError:
             pass
+
+    def _run_line_discovery(self, content: str) -> None:
+        """Process content line by line for discovery."""
+        offset = 0
+        for i, line_content in enumerate(content.splitlines(True)):
+            line_num = i + 1
+            for iterator in self.line_iterators:
+                iterator.process_line(line_content, line_num, offset)
+            offset += len(line_content)
