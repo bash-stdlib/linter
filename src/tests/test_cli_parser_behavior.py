@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from cli import get_parser
 
@@ -27,8 +28,9 @@ class TestCLIParserBehavior(unittest.TestCase):
     def test_get_parser__zero_files_provided__raises_system_exit(self) -> None:
         parser = get_parser()
 
-        with self.assertRaises(SystemExit):
-            parser.parse_args(["check", "-i", "C1"])
+        with patch("sys.stderr"), patch("sys.stdout"):
+            with self.assertRaises(SystemExit):
+                parser.parse_args(["check", "-i", "C1"])
 
     def test_get_parser__interleaved_flags_at_end__parses_correctly(self) -> None:
         parser = get_parser()
