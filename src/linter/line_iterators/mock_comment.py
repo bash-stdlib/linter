@@ -28,12 +28,9 @@ class MockCommentDiscovery(LineIteratorBase):
             mock_names_raw = match.group(2)
             absolute_offset = offset + match.start()
 
-            mock_names = [n.strip() for n in mock_names_raw.split(",")]
-
-            for mock_name in mock_names:
-                if not mock_name:
-                    continue
-                if mock_action == self.ACTION_CREATE:
-                    self.file_state.add_mock_lifecycle(mock_name, absolute_offset)
-                elif mock_action == self.ACTION_DELETE:
-                    self.file_state.end_mock_lifecycle(mock_name, absolute_offset)
+            for mock_name in map(str.strip, mock_names_raw.split(",")):
+                if mock_name:
+                    if mock_action == self.ACTION_CREATE:
+                        self.file_state.add_mock_lifecycle(mock_name, absolute_offset)
+                    elif mock_action == self.ACTION_DELETE:
+                        self.file_state.end_mock_lifecycle(mock_name, absolute_offset)

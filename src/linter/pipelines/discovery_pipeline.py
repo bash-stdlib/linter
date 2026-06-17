@@ -9,7 +9,7 @@ from linter.discovery_iterators import (
     FunctionScopeDiscoveryIterator,
     MockDiscoveryIterator,
 )
-from linter.line_iterators import LineIteratorBase, MockCommentDiscovery
+from linter.line_iterators import CommentIgnores, LineIteratorBase, MockCommentDiscovery
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators.shlex import ShlexTokenIterator
 
@@ -33,6 +33,7 @@ class DiscoveryPipeline(BasePipeline):
             MockDiscoveryIterator(global_state, file_state),
         ]
         self.line_iterators: List["LineIteratorBase"] = [
+            CommentIgnores(global_state, file_state),
             MockCommentDiscovery(global_state, file_state),
         ]
 
@@ -41,7 +42,21 @@ class DiscoveryPipeline(BasePipeline):
         pass
 
     def process(self, content: str) -> None:
-        """Stream tokens through all discovery iterators."""
+        """Process content through line and token discovery iterators."""
+        self._run_line_discovery(content)
+        self._run_token_discovery(content)
+
+    def _run_line_discovery(self, content: str) -> None:
+        """Perform line-based discovery pass."""
+        offset = 0
+        for i, line_content in enumerate(content.splitlines(True)):
+            line_num = i + 1
+            for iterator in self.line_iterators:
+                iterator.process_line(line_content, line_num, offset)
+            offset += len(line_content)
+
+    def _run_token_discovery(self, content: str) -> None:
+        """Perform token-based discovery pass."""
         tokens = ShlexTokenIterator(content)
         try:
             for token in tokens:
@@ -50,12 +65,7 @@ class DiscoveryPipeline(BasePipeline):
                     if action == DiscoveryAction.STOP_TOKEN:
                         break
                     if action == DiscoveryAction.STOP_LINE:
-                        skipped_content = tokens.skip_to_newline()
-                        full_line = str(token) + skipped_content
-                        for line_iterator in self.line_iterators:
-                            line_iterator.process_line(
-                                full_line, token.line_num, token.start_offset
-                            )
+                        tokens.skip_to_newline()
                         break
         except ValueError:
             pass
