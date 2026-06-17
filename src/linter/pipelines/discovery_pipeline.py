@@ -9,6 +9,7 @@ from linter.discovery_iterators import (
     FunctionScopeDiscoveryIterator,
     MockDiscoveryIterator,
 )
+from linter.line_iterators import LineIteratorBase, MockCommentDiscovery
 from linter.pipelines.base import BasePipeline
 from linter.token_iterators.shlex import ShlexTokenIterator
 
@@ -31,6 +32,9 @@ class DiscoveryPipeline(BasePipeline):
             FunctionScopeDiscoveryIterator(global_state, file_state),
             MockDiscoveryIterator(global_state, file_state),
         ]
+        self.line_iterators: List["LineIteratorBase"] = [
+            MockCommentDiscovery(global_state, file_state),
+        ]
 
     def execute(self) -> None:
         """Execute the pipeline (abstract method from BasePipeline)."""
@@ -38,6 +42,13 @@ class DiscoveryPipeline(BasePipeline):
 
     def process(self, content: str) -> None:
         """Stream tokens through all discovery iterators."""
+        offset = 0
+        for i, line_content in enumerate(content.splitlines(True)):
+            line_num = i + 1
+            for iterator in self.line_iterators:
+                iterator.process_line(line_content, line_num, offset)
+            offset += len(line_content)
+
         tokens = ShlexTokenIterator(content)
         try:
             for token in tokens:
