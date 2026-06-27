@@ -6,7 +6,7 @@ from .enum import FunctionArgumentType, FunctionModifierType
 
 
 class FunctionInput:
-    """Represents an input with a name, type, and optionality."""
+    """Represents a function input with metadata."""
 
     def __init__(
         self,
@@ -56,9 +56,9 @@ class FunctionMetadata:
         is_testing: "bool" = False,
     ) -> "None":
         self.name = name
-        self.arguments = arguments if arguments is not None else []
-        self.keywords = keywords if keywords is not None else []
-        self.globals = globals if globals is not None else []
+        self.arguments = arguments or []
+        self.keywords = keywords or []
+        self.globals = globals or []
         self.min_args = min_args
         self.max_args = max_args
         self.is_testing = is_testing
