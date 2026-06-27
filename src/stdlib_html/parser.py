@@ -20,16 +20,8 @@ class HTMLParser(html.parser.HTMLParser):
     EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
-    RE_MODIFIER_ONLY: "str" = r"\b({})\b".format(
-        "|".join(m.value for m in FunctionModifierType)
-    )
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
     RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
-    RE_TYPE_MODIFIER: "str" = r"\b(?P<type>{})\s+(?P<modifier>{})\b".format(
-        "|".join(t.value for t in FunctionArgumentType),
-        "|".join(m.value for m in FunctionModifierType),
-    )
-    RE_TYPE_PAREN: "str" = r"\((?P<content>[^)]+)\)"
     SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
     VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
 
@@ -151,53 +143,28 @@ class HTMLParser(html.parser.HTMLParser):
     def _parse_argument_type(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract type and optionality from an argument definition using parentheses."""
+        """Extract type and optionality from an argument definition."""
         return self._extract_type_info(text)
 
     def _parse_modifier_type(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract type, optionality, and modifier from a keyword or global."""
+        """Extract type and modifier from a keyword or global."""
         return self._extract_type_info(text)
 
     def _extract_type_info(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract type, optionality, and modifier from any definition."""
-        entity_type = FunctionArgumentType.STRING
-        is_optional = DocumentationIndicator.OPTIONAL.value in text.lower()
-        modifier = None
+        """Extract type, optionality, and modifier from a definition prefix."""
+        # Standardized documentation provides metadata in the prefix before the colon.
+        prefix = text.split(":", 1)[0].lower()
 
-        # 1. Try to find information in parentheses
-        paren_match = re.search(self.RE_TYPE_PAREN, text)
-        if paren_match:
-            content = paren_match.group("content").lower()
-            found_type = self._find_first_enum(content, FunctionArgumentType)
-            if found_type:
-                entity_type = found_type
-
-            found_modifier = self._find_first_enum(content, FunctionModifierType)
-            if found_modifier:
-                modifier = found_modifier
-
-        # 2. If no modifier found, try suffix style: "string keyword"
-        if not modifier:
-            modifier_match = re.search(self.RE_TYPE_MODIFIER, text)
-            if modifier_match:
-                groups = modifier_match.groupdict()
-                found_type = FunctionArgumentType.from_str(groups.get("type"))
-                if found_type:
-                    entity_type = found_type
-
-                found_modifier = FunctionModifierType.from_str(groups.get("modifier"))
-                if found_modifier:
-                    modifier = found_modifier
-
-        # 3. Final fallback for standalone modifier
-        if not modifier:
-            only_modifier_match = re.search(self.RE_MODIFIER_ONLY, text)
-            if only_modifier_match:
-                modifier = FunctionModifierType.from_str(only_modifier_match.group(1))
+        entity_type = (
+            self._find_first_enum(prefix, FunctionArgumentType)
+            or FunctionArgumentType.STRING
+        )
+        is_optional = DocumentationIndicator.OPTIONAL.value in prefix
+        modifier = self._find_first_enum(prefix, FunctionModifierType)
 
         return entity_type, is_optional, modifier
 
