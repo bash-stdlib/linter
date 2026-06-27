@@ -22,16 +22,22 @@ TEST_METADATA["functions"]["object.mock.assert_calls_are"] = {
     "min_args": 0,
     "max_args": -1,
 }
+TEST_METADATA["functions"]["stdlib.test.optional"] = {
+    "name": "stdlib.test.optional",
+    "min_args": 1,
+    "max_args": 3,
+}
 TEST_METADATA["namespaces"] = TEST_METADATA["namespaces"] + ["object", "object.mock"]
 
 
 class TestSTD011Refined(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self) -> "None":
         self.metadata = TEST_METADATA
 
-    def _lint_content(self, content: str, filename: str = "test.sh"):
+    def _lint_content(self, content: "str", filename: "str" = "test.sh"):
         with patch("builtins.open", mock_open(read_data=content)):
             linter = Linter(self.metadata)
+
             return linter.lint(filename)
 
     def test_check__variadic_enough_args__no_issues(self):
@@ -71,6 +77,13 @@ class TestSTD011Refined(unittest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD005)
+
+    def test_check__optional_args_omitted__no_issues(self):
+        content = 'stdlib.test.optional "arg1"'
+
+        issues = self._lint_content(content)
+
+        self.assertEqual(len(issues), 0)
 
 
 if __name__ == "__main__":

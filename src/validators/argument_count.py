@@ -23,12 +23,12 @@ class ArgumentCountValidator(ValidatorBase):
 
     def check(
         self,
-        call: str,
-        filepath: str,
-        line: int,
-        column: int,
+        call: "str",
+        filepath: "str",
+        line: "int",
+        column: "int",
         args: "Optional[List[str]]" = None,
-        offset: int = 0,
+        offset: "int" = 0,
     ) -> "Optional[LinterIssueBase]":
         func_meta = self._get_meta(call, offset)
         if not func_meta:
@@ -41,7 +41,13 @@ class ArgumentCountValidator(ValidatorBase):
 
         if max_allowed != -1 and guaranteed_count > max_allowed:
             return STD005(
-                filepath, line, column, call, guaranteed_count, min_required, max_allowed
+                filepath,
+                line,
+                column,
+                call,
+                guaranteed_count,
+                min_required,
+                max_allowed,
             )
 
         if has_dynamic_args:
@@ -65,12 +71,18 @@ class ArgumentCountValidator(ValidatorBase):
 
         if guaranteed_count < min_required:
             return STD005(
-                filepath, line, column, call, guaranteed_count, min_required, max_allowed
+                filepath,
+                line,
+                column,
+                call,
+                guaranteed_count,
+                min_required,
+                max_allowed,
             )
 
         return None
 
-    def _analyze_arguments(self, args: List[str]) -> "Tuple[int, bool]":
+    def _analyze_arguments(self, args: "List[str]") -> "Tuple[int, bool]":
         guaranteed_count = 0
         has_dynamic_args = False
 
@@ -92,7 +104,7 @@ class ArgumentCountValidator(ValidatorBase):
 
         return guaranteed_count, has_dynamic_args
 
-    def _get_meta(self, call: str, offset: int) -> Optional[dict]:
+    def _get_meta(self, call: "str", offset: "int") -> "Optional[dict]":
         if call in self.global_state.functions:
             return self.global_state.metadata.get(call)
 
