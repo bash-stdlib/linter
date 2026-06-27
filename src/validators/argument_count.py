@@ -1,6 +1,6 @@
 """Validator for checking the number of arguments in standard library function calls."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from constants import (
     ARRAY_MULTI_PLACEHOLDER,
@@ -23,54 +23,88 @@ class ArgumentCountValidator(ValidatorBase):
 
     def check(
         self,
-        call: str,
-        filepath: str,
-        line: int,
-        column: int,
+        call: "str",
+        filepath: "str",
+        line: "int",
+        column: "int",
         args: "Optional[List[str]]" = None,
-        offset: int = 0,
+        offset: "int" = 0,
     ) -> "Optional[LinterIssueBase]":
         func_meta = self._get_meta(call, offset)
         if not func_meta:
             return None
 
-        min_args = func_meta.get("min_args", 0)
-        max_args = func_meta.get("max_args", -1)
+        min_required = func_meta.get("min_args", 0)
+        max_allowed = func_meta.get("max_args", -1)
 
-        actual_args = 0
-        if args:
-            for arg in args:
-                if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(
-                    ARRAY_SIZE_SUFFIX
-                ):
-                    try:
-                        size = int(
-                            arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)]
-                        )
-                        actual_args += size
-                    except ValueError:
-                        actual_args += 1
-                else:
-                    actual_args += 1
+        guaranteed_count, has_dynamic_args = self._analyze_arguments(args or [])
 
-        if max_args != -1 and actual_args > max_args:
-            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+        if max_allowed != -1 and guaranteed_count > max_allowed:
+            return STD005(
+                filepath,
+                line,
+                column,
+                call,
+                guaranteed_count,
+                min_required,
+                max_allowed,
+            )
 
-        if args:
-            for arg in args:
-                if (
-                    ARRAY_MULTI_PLACEHOLDER in arg
-                    or ARRAY_SINGLE_PLACEHOLDER in arg
-                    or arg in ("$@", "$*")
-                ):
-                    return STD011(filepath, line, column, call)
+        if has_dynamic_args:
+            if max_allowed != -1:
+                if guaranteed_count >= max_allowed:
+                    return STD005(
+                        filepath,
+                        line,
+                        column,
+                        call,
+                        guaranteed_count + 1,
+                        min_required,
+                        max_allowed,
+                    )
+                return STD011(filepath, line, column, call)
 
-        if actual_args < min_args:
-            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+            if guaranteed_count < min_required:
+                return STD011(filepath, line, column, call)
+
+            return None
+
+        if guaranteed_count < min_required:
+            return STD005(
+                filepath,
+                line,
+                column,
+                call,
+                guaranteed_count,
+                min_required,
+                max_allowed,
+            )
 
         return None
 
-    def _get_meta(self, call: str, offset: int) -> Optional[dict]:
+    def _analyze_arguments(self, args: "List[str]") -> "Tuple[int, bool]":
+        guaranteed_count = 0
+        has_dynamic_args = False
+
+        for arg in args:
+            if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(ARRAY_SIZE_SUFFIX):
+                try:
+                    size_str = arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)]
+                    guaranteed_count += int(size_str)
+                except ValueError:
+                    guaranteed_count += 1
+            elif (
+                ARRAY_MULTI_PLACEHOLDER in arg
+                or ARRAY_SINGLE_PLACEHOLDER in arg
+                or arg in ("$@", "$*")
+            ):
+                has_dynamic_args = True
+            else:
+                guaranteed_count += 1
+
+        return guaranteed_count, has_dynamic_args
+
+    def _get_meta(self, call: "str", offset: "int") -> "Optional[dict]":
         if call in self.global_state.functions:
             return self.global_state.metadata.get(call)
 

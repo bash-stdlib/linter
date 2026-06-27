@@ -1,13 +1,13 @@
 """HTML parser to extract bash-stdlib function metadata from documentation."""
 
-import enum
 import html.parser
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Type
 
 from .enum import (
     DocumentationIndicator,
     DocumentationSection,
+    EnumBase,
     FunctionArgumentType,
     FunctionModifierType,
 )
@@ -155,20 +155,26 @@ class HTMLParser(html.parser.HTMLParser):
     def _extract_type_info(
         self, text: "str"
     ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
-        """Extract type, optionality, and modifier from a definition prefix."""
-        # Standardized documentation provides metadata in the prefix before the colon.
-        prefix = text.split(":", 1)[0].lower()
+        """Extract type, optionality, and modifier from a definition line."""
+        normalized_text = text.lower()
+        parts = normalized_text.split(":", 1)
+        prefix = parts[0]
+        suffix = parts[1] if len(parts) > 1 else ""
 
         entity_type = (
             self._find_first_enum(prefix, FunctionArgumentType)
             or FunctionArgumentType.STRING
         )
-        is_optional = DocumentationIndicator.OPTIONAL.value in prefix
+        is_optional = DocumentationIndicator.OPTIONAL.value in suffix
         modifier = self._find_first_enum(prefix, FunctionModifierType)
 
         return entity_type, is_optional, modifier
 
-    def _find_first_enum(self, text: str, enum_cls: type) -> "Optional[enum.Enum]":
+    def _find_first_enum(
+        self,
+        text: "str",
+        enum_cls: "Type[EnumBase]",
+    ) -> "Optional[EnumBase]":
         """Find the first enum member whose value is present in the text."""
         for member in enum_cls:
             if member.value in text:

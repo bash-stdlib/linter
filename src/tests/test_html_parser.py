@@ -183,7 +183,7 @@ class TestHTMLParser(unittest.TestCase):
         <section id="arguments">
         <h4>Arguments</h4>
         <ul class="simple">
-        <li><p><strong>$1</strong> (optional): Opt 1</p></li>
+        <li><p><strong>$1</strong> (string): Opt 1 (optional)</p></li>
         <li><p><strong>$2</strong> (string): Req 2</p></li>
         </ul>
         </section>
@@ -193,7 +193,7 @@ class TestHTMLParser(unittest.TestCase):
         result = self.parser.parse(html)
 
         metadata = result["stdlib.test.mixed_order"]
-        # Our implementation counts required arguments
+
         self.assertEqual(metadata.min_args, 1)
         self.assertEqual(metadata.max_args, 2)
         self.assertTrue(metadata.arguments[0].is_optional)
