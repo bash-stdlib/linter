@@ -165,9 +165,7 @@ class HTMLParser(html.parser.HTMLParser):
             self._find_first_enum(prefix, FunctionArgumentType)
             or FunctionArgumentType.STRING
         )
-        is_optional = DocumentationIndicator.OPTIONAL.value in suffix or (
-            "(optional)" in prefix
-        )
+        is_optional = DocumentationIndicator.OPTIONAL.value in suffix
         modifier = self._find_first_enum(prefix, FunctionModifierType)
 
         return entity_type, is_optional, modifier
