@@ -1,6 +1,6 @@
 """Validator for checking the number of arguments in standard library function calls."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from constants import (
     ARRAY_MULTI_PLACEHOLDER,
@@ -39,18 +39,13 @@ class ArgumentCountValidator(ValidatorBase):
 
         guaranteed_count, has_dynamic_args = self._analyze_arguments(args or [])
 
-        # 1. Definite violation: too many guaranteed arguments
         if max_allowed != -1 and guaranteed_count > max_allowed:
             return STD005(
                 filepath, line, column, call, guaranteed_count, min_required, max_allowed
             )
 
-        # 2. Potential violation: dynamic arguments present (arrays, $@, etc.)
         if has_dynamic_args:
-            # If there's an upper bound, any dynamic argument might exceed it.
             if max_allowed != -1:
-                # If we are already at the limit, any additional items in the dynamic
-                # argument will definitely violate the contract.
                 if guaranteed_count >= max_allowed:
                     return STD005(
                         filepath,
@@ -63,13 +58,11 @@ class ArgumentCountValidator(ValidatorBase):
                     )
                 return STD011(filepath, line, column, call)
 
-            # For variadic functions, only warn if minimum requirement is not yet met.
             if guaranteed_count < min_required:
                 return STD011(filepath, line, column, call)
 
             return None
 
-        # 3. Definite violation: too few guaranteed arguments
         if guaranteed_count < min_required:
             return STD005(
                 filepath, line, column, call, guaranteed_count, min_required, max_allowed
@@ -77,8 +70,7 @@ class ArgumentCountValidator(ValidatorBase):
 
         return None
 
-    def _analyze_arguments(self, args: List[str]) -> "tuple[int, bool]":
-        """Calculate guaranteed argument count and detect dynamic expansions."""
+    def _analyze_arguments(self, args: List[str]) -> "Tuple[int, bool]":
         guaranteed_count = 0
         has_dynamic_args = False
 

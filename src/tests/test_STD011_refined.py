@@ -34,43 +34,41 @@ class TestSTD011Refined(unittest.TestCase):
             linter = Linter(self.metadata)
             return linter.lint(filename)
 
-    def test_variadic_function_with_enough_guaranteed_args_suppresses_STD011(self):
-        # min_args: 1, max_args: -1. 1 guaranteed arg provided ("arg1").
-        # The dynamic array "${array[@]}" is allowed and doesn't trigger a warning.
+    def test_check__variadic_enough_args__no_issues(self):
         content = 'stdlib.test.variadic "arg1" "${array[@]}"'
+
         issues = self._lint_content(content)
+
         self.assertEqual(len(issues), 0)
 
-    def test_variadic_function_with_insufficient_guaranteed_args_reports_STD011(self):
-        # min_args: 1, max_args: -1. 0 guaranteed args provided.
-        # Since the dynamic array could be empty, we still warn.
+    def test_check__variadic_insufficient_args__reports_std011(self):
         content = 'stdlib.test.variadic "${array[@]}"'
+
         issues = self._lint_content(content)
+
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD011)
 
-    def test_variadic_function_with_zero_min_args_suppresses_STD011(self):
-        # object.mock.assert_calls_are has min_args: 0.
-        # Any dynamic argument is safe.
+    def test_check__variadic_zero_min__no_issues(self):
         content = '_mock.create logger\nlogger.mock.assert_calls_are "${array[@]}"'
+
         issues = self._lint_content(content, filename="test_file.sh")
+
         self.assertEqual(len(issues), 0)
 
-    def test_fixed_args_function_at_limit_with_dynamic_arg_reports_STD005(self):
-        # stdlib.test.strict has max_args: 1.
-        # Providing 1 arg ("arg1") plus a dynamic array will definitely exceed max_args
-        # (assuming the array expands to at least one element, or even if it's empty,
-        # our heuristic treats it as an extra potential argument).
+    def test_check__fixed_at_limit_with_dynamic__reports_std005(self):
         content = 'stdlib.test.strict "arg1" "${array[@]}"'
+
         issues = self._lint_content(content)
+
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD005)
 
-    def test_fixed_args_function_exceeding_limit_reports_STD005(self):
-        # stdlib.test.strict has max_args: 1.
-        # Providing 2 guaranteed args already violates the contract.
+    def test_check__fixed_exceeding_limit__reports_std005(self):
         content = 'stdlib.test.strict "arg1" "arg2" "${array[@]}"'
+
         issues = self._lint_content(content)
+
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD005)
 
