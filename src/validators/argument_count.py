@@ -34,63 +34,71 @@ class ArgumentCountValidator(ValidatorBase):
         if not func_meta:
             return None
 
-        min_args = func_meta.get("min_args", 0)
-        max_args = func_meta.get("max_args", -1)
+        min_required = func_meta.get("min_args", 0)
+        max_allowed = func_meta.get("max_args", -1)
 
-        min_guaranteed_args = 0
-        has_uncertain_array = False
-        if args:
-            for arg in args:
-                if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(
-                    ARRAY_SIZE_SUFFIX
-                ):
-                    try:
-                        size = int(
-                            arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)]
-                        )
-                        min_guaranteed_args += size
-                    except ValueError:
-                        min_guaranteed_args += 1
-                elif (
-                    ARRAY_MULTI_PLACEHOLDER in arg
-                    or ARRAY_SINGLE_PLACEHOLDER in arg
-                    or arg in ("$@", "$*")
-                ):
-                    has_uncertain_array = True
-                else:
-                    min_guaranteed_args += 1
+        guaranteed_count, has_dynamic_args = self._analyze_arguments(args or [])
 
-        if max_args != -1 and min_guaranteed_args > max_args:
+        # 1. Definite violation: too many guaranteed arguments
+        if max_allowed != -1 and guaranteed_count > max_allowed:
             return STD005(
-                filepath, line, column, call, min_guaranteed_args, min_args, max_args
+                filepath, line, column, call, guaranteed_count, min_required, max_allowed
             )
 
-        if has_uncertain_array:
-            if max_args != -1:
-                # If we have an upper bound, any array might push us over it.
-                # However, if we are ALREADY over it, we should have caught it above.
-                # If we are EXACTLY at max_args, the array will definitely push us over.
-                if min_guaranteed_args >= max_args:
+        # 2. Potential violation: dynamic arguments present (arrays, $@, etc.)
+        if has_dynamic_args:
+            # If there's an upper bound, any dynamic argument might exceed it.
+            if max_allowed != -1:
+                # If we are already at the limit, any additional items in the dynamic
+                # argument will definitely violate the contract.
+                if guaranteed_count >= max_allowed:
                     return STD005(
                         filepath,
                         line,
                         column,
                         call,
-                        min_guaranteed_args + 1,
-                        min_args,
-                        max_args,
+                        guaranteed_count + 1,
+                        min_required,
+                        max_allowed,
                     )
                 return STD011(filepath, line, column, call)
-            if min_guaranteed_args < min_args:
+
+            # For variadic functions, only warn if minimum requirement is not yet met.
+            if guaranteed_count < min_required:
                 return STD011(filepath, line, column, call)
+
             return None
 
-        if min_guaranteed_args < min_args:
+        # 3. Definite violation: too few guaranteed arguments
+        if guaranteed_count < min_required:
             return STD005(
-                filepath, line, column, call, min_guaranteed_args, min_args, max_args
+                filepath, line, column, call, guaranteed_count, min_required, max_allowed
             )
 
         return None
+
+    def _analyze_arguments(self, args: List[str]) -> "tuple[int, bool]":
+        """Calculate guaranteed argument count and detect dynamic expansions."""
+        guaranteed_count = 0
+        has_dynamic_args = False
+
+        for arg in args:
+            if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(ARRAY_SIZE_SUFFIX):
+                try:
+                    size_str = arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)]
+                    guaranteed_count += int(size_str)
+                except ValueError:
+                    guaranteed_count += 1
+            elif (
+                ARRAY_MULTI_PLACEHOLDER in arg
+                or ARRAY_SINGLE_PLACEHOLDER in arg
+                or arg in ("$@", "$*")
+            ):
+                has_dynamic_args = True
+            else:
+                guaranteed_count += 1
+
+        return guaranteed_count, has_dynamic_args
 
     def _get_meta(self, call: str, offset: int) -> Optional[dict]:
         if call in self.global_state.functions:

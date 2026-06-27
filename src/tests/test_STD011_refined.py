@@ -34,46 +34,43 @@ class TestSTD011Refined(unittest.TestCase):
             linter = Linter(self.metadata)
             return linter.lint(filename)
 
-    def test_STD011__variadic_with_enough_args__not_reported(self):
+    def test_variadic_function_with_enough_guaranteed_args_suppresses_STD011(self):
         # min_args: 1, max_args: -1. 1 guaranteed arg provided ("arg1").
+        # The dynamic array "${array[@]}" is allowed and doesn't trigger a warning.
         content = 'stdlib.test.variadic "arg1" "${array[@]}"'
         issues = self._lint_content(content)
-        # Desired: 0 issues (currently it should fail and report 1 issue)
         self.assertEqual(len(issues), 0)
 
-    def test_STD011__variadic_with_not_enough_args__reported(self):
+    def test_variadic_function_with_insufficient_guaranteed_args_reports_STD011(self):
         # min_args: 1, max_args: -1. 0 guaranteed args provided.
-        # Array could be empty, violating min_args.
+        # Since the dynamic array could be empty, we still warn.
         content = 'stdlib.test.variadic "${array[@]}"'
         issues = self._lint_content(content)
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD011)
 
-    def test_STD011__variadic_min_zero__not_reported(self):
-        # min_args: 0, max_args: -1.
+    def test_variadic_function_with_zero_min_args_suppresses_STD011(self):
+        # object.mock.assert_calls_are has min_args: 0.
+        # Any dynamic argument is safe.
         content = '_mock.create logger\nlogger.mock.assert_calls_are "${array[@]}"'
         issues = self._lint_content(content, filename="test_file.sh")
         self.assertEqual(len(issues), 0)
 
-    def test_STD011__strict_with_array__reports_STD005(self):
-        # min_args: 1, max_args: 1.
-        # Even if we provide 1 arg, the array might add more, violating max_args.
-        # Since 1 is already max_args, any array (even empty) will likely be
-        # problematic, but technically bash allows empty arrays.
-        # Our refined logic prefers STD005 if we are already at or above max_args.
+    def test_fixed_args_function_at_limit_with_dynamic_arg_reports_STD005(self):
+        # stdlib.test.strict has max_args: 1.
+        # Providing 1 arg ("arg1") plus a dynamic array will definitely exceed max_args
+        # (assuming the array expands to at least one element, or even if it's empty,
+        # our heuristic treats it as an extra potential argument).
         content = 'stdlib.test.strict "arg1" "${array[@]}"'
         issues = self._lint_content(content)
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD005)
 
-    def test_STD011__strict_already_too_many__reports_STD005(self):
-        # min_args: 1, max_args: 1.
-        # 2 guaranteed args already violate max_args.
+    def test_fixed_args_function_exceeding_limit_reports_STD005(self):
+        # stdlib.test.strict has max_args: 1.
+        # Providing 2 guaranteed args already violates the contract.
         content = 'stdlib.test.strict "arg1" "arg2" "${array[@]}"'
         issues = self._lint_content(content)
-        # It could report STD005 because we are SURE it's too many.
-        # Or it could report STD011.
-        # Given current implementation, it checks too many first.
         self.assertEqual(len(issues), 1)
         self.assertIsInstance(issues[0], STD005)
 
