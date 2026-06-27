@@ -171,7 +171,9 @@ class HTMLParser(html.parser.HTMLParser):
         return entity_type, is_optional, modifier
 
     def _find_first_enum(
-        self, text: "str", enum_cls: "Type[EnumBase]"
+        self,
+        text: "str",
+        enum_cls: "Type[EnumBase]",
     ) -> "Optional[EnumBase]":
         """Find the first enum member whose value is present in the text."""
         for member in enum_cls:
