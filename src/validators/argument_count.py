@@ -37,7 +37,8 @@ class ArgumentCountValidator(ValidatorBase):
         min_args = func_meta.get("min_args", 0)
         max_args = func_meta.get("max_args", -1)
 
-        actual_args = 0
+        min_guaranteed_args = 0
+        has_uncertain_array = False
         if args:
             for arg in args:
                 if arg.startswith(ARRAY_SIZE_PREFIX) and arg.endswith(
@@ -47,26 +48,47 @@ class ArgumentCountValidator(ValidatorBase):
                         size = int(
                             arg[len(ARRAY_SIZE_PREFIX) : -len(ARRAY_SIZE_SUFFIX)]
                         )
-                        actual_args += size
+                        min_guaranteed_args += size
                     except ValueError:
-                        actual_args += 1
-                else:
-                    actual_args += 1
-
-        if max_args != -1 and actual_args > max_args:
-            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
-
-        if args:
-            for arg in args:
-                if (
+                        min_guaranteed_args += 1
+                elif (
                     ARRAY_MULTI_PLACEHOLDER in arg
                     or ARRAY_SINGLE_PLACEHOLDER in arg
                     or arg in ("$@", "$*")
                 ):
-                    return STD011(filepath, line, column, call)
+                    has_uncertain_array = True
+                else:
+                    min_guaranteed_args += 1
 
-        if actual_args < min_args:
-            return STD005(filepath, line, column, call, actual_args, min_args, max_args)
+        if max_args != -1 and min_guaranteed_args > max_args:
+            return STD005(
+                filepath, line, column, call, min_guaranteed_args, min_args, max_args
+            )
+
+        if has_uncertain_array:
+            if max_args != -1:
+                # If we have an upper bound, any array might push us over it.
+                # However, if we are ALREADY over it, we should have caught it above.
+                # If we are EXACTLY at max_args, the array will definitely push us over.
+                if min_guaranteed_args >= max_args:
+                    return STD005(
+                        filepath,
+                        line,
+                        column,
+                        call,
+                        min_guaranteed_args + 1,
+                        min_args,
+                        max_args,
+                    )
+                return STD011(filepath, line, column, call)
+            if min_guaranteed_args < min_args:
+                return STD011(filepath, line, column, call)
+            return None
+
+        if min_guaranteed_args < min_args:
+            return STD005(
+                filepath, line, column, call, min_guaranteed_args, min_args, max_args
+            )
 
         return None
 
