@@ -5,7 +5,13 @@ import html.parser
 import re
 from typing import Dict, List, Optional, Tuple
 
-from .metadata import FunctionMetadata
+from .enum import (
+    DocumentationIndicator,
+    DocumentationSection,
+    FunctionArgumentType,
+    FunctionModifierType,
+)
+from .metadata import FunctionInput, FunctionMetadata
 
 
 class HTMLParser(html.parser.HTMLParser):
@@ -13,13 +19,11 @@ class HTMLParser(html.parser.HTMLParser):
 
     EXCLUDED_HEADINGS: "List[str]" = ["Index", "Mock Object Reference"]
     PERMALINK_SYMBOLS: "List[str]" = ["\uf0c1", "\u00b6"]
-    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
-    INDICATORS = enum.Enum("INDICATORS", ["optional"])
-    MODIFIER_TYPES = enum.Enum("MODIFIER_TYPES", ["keyword", "global"])
-    VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
     RE_ARGUMENT: "str" = r"(\$\d+|\.\.\.|…)"
-    RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
     RE_NUMERIC_SUFFIX: "str" = r"\[\d+\]"
+    RE_STDLIB_VAR: "str" = r"\b(STDLIB_[A-Z0-9_]+)\b"
+    SECTIONS_TITLES: "Dict[str, str]" = {"args": "Arguments", "set": "Variables set"}
+    VARIADIC_SYMBOLS: "List[str]" = ["...", "…"]
 
     def __init__(self, is_testing: "bool" = False) -> "None":
         super().__init__()
@@ -107,9 +111,9 @@ class HTMLParser(html.parser.HTMLParser):
         if not text:
             return
 
-        if self.current_section == self.SECTIONS_TITLES["args"]:
+        if self.current_section == DocumentationSection.ARGUMENTS.value:
             self._process_argument(text)
-        elif self.current_section == self.SECTIONS_TITLES["set"]:
+        elif self.current_section == DocumentationSection.VARIABLES_SET.value:
             self._process_variable_set(text)
         else:
             self._process_other_li(text)
@@ -119,26 +123,60 @@ class HTMLParser(html.parser.HTMLParser):
         if not args or not self.current_function:
             return
 
-        is_required = self._is_required(text)
+        entity_type, is_optional, modifier = self._parse_argument_type(text)
 
         for arg in args:
-            if arg in self.current_function.arguments:
+            if any(a.name == arg for a in self.current_function.arguments):
                 continue
 
-            self.current_function.arguments.append(arg)
+            self.current_function.arguments.append(
+                FunctionInput(arg, entity_type, is_optional, modifier)
+            )
 
             if self._is_variadic(arg):
                 self.current_function.max_args = -1
             else:
                 self._increment_max_args()
-                if is_required:
+                if not is_optional:
                     self.current_function.min_args += 1
+
+    def _parse_argument_type(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
+        """Extract type and optionality from an argument definition."""
+        return self._extract_type_info(text)
+
+    def _parse_modifier_type(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
+        """Extract type and modifier from a keyword or global."""
+        return self._extract_type_info(text)
+
+    def _extract_type_info(
+        self, text: "str"
+    ) -> "Tuple[FunctionArgumentType, bool, Optional[FunctionModifierType]]":
+        """Extract type, optionality, and modifier from a definition prefix."""
+        # Standardized documentation provides metadata in the prefix before the colon.
+        prefix = text.split(":", 1)[0].lower()
+
+        entity_type = (
+            self._find_first_enum(prefix, FunctionArgumentType)
+            or FunctionArgumentType.STRING
+        )
+        is_optional = DocumentationIndicator.OPTIONAL.value in prefix
+        modifier = self._find_first_enum(prefix, FunctionModifierType)
+
+        return entity_type, is_optional, modifier
+
+    def _find_first_enum(self, text: str, enum_cls: type) -> "Optional[enum.Enum]":
+        """Find the first enum member whose value is present in the text."""
+        for member in enum_cls:
+            if member.value in text:
+                return member
+        return None
 
     def _is_variadic(self, arg: "str") -> "bool":
         return arg in self.VARIADIC_SYMBOLS
-
-    def _is_required(self, text: "str") -> "bool":
-        return self.INDICATORS.optional.name not in text.lower()
 
     def _increment_max_args(self) -> "None":
         if self.current_function and self.current_function.max_args != -1:
@@ -148,22 +186,34 @@ class HTMLParser(html.parser.HTMLParser):
         match = re.search(self.RE_STDLIB_VAR, text)
         if match and self.current_function:
             var = match.group(1)
-            if var not in self.current_function.globals:
-                self.current_function.globals.append(var)
+            if not any(g.name == var for g in self.current_function.globals):
+                entity_type, is_optional, modifier = self._parse_modifier_type(text)
+                if not modifier:
+                    modifier = FunctionModifierType.GLOBAL
+                self.current_function.globals.append(
+                    FunctionInput(var, entity_type, is_optional, modifier)
+                )
 
     def _process_other_li(self, text: "str") -> "None":
         if not self.current_function:
             return
 
-        for modifier, function_set in dict(
-            {
-                self.MODIFIER_TYPES["global"].name: self.current_function.globals,
-                self.MODIFIER_TYPES["keyword"].name: self.current_function.keywords,
-            }
-        ).items():
-            if modifier in text.lower():
-                match = re.search(self.RE_STDLIB_VAR, text)
-                if match:
-                    entity = match.group(1)
-                    if entity not in function_set:
-                        function_set.append(entity)
+        entity_type, is_optional, modifier = self._parse_modifier_type(text)
+        if not modifier:
+            return
+
+        match = re.search(self.RE_STDLIB_VAR, text)
+        if not match:
+            return
+
+        var = match.group(1)
+
+        if modifier == FunctionModifierType.GLOBAL:
+            target = self.current_function.globals
+        elif modifier == FunctionModifierType.KEYWORD:
+            target = self.current_function.keywords
+        else:
+            return
+
+        if not any(e.name == var for e in target):
+            target.append(FunctionInput(var, entity_type, is_optional, modifier))
