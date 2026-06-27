@@ -3,7 +3,7 @@ from unittest.mock import mock_open, patch
 
 from issues import STD005, STD011
 from linter import Linter
-from tests.assets.linter.core.std011 import STD011_METADATA
+from tests.assets.linter.std011.metadata import STD011_METADATA
 
 
 class TestSTD011(unittest.TestCase):
