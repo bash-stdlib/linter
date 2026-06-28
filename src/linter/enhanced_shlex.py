@@ -162,6 +162,22 @@ class EnhancedShlex(shlex.shlex):
                 is_ansi_c_quote=False,
             )
 
+        # Handle escapes within double quotes in POSIX mode
+        if (
+            self.posix
+            and state.current_quote == '"'
+            and char == "\\"
+            and self.source_ptr + 1 < len(self._protected_str)
+            and self._protected_str[self.source_ptr + 1] in self.escapedquotes
+        ):
+            return TokenScanState(
+                char_index=state.char_index,
+                unquoted_specials=state.unquoted_specials,
+                current_quote=state.current_quote,
+                is_escaped=True,
+                is_ansi_c_quote=state.is_ansi_c_quote,
+            )
+
         if state.char_index < len(raw_token) and char == raw_token[state.char_index]:
             char_index = state.char_index + 1
         else:
