@@ -1,51 +1,38 @@
-import os
-import sys
 import unittest
-
-# Ensure src is in PYTHONPATH
-sys.path.append(os.path.join(os.getcwd(), "src"))
 
 from linter.token_iterators.shlex import ShlexTokenIterator
 
 
 class TestIssueNestedQuotes(unittest.TestCase):
-    def test_complex_nested_quotes(self):
-        # The reproduction case provided by the user
+    def test_read_token__complex_nested_quotes__identifies_single_token(self):
         content = """test_two() {
   echo "complex nested"$'\n'"and escaped quotes\'\";"
 }"""
         iterator = ShlexTokenIterator(content)
 
-        # Collect tokens until we find ';'
         found_complex = False
+        token_start = -1
+        token_end = -1
         for token in iterator:
             if token == "echo":
                 continue
-            if (
-                token == "\n"
-                or token == " "
-                or token == "{"
-                or token == "}"
-                or token == "()"
-                or token == "test_two"
-            ):
+
+            if token in ("\n", " ", "{", "}", "()", "test_two"):
                 continue
 
-            # This should be our complex token
-            self.assertEqual(token.start_offset, 20)
-            # It should end where the ';' starts
-            # "test_two() {\n  echo " (20 chars)
-            # "complex nested"$'\n'"and escaped quotes\'\";" (41 chars)
-            # Wait, 20 + 41 = 61.
-            self.assertEqual(token.end_offset, 61)
+            token_start = token.start_offset
+            token_end = token.end_offset
             found_complex = True
             break
 
         self.assertTrue(found_complex)
+        self.assertEqual(token_start, 20)
+        self.assertEqual(token_end, 61)
 
-    def test_escaped_double_quote_in_double_quotes(self):
+    def test_read_token__escaped_double_quote__identifies_single_token(self):
         content = 'echo "a\\"b"'
         iterator = ShlexTokenIterator(content)
+
         tokens = [t for t in iterator if t != "\n"]
 
         self.assertEqual(len(tokens), 2)
